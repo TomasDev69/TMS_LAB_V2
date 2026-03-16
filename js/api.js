@@ -21,6 +21,7 @@ export async function callScriptAction(bodyObj) {
 export async function fetchYTProxy(url) {
     const encodedUrl = encodeURIComponent(url);
     const proxy = `https://api.allorigins.win/get?url=${encodedUrl}`;
+    const proxyFallback = `https://api.codetabs.com/v1/proxy?quest=${encodedUrl}`;
     devLog(`[YT-PROXY] Contatto server per: ${url.split('.com/')[1] || url}`, 'info');
     try {
         const res = await fetch(proxy, { cache: 'no-store', signal: AbortSignal.timeout(8000) });
@@ -28,7 +29,18 @@ export async function fetchYTProxy(url) {
             const data = await res.json();
             if(data.contents) return data.contents;
         }
-    } catch(e) { devLog(`[YT-PROXY] Errore di rete: ${e.message}`, 'warning'); }
+    } catch(e) { 
+        devLog(`[YT-PROXY] Errore di rete: ${e.message}. Provo fallback...`, 'warning'); 
+        try {
+            const res2 = await fetch(proxyFallback, { cache: 'no-store', signal: AbortSignal.timeout(8000) });
+            if(res2.ok) {
+                const text = await res2.text();
+                return text;
+            }
+        } catch(e2) {
+            devLog(`[YT-PROXY] Fallback fallito: ${e2.message}`, 'error');
+        }
+    }
     throw new Error("Impossibile connettersi al proxy.");
 }
 

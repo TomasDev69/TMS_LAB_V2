@@ -90,47 +90,6 @@ window.switchInspTab = (tabName) => {
         }
     });
     
-    // --- FORM: FINANZA (EARNINGS) ---
-    document.getElementById('finChartRange')?.addEventListener('change', () => { renderFinanceDashboard(); });
-
-    document.getElementById('formRevenue')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const amount = document.getElementById('revAmount').value;
-        const source = document.getElementById('revSource').value.trim();
-        const date = document.getElementById('revDate').value;
-        state.finance.revenues.push({ id: Date.now().toString(), amount, source, date });
-        renderFinanceDashboard(); closeModal('addRevenueModal', 'formRevenue'); autoSaveToCloud();
-    });
-
-    document.getElementById('formSub')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        state.finance.subscriptions.push({ 
-            id: Date.now().toString(), 
-            name: document.getElementById('subName').value.trim(), 
-            site: document.getElementById('subSite').value.trim(), 
-            price: document.getElementById('subPrice').value, 
-            cycle: document.getElementById('subCycle').value, 
-            nextRenewal: document.getElementById('subRenewal').value
-        });
-        renderFinanceDashboard(); closeModal('addSubModal', 'formSub'); autoSaveToCloud();
-    });
-
-    document.getElementById('formEditorCost')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const ideaId = document.getElementById('edCostIdea').value;
-        const editor = document.getElementById('edCostName').value;
-        if(!ideaId) { alert("Devi selezionare un'idea per poter associare un costo."); return; }
-        
-        state.finance.editorCosts.push({ 
-            id: Date.now().toString(), 
-            ideaId, 
-            editor, 
-            amount: document.getElementById('edCostAmount').value, 
-            date: document.getElementById('edCostDate').value 
-        });
-        renderFinanceDashboard(); closeModal('addEditorCostModal', 'formEditorCost'); autoSaveToCloud();
-    });
-    
     const mainActionBtn = document.getElementById('mainActionBtn');
     const mainActionText = document.getElementById('mainActionText');
 
@@ -611,29 +570,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         submitBtn.disabled = true; submitBtn.textContent = '🔄 Recupero info...';
+        devLog(`[PICKS] Inizio aggiunta video con ID: ${ytId}`, 'info');
 
+        let title = "Video YouTube";
         try {
-            const html = await fetchYTProxy(`https://www.youtube.com/watch?v=${ytId}`);
-            const ytDataStr = html.match(/var ytInitialData = (\{.*?\});<\/script>/);
-            let title = "Video YouTube";
-            if (ytDataStr) {
-                const ytData = JSON.parse(ytDataStr[1]);
-                try { title = ytData.contents.twoColumnWatchNextResults.results.results.contents[0].videoPrimaryInfoRenderer.title.runs[0].text; } catch(err) {}
+            devLog(`[PICKS] Tentativo recupero titolo da API pubblica...`, 'info');
+            const res = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${ytId}`);
+            const data = await res.json();
+            if (data && data.title) {
+                title = data.title;
+                devLog(`[PICKS] Titolo recuperato con successo: ${title}`, 'success');
+            } else {
+                devLog(`[PICKS] Nessun titolo valido ricevuto, uso nome generico.`, 'warning');
             }
-            
-            if(!state.tmsPicks) state.tmsPicks = [];
-            state.tmsPicks.push({
-                id: Date.now().toString(), ytId: ytId, title: title,
-                link: `https://www.youtube.com/watch?v=${ytId}`, addedAt: Date.now()
-            });
-
-            renderTMSPicks(); closeModal('addPickModal', 'pickForm'); autoSaveToCloud();
         } catch (error) {
-            alert("Errore durante il recupero dei dati del video.");
-        } finally {
-            submitBtn.disabled = false; submitBtn.textContent = 'Aggiungi Video';
-            document.getElementById('inputPickLink').value = '';
+            devLog(`[PICKS ERROR] Recupero titolo fallito: ${error.message}. Salvo come sconosciuto.`, 'error');
         }
+        
+        if(!state.tmsPicks) state.tmsPicks = [];
+        state.tmsPicks.push({ id: Date.now().toString(), ytId: ytId, title: title, link: `https://www.youtube.com/watch?v=${ytId}`, addedAt: Date.now() });
+        
+        renderTMSPicks(); closeModal('addPickModal', 'pickForm'); autoSaveToCloud();
+        
+        submitBtn.disabled = false; submitBtn.textContent = 'Aggiungi Video';
+        document.getElementById('inputPickLink').value = '';
     });
 
     document.getElementById('btnSyncChannel').addEventListener('click', async () => {
@@ -745,5 +705,66 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('closeEditChannelBtn')?.addEventListener('click', () => closeModal('editChannelModal'));
     document.getElementById('cancelEditChannelBtn')?.addEventListener('click', () => closeModal('editChannelModal'));
+
+    // --- FORM: FINANZA (EARNINGS) ---
+    document.getElementById('finChartRange')?.addEventListener('change', () => { renderFinanceDashboard(); });
+
+    document.getElementById('formRevenue')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const amount = document.getElementById('revAmount').value;
+        const source = document.getElementById('revSource').value.trim();
+        const date = document.getElementById('revDate').value;
+        state.finance.revenues.push({ id: Date.now().toString(), amount, source, date });
+        renderFinanceDashboard(); closeModal('addRevenueModal', 'formRevenue'); autoSaveToCloud();
+    });
+
+    document.getElementById('formSub')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        
+        let finalPrice = parseFloat(document.getElementById('subPrice').value);
+        const currency = document.getElementById('subCurrency').value;
+
+        if (currency === 'USD') {
+            submitBtn.disabled = true; submitBtn.textContent = '🔄 Conversione in corso...';
+            try {
+                const res = await fetch('https://open.er-api.com/v6/latest/USD');
+                const data = await res.json();
+                if (data && data.rates && data.rates.EUR) finalPrice = finalPrice * data.rates.EUR;
+                else throw new Error("Tasso non trovato");
+            } catch (err) {
+                devLog("[FINANCE] Impossibile recuperare tasso di cambio dal server. Uso fallback stimato (0.92).", "warning");
+                finalPrice = finalPrice * 0.92;
+            }
+        }
+
+        state.finance.subscriptions.push({ 
+            id: Date.now().toString(), 
+            name: document.getElementById('subName').value.trim(), 
+            site: document.getElementById('subSite').value.trim(), 
+            price: finalPrice.toFixed(2), 
+            cycle: document.getElementById('subCycle').value, 
+            nextRenewal: document.getElementById('subRenewal').value
+        });
+        submitBtn.disabled = false; submitBtn.textContent = originalText;
+        renderFinanceDashboard(); closeModal('addSubModal', 'formSub'); autoSaveToCloud();
+    });
+
+    document.getElementById('formEditorCost')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const ideaId = document.getElementById('edCostIdea').value;
+        const editor = document.getElementById('edCostName').value;
+        if(!ideaId) { alert("Devi selezionare un'idea per poter associare un costo."); return; }
+        
+        state.finance.editorCosts.push({ 
+            id: Date.now().toString(), 
+            ideaId, 
+            editor, 
+            amount: document.getElementById('edCostAmount').value, 
+            date: document.getElementById('edCostDate').value 
+        });
+        renderFinanceDashboard(); closeModal('addEditorCostModal', 'formEditorCost'); autoSaveToCloud();
+    });
 
 });
