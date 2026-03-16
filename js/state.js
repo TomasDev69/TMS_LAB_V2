@@ -13,6 +13,7 @@ export const state = {
         editorCosts: [],
         subscriptions: []
     },
+    devTodoList: [],
     feedDisplayIndex: 0,
     activeChannelId: null,
     activeStatusFilter: 'all',

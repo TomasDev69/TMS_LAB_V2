@@ -51,7 +51,8 @@ export async function autoSaveToCloud() {
         ideas: state.videoIdeas, channels: state.channels, tools: state.toolsData, 
         training: state.trainingData, editorsHub: state.editorsHubData, inspChannels: state.inspChannels,
         tmsPicks: state.tmsPicks,
-        finance: state.finance
+        finance: state.finance,
+        devTodoList: state.devTodoList
     };
     try {
         callScriptAction({ action: 'saveDB', data: payload }).then(() => {
@@ -96,6 +97,7 @@ export async function loadDataFromCloud() {
             if (data.editorsHub) state.editorsHubData = data.editorsHub;
             if (data.inspChannels) state.inspChannels = data.inspChannels;
             if (data.tmsPicks) state.tmsPicks = data.tmsPicks;
+            if (data.devTodoList) state.devTodoList = data.devTodoList;
             
             if (data.finance) {
                 state.finance = data.finance;
