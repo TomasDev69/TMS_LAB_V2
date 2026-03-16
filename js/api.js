@@ -54,18 +54,34 @@ export async function loadDataFromCloud() {
     
     try {
         const res = await fetch(state.SCRIPT_URL, { cache: 'no-store' });
-        const data = await res.json();
+        const rawText = await res.text();
+        
+        if (rawText.startsWith('<!DOCTYPE html>') || rawText.includes('<html')) {
+            throw new Error("Ricevuta pagina web HTML. Assicurati che lo Script sia impostato su 'Chiunque (Anyone)' e che il link termini per /exec");
+        }
+        
+        let data;
+        try {
+            data = JSON.parse(rawText);
+        } catch (e) {
+            throw new Error("Il file su Drive non è in formato JSON testuale. Assicurati che non sia un Documento Google.");
+        }
         
         if (data.status === 'error') {
             throw new Error(data.message);
         }
         
-        if (data.ideas) state.videoIdeas = data.ideas;
-        if (data.channels) state.channels = data.channels;
-        if (data.tools) state.toolsData = data.tools;
-        if (data.training) state.trainingData = data.training;
-        if (data.editorsHub) state.editorsHubData = data.editorsHub;
-        if (data.inspChannels) state.inspChannels = data.inspChannels;
+        if (Array.isArray(data)) {
+            state.videoIdeas = data;
+            devLog("[API] Rilevato database V1 (solo idee). Retrocompatibilità attivata.", "warning");
+        } else {
+            if (data.ideas) state.videoIdeas = data.ideas;
+            if (data.channels) state.channels = data.channels;
+            if (data.tools) state.toolsData = data.tools;
+            if (data.training) state.trainingData = data.training;
+            if (data.editorsHub) state.editorsHubData = data.editorsHub;
+            if (data.inspChannels) state.inspChannels = data.inspChannels;
+        }
 
         updateStatus("🟢 Sincronizzato", "success");
         devLog("[API] Dati caricati dal cloud con successo.", "success");
