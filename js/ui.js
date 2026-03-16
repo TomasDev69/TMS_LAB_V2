@@ -3,6 +3,7 @@ import { renderVideos, renderInspChannels, renderTools, renderTraining, renderEd
 
 export function devLog(message, type = 'info') {
     const consoleOutput = document.getElementById('consoleOutput');
+    if (!consoleOutput) return; // Evita crash se la console non c'è
     const time = new Date().toLocaleTimeString('it-IT');
     const el = document.createElement('div');
     let colorClass = 'text-gray-300'; let prefix = '[INFO]';
@@ -18,9 +19,11 @@ export function devLog(message, type = 'info') {
 export function updateStatus(text, type) {
     const dbStatusBadge = document.getElementById('dbStatusBadge');
     const mainActionBtn = document.getElementById('mainActionBtn');
-    dbStatusBadge.textContent = text;
-    dbStatusBadge.className = `text-xs px-2 py-0.5 rounded border ${type === 'success' ? 'bg-green-900/40 text-green-400 border-green-500/30' : type === 'error' ? 'bg-red-900/40 text-red-400 border-red-500/30' : 'bg-yellow-900/40 text-yellow-400 border-yellow-500/30'}`;
-    mainActionBtn.disabled = (type !== 'success');
+    if (dbStatusBadge) {
+        dbStatusBadge.textContent = text;
+        dbStatusBadge.className = `text-xs px-2 py-0.5 rounded border ${type === 'success' ? 'bg-green-900/40 text-green-400 border-green-500/30' : type === 'error' ? 'bg-red-900/40 text-red-400 border-red-500/30' : 'bg-yellow-900/40 text-yellow-400 border-yellow-500/30'}`;
+    }
+    if (mainActionBtn) mainActionBtn.disabled = (type !== 'success');
 }
 
 export function closeModal(modalId, formId) {

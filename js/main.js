@@ -106,27 +106,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- CONSOLE DEV ---
     const devConsoleModal = document.getElementById('devConsoleModal');
     const consoleOutput = document.getElementById('consoleOutput');
-    document.getElementById('openConsoleBtn').addEventListener('click', () => {
-        devConsoleModal.classList.remove('hidden'); devConsoleModal.classList.add('flex');
+    document.getElementById('openConsoleBtn')?.addEventListener('click', () => {
+        devConsoleModal?.classList.remove('hidden'); devConsoleModal?.classList.add('flex');
     });
-    document.getElementById('closeConsoleBtn').addEventListener('click', () => {
-        devConsoleModal.classList.add('hidden'); devConsoleModal.classList.remove('flex');
+    document.getElementById('closeConsoleBtn')?.addEventListener('click', () => {
+        devConsoleModal?.classList.add('hidden'); devConsoleModal?.classList.remove('flex');
     });
-    document.getElementById('clearConsoleBtn').addEventListener('click', () => {
-        consoleOutput.innerHTML = ''; devLog('[SISTEMA] Console pulita.', 'info');
+    document.getElementById('clearConsoleBtn')?.addEventListener('click', () => {
+        if(consoleOutput) consoleOutput.innerHTML = ''; devLog('[SISTEMA] Console pulita.', 'info');
     });
 
     // --- LOGIN GATE SYSTEM ---
-    document.getElementById('loginForm').addEventListener('submit', (e) => {
+    document.getElementById('loginForm')?.addEventListener('submit', (e) => {
         e.preventDefault();
         const user = document.getElementById('loginUserSelect').value;
         const pass = document.getElementById('loginPasswordInput').value;
         
         if (pass === "TMSLAB69") {
             localStorage.setItem('tmslab_logged_in_user', user);
-            document.getElementById('loginOverlay').classList.add('hidden');
-            document.getElementById('loginOverlay').classList.remove('flex');
-            document.getElementById('adminBtn').textContent = user.substring(0, 2).toUpperCase();
+            const loginOverlay = document.getElementById('loginOverlay');
+            if (loginOverlay) { loginOverlay.classList.add('hidden'); loginOverlay.classList.remove('flex'); }
+            const adminBtn = document.getElementById('adminBtn');
+            if (adminBtn) adminBtn.textContent = user.substring(0, 2).toUpperCase();
             
             if (state.SCRIPT_URL) loadDataFromCloud();
             else {
@@ -134,13 +135,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 devLog("[SISTEMA] Nessun link Database configurato. Clicca l'icona ingranaggio per impostarlo.", "warning");
             }
         } else {
-            document.getElementById('loginError').classList.remove('hidden');
-            document.getElementById('loginPasswordInput').value = '';
-            document.getElementById('loginPasswordInput').focus();
+            document.getElementById('loginError')?.classList.remove('hidden');
+            const passInput = document.getElementById('loginPasswordInput');
+            if(passInput) { passInput.value = ''; passInput.focus(); }
         }
     });
 
-    document.getElementById('logoutBtn').addEventListener('click', () => {
+    document.getElementById('logoutBtn')?.addEventListener('click', () => {
         if(confirm("Sei sicuro di voler uscire da TMS Lab?")) {
             localStorage.removeItem('tmslab_logged_in_user');
             location.reload(); 
@@ -150,26 +151,34 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- INIT AUTH CHECK ---
     const savedUser = localStorage.getItem('tmslab_logged_in_user');
     if (savedUser) {
-        document.getElementById('adminBtn').textContent = savedUser.substring(0, 2).toUpperCase();
+        const adminBtn = document.getElementById('adminBtn');
+        if (adminBtn) adminBtn.textContent = savedUser.substring(0, 2).toUpperCase();
         if (state.SCRIPT_URL) {
             loadDataFromCloud();
         } else {
             switchView('idee'); 
         }
     } else {
-        document.getElementById('loginOverlay').classList.remove('hidden');
-        document.getElementById('loginOverlay').classList.add('flex');
+        const loginOverlay = document.getElementById('loginOverlay');
+        if (loginOverlay) {
+            loginOverlay.classList.remove('hidden');
+            loginOverlay.classList.add('flex');
+        } else {
+            // Bypass automatico se non esiste la schermata di login HTML
+            if (state.SCRIPT_URL) loadDataFromCloud();
+            else switchView('idee'); 
+        }
     }
 
     // --- HEADER E SIDEBAR ---
-    document.getElementById('sidebarToggle').addEventListener('click', () => {
+    document.getElementById('sidebarToggle')?.addEventListener('click', () => {
         state.sidebarOpen = !state.sidebarOpen;
         document.getElementById('sidebar').classList.toggle('sidebar-expanded', state.sidebarOpen);
         document.getElementById('sidebar').classList.toggle('sidebar-collapsed', !state.sidebarOpen);
         document.querySelectorAll('.sidebar-label').forEach(el => el.style.display = state.sidebarOpen ? '' : 'none');
     });
 
-    document.getElementById('searchInput').addEventListener('input', () => {
+    document.getElementById('searchInput')?.addEventListener('input', () => {
         if (state.currentView === 'idee') renderVideos(getFilteredIdeas());
         if (state.currentView === 'inspirations') {
             if(state.currentInspTab === 'channels') renderInspChannels();
@@ -180,26 +189,28 @@ document.addEventListener('DOMContentLoaded', () => {
         if (state.currentView === 'editorshub') renderEditorsHub();
     });
 
-    document.getElementById('settingsBtn').addEventListener('click', () => {
-        document.getElementById('scriptUrlInput').value = state.SCRIPT_URL;
-        document.getElementById('settingsModal').classList.remove('hidden'); 
-        document.getElementById('settingsModal').classList.add('flex');
+    document.getElementById('settingsBtn')?.addEventListener('click', () => {
+        const urlInput = document.getElementById('scriptUrlInput');
+        if(urlInput) urlInput.value = state.SCRIPT_URL;
+        document.getElementById('settingsModal')?.classList.remove('hidden'); 
+        document.getElementById('settingsModal')?.classList.add('flex');
     });
 
-    document.getElementById('closeSettingsBtn').addEventListener('click', () => { 
-        document.getElementById('settingsModal').classList.add('hidden'); 
-        document.getElementById('settingsModal').classList.remove('flex'); 
+    document.getElementById('closeSettingsBtn')?.addEventListener('click', () => { 
+        document.getElementById('settingsModal')?.classList.add('hidden'); 
+        document.getElementById('settingsModal')?.classList.remove('flex'); 
     });
     
-    document.getElementById('saveSettingsBtn').addEventListener('click', () => {
-        state.SCRIPT_URL = document.getElementById('scriptUrlInput').value.trim(); 
+    document.getElementById('saveSettingsBtn')?.addEventListener('click', () => {
+        const urlInput = document.getElementById('scriptUrlInput');
+        state.SCRIPT_URL = urlInput ? urlInput.value.trim() : ''; 
         localStorage.setItem('creatorhub_script_url', state.SCRIPT_URL);
-        document.getElementById('settingsModal').classList.add('hidden'); 
-        document.getElementById('settingsModal').classList.remove('flex');
+        document.getElementById('settingsModal')?.classList.add('hidden'); 
+        document.getElementById('settingsModal')?.classList.remove('flex');
         loadDataFromCloud(); 
     });
 
-    document.getElementById('adminBtn').addEventListener('click', () => {
+    document.getElementById('adminBtn')?.addEventListener('click', () => {
         requirePin("Accesso al Pannello di Amministrazione di TMS Lab", () => {
             document.getElementById('adminModal').classList.remove('hidden'); 
             document.getElementById('adminModal').classList.add('flex');
