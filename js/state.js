@@ -6,6 +6,7 @@ export const state = {
     trainingData: [],
     editorsHubData: [],
     inspChannels: [],
+    tmsPicks: [],
     globalFeed: [],
     feedDisplayIndex: 0,
     activeChannelId: null,

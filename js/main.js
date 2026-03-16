@@ -4,7 +4,7 @@ import { devLog, updateStatus, closeModal, closePinModal, requirePin, switchView
 import { 
     renderVideos, getFilteredIdeas, renderChannelList, renderTools, 
     renderTraining, renderEditorsHub, renderStats, renderDatabaseStats, 
-    renderInspChannels, loadInspFeed, switchEHTab, updateAudioUI,
+    renderInspChannels, loadInspFeed, switchEHTab, updateAudioUI, renderTMSPicks,
     renderNextFeedBatch
 } from './renderers.js';
 import { compressImage, shuffleArray } from './utils.js';
@@ -18,6 +18,7 @@ window.closePinModal = closePinModal;
 window.requirePin = requirePin;
 window.renderChannelList = renderChannelList;
 window.renderDatabaseStats = renderDatabaseStats;
+window.renderTMSPicks = renderTMSPicks;
 window.switchEHTab = switchEHTab;
 
 window.openEarnings = () => {
@@ -74,6 +75,15 @@ window.switchInspTab = (tabName) => {
             document.getElementById('addInspChannelModal').classList.add('flex'); 
         };
         renderInspChannels();
+    } else if (tabName === 'picks') {
+        document.getElementById('inspChannelsView').classList.add('hidden');
+        document.getElementById('inspFeedView').classList.add('hidden');
+        document.getElementById('inspPicksView').classList.remove('hidden');
+        document.getElementById('btnRefreshFeed').classList.add('hidden');
+        mainActionBtn.classList.remove('hidden');
+        mainActionText.textContent = 'Aggiungi Pick';
+        mainActionBtn.onclick = () => { document.getElementById('addPickModal').classList.remove('hidden'); document.getElementById('addPickModal').classList.add('flex'); };
+        renderTMSPicks();
     } else {
         document.getElementById('inspChannelsView').classList.add('hidden');
         document.getElementById('inspFeedView').classList.remove('hidden');
@@ -114,6 +124,58 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.getElementById('clearConsoleBtn')?.addEventListener('click', () => {
         if(consoleOutput) consoleOutput.innerHTML = ''; devLog('[SISTEMA] Console pulita.', 'info');
+    });
+    
+    document.getElementById('trainingForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = document.getElementById('btnSubmitTraining');
+        const id = document.getElementById('inputTrainingId').value;
+        const title = document.getElementById('inputTrainingTitle').value.trim();
+        const link = document.getElementById('inputTrainingLink').value.trim();
+        const type = document.querySelector('input[name="trainingType"]:checked').value;
+        
+        let thumbnail = ''; let ytId = null;
+        submitBtn.disabled = true; submitBtn.textContent = '🔄 Salvataggio...';
+
+        if (type === 'youtube') {
+            ytId = window.getYouTubeID(link);
+            if (!ytId) {
+                alert("Link YouTube non valido.");
+                submitBtn.disabled = false; submitBtn.textContent = 'Salva Risorsa';
+                return;
+            }
+        } else {
+            if (!id && !state.files.training) {
+                alert("Carica un'immagine per la risorsa.");
+                submitBtn.disabled = false; submitBtn.textContent = 'Salva Risorsa';
+                return;
+            }
+            if (state.files.training) {
+                const compressedImg = await compressImage(state.files.training, 800, 0.8, 'image/webp');
+                if (compressedImg.sizeKB > 800) {
+                     alert("L'immagine è troppo pesante.");
+                     submitBtn.disabled = false; submitBtn.textContent = 'Salva Risorsa';
+                     return;
+                }
+                thumbnail = compressedImg.dataUrl;
+            }
+        }
+
+        if (id) {
+            let tr = state.trainingData.find(t => t.id === id);
+            if (tr) {
+                tr.title = title; tr.link = link;
+                if (type === 'youtube') { tr.ytId = ytId; tr.thumbnail = ''; } 
+                else { tr.ytId = null; if (thumbnail) tr.thumbnail = thumbnail; }
+            }
+        } else {
+            state.trainingData.push({ id: Date.now().toString(), title, link, ytId, thumbnail });
+        }
+
+        renderTraining(); closeModal('addTrainingModal', 'trainingForm');
+        state.files.training = null;
+        submitBtn.disabled = false; submitBtn.textContent = 'Salva Risorsa';
+        autoSaveToCloud();
     });
 
     // --- LOGIN GATE SYSTEM ---
@@ -465,6 +527,44 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('loadMoreFeedBtn').addEventListener('click', renderNextFeedBatch);
+
+    // --- FORM: TMS PICKS ---
+    document.getElementById('pickForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = document.getElementById('btnSubmitPick');
+        const link = document.getElementById('inputPickLink').value.trim();
+        const ytId = window.getYouTubeID(link);
+
+        if (!ytId) {
+            alert("Link YouTube non valido.");
+            return;
+        }
+
+        submitBtn.disabled = true; submitBtn.textContent = '🔄 Recupero info...';
+
+        try {
+            const html = await fetchYTProxy(`https://www.youtube.com/watch?v=${ytId}`);
+            const ytDataStr = html.match(/var ytInitialData = (\{.*?\});<\/script>/);
+            let title = "Video YouTube";
+            if (ytDataStr) {
+                const ytData = JSON.parse(ytDataStr[1]);
+                try { title = ytData.contents.twoColumnWatchNextResults.results.results.contents[0].videoPrimaryInfoRenderer.title.runs[0].text; } catch(err) {}
+            }
+            
+            if(!state.tmsPicks) state.tmsPicks = [];
+            state.tmsPicks.push({
+                id: Date.now().toString(), ytId: ytId, title: title,
+                link: `https://www.youtube.com/watch?v=${ytId}`, addedAt: Date.now()
+            });
+
+            renderTMSPicks(); closeModal('addPickModal', 'pickForm'); autoSaveToCloud();
+        } catch (error) {
+            alert("Errore durante il recupero dei dati del video.");
+        } finally {
+            submitBtn.disabled = false; submitBtn.textContent = 'Aggiungi Video';
+            document.getElementById('inputPickLink').value = '';
+        }
+    });
 
     document.getElementById('btnSyncChannel').addEventListener('click', async () => {
         // ... (Questa logica corposa di scraping è identica a prima ma usa state.inspChannels, 

@@ -150,9 +150,10 @@
             </div>
 
             <div id="viewInspirationsWrapper" class="hidden">
-                <div class="flex gap-6 border-b border-[#303030] mb-6 relative items-center">
-                    <button class="insp-tab active pb-2 font-bold text-gray-400" data-insptab="channels" onclick="switchInspTab('channels')">📊 Dashboard Canali</button>
-                    <button class="insp-tab pb-2 font-bold text-gray-400" data-insptab="feed" onclick="switchInspTab('feed')">📺 Feed Video (> 5 min)</button>
+                <div class="flex gap-6 border-b border-[#303030] mb-6 relative items-center overflow-x-auto scrollbar-hide">
+                    <button class="insp-tab active pb-2 font-bold text-gray-400 whitespace-nowrap" data-insptab="channels" onclick="switchInspTab('channels')">📊 Dashboard Canali</button>
+                    <button class="insp-tab pb-2 font-bold text-gray-400 whitespace-nowrap" data-insptab="feed" onclick="switchInspTab('feed')">📺 Feed Video (> 5 min)</button>
+                    <button class="insp-tab pb-2 font-bold text-gray-400 whitespace-nowrap" data-insptab="picks" onclick="switchInspTab('picks')">🎯 TMS Picks</button>
                     
                     <button id="btnRefreshFeed" class="absolute right-0 top-0 hidden bg-[#1c62b9] hover:bg-[#2573d4] text-white px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-lg flex items-center gap-1">
                         <span>🔄</span> Ricarica Feed
@@ -201,6 +202,13 @@
                         <button id="loadMoreFeedBtn" class="hidden px-8 py-3 bg-[#1c62b9] hover:bg-[#2573d4] shadow-lg rounded-full text-sm font-bold text-white transition-colors">
                             ⬇️ Carica altri video
                         </button>
+                    </div>
+                </div>
+
+                <div id="inspPicksView" class="hidden">
+                    <div id="picksGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+                    <div id="noPicksResults" class="text-center py-20 text-gray-400 flex flex-col items-center">
+                        <span class="text-4xl mb-3">🎯</span><p>Nessun video in TMS Picks. Aggiungine uno!</p>
                     </div>
                 </div>
             </div>
@@ -620,6 +628,27 @@
                         ⚡ Estrai Dati Canale
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="addPickModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[100] px-4">
+        <div class="bg-[#212121] rounded-xl w-full max-w-md shadow-2xl overflow-hidden border border-[#303030] max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b border-[#303030] shrink-0">
+                <h2 class="text-lg font-bold">Aggiungi a TMS Picks</h2>
+                <button onclick="closeModal('addPickModal', 'pickForm')" class="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-4 overflow-y-auto flex-1">
+                <form id="pickForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Link Video YouTube</label>
+                        <input type="url" id="inputPickLink" required placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-[#0f0f0f] border border-[#303030] rounded p-2 text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div class="pt-4 flex justify-end gap-2 border-t border-[#303030] mt-4">
+                        <button type="button" onclick="closeModal('addPickModal', 'pickForm')" class="px-4 py-2 rounded text-sm font-medium hover:bg-[#303030] transition-colors">Annulla</button>
+                        <button type="submit" id="btnSubmitPick" class="px-4 py-2 bg-[#3ea6ff] text-black rounded text-sm font-bold hover:bg-[#65b8ff] transition-colors">Aggiungi Video ⚡</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

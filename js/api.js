@@ -37,7 +37,8 @@ export async function autoSaveToCloud() {
     updateStatus("Salvataggio...", "warning");
     const payload = { 
         ideas: state.videoIdeas, channels: state.channels, tools: state.toolsData, 
-        training: state.trainingData, editorsHub: state.editorsHubData, inspChannels: state.inspChannels
+        training: state.trainingData, editorsHub: state.editorsHubData, inspChannels: state.inspChannels,
+        tmsPicks: state.tmsPicks
     };
     try {
         callScriptAction({ action: 'saveDB', data: payload }).then(() => {
@@ -81,6 +82,7 @@ export async function loadDataFromCloud() {
             if (data.training) state.trainingData = data.training;
             if (data.editorsHub) state.editorsHubData = data.editorsHub;
             if (data.inspChannels) state.inspChannels = data.inspChannels;
+            if (data.tmsPicks) state.tmsPicks = data.tmsPicks;
         }
 
         updateStatus("🟢 Sincronizzato", "success");

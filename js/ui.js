@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { renderVideos, renderInspChannels, renderTools, renderTraining, renderEditorsHub, renderStats, renderDatabaseStats, getFilteredIdeas, loadInspFeed } from './renderers.js';
+import { renderVideos, renderInspChannels, renderTools, renderTraining, renderEditorsHub, renderStats, renderDatabaseStats, getFilteredIdeas, loadInspFeed, renderTMSPicks } from './renderers.js';
 
 export function devLog(message, type = 'info') {
     const consoleOutput = document.getElementById('consoleOutput');
@@ -93,6 +93,10 @@ export function switchView(view) {
             mainActionBtn.classList.remove('hidden'); mainActionText.textContent = 'Aggiungi Canale';
             mainActionBtn.onclick = () => { document.getElementById('addInspChannelModal').classList.remove('hidden'); document.getElementById('addInspChannelModal').classList.add('flex'); };
             renderInspChannels();
+        } else if (state.currentInspTab === 'picks') {
+            mainActionBtn.classList.remove('hidden'); mainActionText.textContent = 'Aggiungi Pick';
+            mainActionBtn.onclick = () => { document.getElementById('addPickModal').classList.remove('hidden'); document.getElementById('addPickModal').classList.add('flex'); };
+            renderTMSPicks();
         } else {
             mainActionBtn.classList.add('hidden');
             if(state.globalFeed.length === 0) loadInspFeed();

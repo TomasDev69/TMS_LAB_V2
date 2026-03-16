@@ -548,7 +548,7 @@ export function renderDatabaseStats() {
     const sizeIdeas = parseFloat(getStringSizeInKB(JSON.stringify(state.videoIdeas)));
     const sizeTools = parseFloat(getStringSizeInKB(JSON.stringify(state.toolsData)));
     const sizeChannels = parseFloat(getStringSizeInKB(JSON.stringify(state.channels)));
-    const sizeOther = parseFloat(getStringSizeInKB(JSON.stringify(state.trainingData))) + parseFloat(getStringSizeInKB(JSON.stringify(state.editorsHubData))) + parseFloat(getStringSizeInKB(JSON.stringify(state.inspChannels)));
+    const sizeOther = parseFloat(getStringSizeInKB(JSON.stringify(state.trainingData))) + parseFloat(getStringSizeInKB(JSON.stringify(state.editorsHubData))) + parseFloat(getStringSizeInKB(JSON.stringify(state.inspChannels))) + parseFloat(getStringSizeInKB(JSON.stringify(state.tmsPicks)));
     
     const totalKB = sizeIdeas + sizeTools + sizeChannels + sizeOther;
     
@@ -592,6 +592,73 @@ export function renderDatabaseStats() {
             tableBody.appendChild(tr);
         });
     }
+}
+
+// ==========================================
+// RENDER TMS PICKS
+// ==========================================
+export async function renderTMSPicks() {
+    const grid = document.getElementById('picksGrid');
+    const noRes = document.getElementById('noPicksResults');
+    if (!grid) return;
+    
+    grid.innerHTML = '';
+    
+    if (!state.tmsPicks || state.tmsPicks.length === 0) {
+        noRes.classList.remove('hidden'); grid.classList.add('hidden');
+        return;
+    }
+    
+    noRes.classList.add('hidden'); grid.classList.remove('hidden');
+
+    [...state.tmsPicks].reverse().forEach(pick => {
+        const card = document.createElement('div');
+        card.className = 'bg-[#212121] rounded-xl overflow-hidden border border-[#303030] hover:border-[#3ea6ff] transition-colors flex flex-col group relative';
+        
+        const act = document.createElement('div');
+        act.className = 'absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-20';
+        act.innerHTML = `<button class="delBtn bg-red-600/90 hover:bg-red-500 text-white text-xs w-8 h-8 rounded-full shadow-lg hover:scale-110">🗑️</button>`;
+        act.querySelector('.delBtn').onclick = (e) => {
+            e.stopPropagation();
+            requirePin(`Eliminare il pick "${pick.title}"?`, async () => {
+                state.tmsPicks = state.tmsPicks.filter(p => p.id !== pick.id);
+                renderTMSPicks(); await autoSaveToCloud();
+            });
+        };
+
+        const thumbSrc = `https://img.youtube.com/vi/${pick.ytId}/maxresdefault.jpg`;
+        
+        card.innerHTML = `
+            <div class="relative aspect-video bg-[#111] cursor-pointer" onclick="window.open('${pick.link}', '_blank')">
+                <img src="${thumbSrc}" onerror="this.src='https://img.youtube.com/vi/${pick.ytId}/hqdefault.jpg'" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                    <span class="text-5xl drop-shadow-lg">▶️</span>
+                </div>
+                <div class="absolute bottom-2 left-2 bg-black/80 px-2 py-1 rounded text-xs font-bold text-gray-300 border border-[#444] backdrop-blur-sm flex items-center gap-1 picks-stats-${pick.ytId}">
+                    <span class="animate-pulse">⏳ Info...</span>
+                </div>
+            </div>
+            <div class="p-4 flex-1 flex flex-col justify-center">
+                <h3 class="font-bold text-white text-sm line-clamp-2 leading-tight group-hover:text-[#3ea6ff] transition-colors" title="${pick.title}">${pick.title}</h3>
+            </div>
+        `;
+        card.appendChild(act); grid.appendChild(card);
+        
+        fetchYTProxy(`https://www.youtube.com/watch?v=${pick.ytId}`).then(html => {
+            const ytDataStr = html.match(/var ytInitialData = (\{.*?\});<\/script>/);
+            if (ytDataStr) {
+                const ytData = JSON.parse(ytDataStr[1]);
+                let views = "N/A views", date = "Sconosciuta";
+                try {
+                    const primaryInfo = ytData.contents.twoColumnWatchNextResults.results.results.contents[0].videoPrimaryInfoRenderer;
+                    views = primaryInfo.viewCount.videoViewCountRenderer.shortViewCount.simpleText || primaryInfo.viewCount.videoViewCountRenderer.viewCount.simpleText;
+                    date = primaryInfo.dateText.simpleText;
+                } catch(e) {}
+                const statsEl = card.querySelector(`.picks-stats-${pick.ytId}`);
+                if (statsEl) statsEl.innerHTML = `<span>👀 ${views}</span> <span class="text-[8px] opacity-50 mx-1">•</span> <span>📅 ${date}</span>`;
+            }
+        }).catch(() => { const statsEl = card.querySelector(`.picks-stats-${pick.ytId}`); if(statsEl) statsEl.innerHTML = `<span class="text-red-400">Errore info</span>`; });
+    });
 }
 
 // ==========================================
