@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TMS Lab - Bacheca Idee Video</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/styles.css"> </head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <div id="loginOverlay" class="fixed inset-0 bg-[#0f0f0f] z-[9999] hidden items-center justify-center px-4">
+        <div class="bg-[#1a1a1a] rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-[#303030] p-8 flex flex-col items-center">
+            <div class="w-16 h-16 bg-[#272727] rounded-full flex items-center justify-center text-3xl border border-[#404040] mb-4 shadow-inner">🔒</div>
+            <h2 class="text-2xl font-black text-white mb-1 text-center tracking-tight">Accesso TMS Lab</h2>
+            <p class="text-gray-500 text-[13px] text-center mb-8">Seleziona il tuo profilo e inserisci la password del team.</p>
+            
+            <form id="loginForm" class="w-full space-y-5">
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Chi sei?</label>
+                    <select id="loginUserSelect" required class="w-full bg-[#0f0f0f] border border-[#404040] rounded-xl p-3.5 text-white focus:outline-none focus:border-blue-500 appearance-none cursor-pointer">
+                        <option value="" disabled selected>Seleziona utente...</option>
+                        <option value="DG">DG</option>
+                        <option value="Tomas">Tomas</option>
+                        <option value="Pierò">Pierò</option>
+                        <option value="GFS">GFS</option>
+                        <option value="Noemi">Noemi</option>
+                        <option value="Alex">Alex</option>
+                        <option value="Davide">Davide</option>
+                        <option value="Rog">Rog</option>
+                        <option value="Camel">Camel</option>
+                        <option value="Gatti">Gatti</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Password Principale</label>
+                    <input type="password" id="loginPasswordInput" required placeholder="••••••••" class="w-full bg-[#0f0f0f] border border-[#404040] rounded-xl p-3.5 text-white focus:outline-none focus:border-blue-500 font-mono tracking-widest text-center text-lg">
+                </div>
+                <p id="loginError" class="text-red-500 text-sm font-bold hidden text-center mt-2">Password errata!</p>
+                <button type="submit" class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-colors mt-8 shadow-lg shadow-blue-900/20">Entra nel Lab</button>
+            </form>
+        </div>
+    </div>
+
+    <header class="flex items-center justify-between px-4 h-14 bg-[#0f0f0f] shrink-0 sticky top-0 z-50 border-b border-[#303030]">
+        <div class="flex items-center gap-4">
+            <button id="sidebarToggle" class="text-2xl p-2 hover:bg-[#272727] rounded-full w-10 h-10 flex items-center justify-center transition-colors">&#9776;</button>
+            <div class="flex items-center gap-1 cursor-pointer">
+                <span class="text-red-600 text-2xl font-bold">&#9654;</span>
+                <span class="text-xl font-bold tracking-tighter">TMS Lab</span>
+            </div>
+        </div>
+
+        <div class="hidden sm:flex items-center flex-1 max-w-[500px] mx-8">
+            <div class="flex w-full border border-[#303030] rounded-l-full bg-[#121212] overflow-hidden focus-within:border-[#1c62b9]">
+                <input type="text" id="searchInput" placeholder="Cerca..." class="w-full bg-transparent text-white px-4 py-2 outline-none">
+            </div>
+            <button class="bg-[#222222] border border-l-0 border-[#303030] rounded-r-full px-5 py-2 hover:bg-[#303030] transition-colors">&#128269;</button>
+        </div>
+
+        <div class="flex items-center gap-2 sm:gap-4">
+            <button id="mainActionBtn" class="flex items-center gap-2 bg-[#f1f1f1] text-black hover:bg-[#d0d0d0] px-3 py-1.5 rounded-full text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <span class="text-lg leading-none">&#10133;</span> <span id="mainActionText">Crea Idea</span>
+            </button>
+            <button id="settingsBtn" class="text-xl p-2 hover:bg-[#272727] rounded-full w-10 h-10 flex items-center justify-center transition-colors ml-1" title="Configura Connessione Database">⚙️</button>
+            <button id="adminBtn" class="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center font-bold cursor-pointer ml-1 text-sm hover:bg-blue-500 transition-colors shadow-lg" title="Pannello Amministratore">TU</button>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+
+        <aside id="sidebar" class="sidebar-expanded bg-[#0f0f0f] hidden sm:flex flex-col overflow-hidden transition-all duration-300 pt-3 border-r border-[#303030] shrink-0">
+            <div class="px-4 mb-2"><span class="sidebar-label text-[11px] font-bold uppercase tracking-widest text-gray-500">Navigazione</span></div>
+            <div id="navIdee" class="channel-item active flex items-center gap-3 py-2.5 mx-2 rounded-lg cursor-pointer mb-1" onclick="switchView('idee')">
+                <span class="text-xl">💡</span><span class="sidebar-label text-sm font-semibold text-white whitespace-nowrap overflow-hidden">Idee Video</span>
+            </div>
+            <div id="navInspirations" class="channel-item flex items-center gap-3 py-2.5 mx-2 rounded-lg cursor-pointer mb-1" onclick="switchView('inspirations')">
+                <span class="text-xl">🌟</span><span class="sidebar-label text-sm font-semibold text-white whitespace-nowrap overflow-hidden">Inspirations</span>
+            </div>
+            <div id="navStrumenti" class="channel-item flex items-center gap-3 py-2.5 mx-2 rounded-lg cursor-pointer mb-1" onclick="switchView('strumenti')">
+                <span class="text-xl">🛠️</span><span class="sidebar-label text-sm font-semibold text-white whitespace-nowrap overflow-hidden">Risorse & Tools</span>
+            </div>
+            <div id="navFormazione" class="channel-item flex items-center gap-3 py-2.5 mx-2 rounded-lg cursor-pointer mb-1" onclick="switchView('formazione')">
+                <span class="text-xl">🎓</span><span class="sidebar-label text-sm font-semibold text-white whitespace-nowrap overflow-hidden">Formazione</span>
+            </div>
+            <div id="navEditorsHub" class="channel-item flex items-center gap-3 py-2.5 mx-2 rounded-lg cursor-pointer mb-1" onclick="switchView('editorshub')">
+                <span class="text-xl">🎛️</span><span class="sidebar-label text-sm font-semibold text-white whitespace-nowrap overflow-hidden">Editors Hub</span>
+            </div>
+            <div id="navScript" class="channel-item flex items-center gap-3 py-2.5 mx-2 rounded-lg cursor-pointer mb-1" onclick="switchView('script')">
+                <span class="text-xl">📝</span><span class="sidebar-label text-sm font-semibold text-white whitespace-nowrap overflow-hidden">Analisi Script</span>
+            </div>
+            <div id="navStats" class="channel-item flex items-center gap-3 py-2.5 mx-2 rounded-lg cursor-pointer mb-1" onclick="switchView('stats')">
+                <span class="text-xl">📊</span><span class="sidebar-label text-sm font-semibold text-white whitespace-nowrap overflow-hidden">Statistiche</span>
+            </div>
+            <div id="navDatabase" class="channel-item flex items-center gap-3 py-2.5 mx-2 rounded-lg cursor-pointer mb-1" onclick="switchView('database')">
+                <span class="text-xl">💾</span><span class="sidebar-label text-sm font-semibold text-white whitespace-nowrap overflow-hidden">Analisi Database</span>
+            </div>
+
+            <div class="mx-4 border-t border-[#303030] my-2"></div>
+            <div id="navEarnings" class="channel-item flex items-center gap-3 py-2.5 mx-2 rounded-lg cursor-pointer mb-1 hover:bg-green-900/20 group" onclick="openEarnings()">
+                <span class="text-xl group-hover:scale-110 transition-transform">💰</span>
+                <span class="sidebar-label text-sm font-semibold text-green-500 whitespace-nowrap overflow-hidden">Earnings (Private)</span>
+            </div>
+            <div class="mx-4 border-t border-[#303030] my-2"></div>
+
+            <div id="filterAll" class="channel-item flex items-center gap-3 py-2.5 mx-2 rounded-lg cursor-pointer mb-1" onclick="setActiveFilter(null)">
+                <span class="text-xl">&#127968;</span><span class="sidebar-label text-sm font-semibold text-blue-400 whitespace-nowrap overflow-hidden">Tutte le idee</span>
+            </div>
+
+            <div class="flex items-center justify-between px-4 mb-2 mt-2">
+                <span class="sidebar-label text-[11px] font-bold uppercase tracking-widest text-gray-500 whitespace-nowrap">I tuoi Canali</span>
+                <button id="addChannelBtn" class="sidebar-label text-gray-400 hover:text-white w-6 h-6 flex items-center justify-center rounded hover:bg-[#303030] transition-colors text-lg leading-none" title="Aggiungi canale">+</button>
+            </div>
+
+            <div id="channelList" class="flex flex-col gap-0.5 overflow-y-auto flex-1 px-2 pb-2 border-b border-[#303030] mb-2"></div>
+
+            <div class="mt-auto mb-2 px-2 flex flex-col gap-1">
+                <button id="openConsoleBtn" class="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded hover:bg-[#272727] transition-colors group">
+                    <span class="text-gray-400 group-hover:text-green-400 transition-colors">👨‍💻</span>
+                    <span class="sidebar-label text-xs font-mono text-gray-400 group-hover:text-green-400 transition-colors">Apri Console Dev</span>
+                </button>
+                <div class="px-2 sidebar-label mt-1"><p class="text-[11px] text-gray-600">💡 Dati sincronizzati su Drive.</p></div>
+            </div>
+        </aside>
+
+        <main class="flex-1 overflow-y-auto bg-[#0f0f0f] p-4 sm:p-6 relative">
+
+            <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+                <div>
+                    <h1 class="text-xl font-bold flex items-center gap-2">
+                        <span id="pageTitle">Le tue Idee Video</span>
+                        <span id="dbStatusBadge" class="text-xs bg-red-900/40 text-red-400 px-2 py-0.5 rounded border border-red-500/30">Disconnesso</span>
+                    </h1>
+                    <p class="text-sm text-gray-400 mt-1" id="pageSubtitle">Clicca sull'icona ⚙️ per collegare il database di Google Drive.</p>
+                </div>
+            </div>
+
+            <div id="viewIdeeWrapper" class="block">
+                <div class="flex gap-2 overflow-x-auto pb-4 mb-2 border-b border-[#303030] scrollbar-hide text-sm">
+                    <button class="status-filter active px-4 py-1.5 rounded-full border border-[#404040] text-gray-300 whitespace-nowrap" data-status="all">Tutte le idee</button>
+                    <button class="status-filter px-4 py-1.5 rounded-full border border-[#404040] text-gray-300 whitespace-nowrap flex items-center gap-1" data-status="new"><span class="w-2 h-2 rounded-full bg-blue-500"></span> Nuove Idee (<span id="countNew">0</span>)</button>
+                    <button class="status-filter px-4 py-1.5 rounded-full border border-[#404040] text-gray-300 whitespace-nowrap flex items-center gap-1" data-status="available"><span class="w-2 h-2 rounded-full bg-yellow-500"></span> Disponibili (<span id="countAvailable">0</span>)</button>
+                    <button class="status-filter px-4 py-1.5 rounded-full border border-[#404040] text-gray-300 whitespace-nowrap flex items-center gap-1" data-status="progress"><span class="w-2 h-2 rounded-full bg-purple-500"></span> In Progress (<span id="countProgress">0</span>)</button>
+                    <button class="status-filter px-4 py-1.5 rounded-full border border-[#404040] text-gray-300 whitespace-nowrap flex items-center gap-1" data-status="completed"><span class="w-2 h-2 rounded-full bg-green-500"></span> Completed (<span id="countCompleted">0</span>)</button>
+                </div>
+                <div id="videoGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-x-4 gap-y-8 hidden mt-6"></div>
+                <div id="noResults" class="text-center py-20 text-gray-400 flex flex-col items-center hidden">
+                    <span class="text-4xl mb-3">☁️</span><p>Nessuna idea in questa categoria.</p>
+                </div>
+            </div>
+
+            <div id="viewInspirationsWrapper" class="hidden">
+                <div class="flex gap-6 border-b border-[#303030] mb-6 relative items-center">
+                    <button class="insp-tab active pb-2 font-bold text-gray-400" data-insptab="channels" onclick="switchInspTab('channels')">📊 Dashboard Canali</button>
+                    <button class="insp-tab pb-2 font-bold text-gray-400" data-insptab="feed" onclick="switchInspTab('feed')">📺 Feed Video (> 5 min)</button>
+                    
+                    <button id="btnRefreshFeed" class="absolute right-0 top-0 hidden bg-[#1c62b9] hover:bg-[#2573d4] text-white px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-lg flex items-center gap-1">
+                        <span>🔄</span> Ricarica Feed
+                    </button>
+                </div>
+
+                <div id="inspChannelsView" class="block">
+                    <div class="bg-[#1a1a1a] p-3 rounded-lg border border-[#303030] mb-4 text-[12px] text-gray-400 flex flex-wrap gap-4 items-center">
+                        <strong class="text-white">Come viene calcolato il Trend?</strong>
+                        <span><span class="text-green-400">🔥 In Crescita</span> (Views recenti > Media storica)</span>
+                        <span><span class="text-gray-300">➡️ Stabile</span> (Views in linea con la media)</span>
+                        <span><span class="text-red-400">📉 In Calo</span> (Views recenti < Media storica)</span>
+                    </div>
+
+                    <div class="bg-[#1a1a1a] border border-[#303030] rounded-xl overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm text-gray-300 whitespace-nowrap">
+                                <thead class="text-xs uppercase bg-[#222] text-gray-500 border-b border-[#303030]">
+                                    <tr>
+                                        <th class="px-5 py-4">Canale YouTube</th>
+                                        <th class="px-5 py-4">Iscritti</th>
+                                        <th class="px-5 py-4">Media Views Storica</th>
+                                        <th class="px-5 py-4">Frequenza (Mese)</th>
+                                        <th class="px-5 py-4 flex items-center gap-1">
+                                            Trend 
+                                            <span class="cursor-pointer text-blue-400 text-base" onclick="alert('Come viene calcolato il Trend?\n\nIl sistema scarica i video recenti e ne fa una media.\n\n🔥 In Crescita: I video recenti hanno un +15% di views rispetto alla media storica del canale.\n➡️ Stabile: Le views sono in linea con la media.\n📉 In Calo: I video recenti hanno meno views della media o il canale non posta da oltre 1 mese.')">ℹ️</span>
+                                        </th>
+                                        <th class="px-5 py-4 text-right">Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inspChannelListBody" class="divide-y divide-[#303030]"></tbody>
+                            </table>
+                        </div>
+                        <div id="noInspChannels" class="text-center py-16 text-gray-500 hidden">
+                            <span class="text-4xl mb-3 block">📊</span><p>Nessun canale monitorato. Aggiungine uno per iniziare a generare il feed.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="inspFeedView" class="hidden">
+                    <div id="inspFeedGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-x-4 gap-y-8"></div>
+                    <div id="noInspFeed" class="text-center py-16 text-gray-500 hidden">
+                        <span class="text-4xl mb-3 block">📡</span><p>Nessun canale tracciato o feed in caricamento. Aggiungi canali alla Dashboard.</p>
+                    </div>
+                    <div class="flex justify-center mt-8 mb-6">
+                        <button id="loadMoreFeedBtn" class="hidden px-8 py-3 bg-[#1c62b9] hover:bg-[#2573d4] shadow-lg rounded-full text-sm font-bold text-white transition-colors">
+                            ⬇️ Carica altri video
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="viewStrumentiWrapper" class="hidden">
+                <div id="toolsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+                <div id="noToolsResults" class="text-center py-20 text-gray-400 flex flex-col items-center">
+                    <span class="text-4xl mb-3">🛠️</span><p>Nessuno strumento salvato. Aggiungine uno!</p>
+                </div>
+            </div>
+
+            <div id="viewFormazioneWrapper" class="hidden">
+                <div id="trainingGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+                <div id="noTrainingResults" class="text-center py-20 text-gray-400 flex flex-col items-center">
+                    <span class="text-4xl mb-3">🎓</span><p>Nessun video di formazione salvato. Aggiungine uno!</p>
+                </div>
+            </div>
+
+            <div id="viewEditorsHubWrapper" class="hidden">
+                <div class="flex gap-6 border-b border-[#303030] mb-6">
+                    <button class="eh-tab active pb-2 font-bold text-gray-400" data-ehtab="sfx" onclick="switchEHTab('sfx')">🔊 Sound Effects (SFX)</button>
+                    <button class="eh-tab pb-2 font-bold text-gray-400" data-ehtab="music" onclick="switchEHTab('music')">🎵 Musica</button>
+                    <button class="eh-tab pb-2 font-bold text-gray-400" data-ehtab="icons" onclick="switchEHTab('icons')">🖼️ Icone/Immagini</button>
+                </div>
+                <div id="ehGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+                <div id="noEHResults" class="text-center py-20 text-gray-400 flex flex-col items-center">
+                    <span class="text-4xl mb-3">🎛️</span><p>Nessun file presente in questa libreria.</p>
+                </div>
+            </div>
+            
+            <div id="viewScriptWrapper" class="hidden h-[calc(100vh-140px)]">
+                <div class="bg-[#1e1e1e] rounded-xl w-full shadow-2xl overflow-hidden border border-[#303030] flex flex-col h-full">
+                    <div class="flex flex-1 overflow-hidden flex-col md:flex-row">
+                        <div class="flex-1 p-6 flex flex-col bg-[#121212]">
+                            <textarea id="scriptInput" class="w-full flex-1 bg-transparent text-gray-200 resize-none outline-none text-lg leading-relaxed placeholder-gray-600" placeholder="Incolla o scrivi qui il tuo script per analizzarlo in tempo reale..."></textarea>
+                        </div>
+                        <div class="w-full md:w-80 bg-[#1a1a1a] border-t md:border-t-0 md:border-l border-[#303030] p-6 flex flex-col gap-6 shrink-0 overflow-y-auto">
+                            <div>
+                                <h3 class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-4">Statistiche Testo</h3>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="bg-[#272727] p-3 rounded-lg border border-[#333]">
+                                        <div class="text-2xl font-black text-white" id="statChars">0</div>
+                                        <div class="text-[11px] text-gray-400 uppercase tracking-wide mt-1">Caratteri</div>
+                                    </div>
+                                    <div class="bg-[#272727] p-3 rounded-lg border border-[#333]">
+                                        <div class="text-2xl font-black text-blue-400" id="statWords">0</div>
+                                        <div class="text-[11px] text-gray-400 uppercase tracking-wide mt-1">Parole</div>
+                                    </div>
+                                    <div class="bg-[#272727] p-3 rounded-lg border border-[#333]">
+                                        <div class="text-2xl font-black text-purple-400" id="statSentences">0</div>
+                                        <div class="text-[11px] text-gray-400 uppercase tracking-wide mt-1">Frasi</div>
+                                    </div>
+                                    <div class="bg-[#272727] p-3 rounded-lg border border-[#333]">
+                                        <div class="text-2xl font-black text-green-400" id="statTime">0s</div>
+                                        <div class="text-[11px] text-gray-400 uppercase tracking-wide mt-1">Stima Video</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <hr class="border-[#444]">
+                            <div>
+                                <h3 class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-3">Rating in Tempo Reale</h3>
+                                <div id="statRating" class="bg-[#272727] p-4 rounded-lg border border-[#333] text-sm leading-relaxed">
+                                    <span class="text-gray-500 italic">Inizia a scrivere per l'analisi...</span>
+                                </div>
+                            </div>
+                            <div class="mt-auto pt-4">
+                                <p class="text-[11px] text-gray-500 leading-tight">
+                                    *La stima del video è calcolata su una velocità di lettura media di circa 180 parole al minuto (3 parole al secondo).
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="viewStatsWrapper" class="hidden">
+                <div class="flex flex-col gap-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="bg-[#1a1a1a] border border-[#303030] p-5 rounded-xl flex items-center justify-between">
+                            <div><p class="text-gray-400 text-xs font-bold uppercase tracking-wider">Idee Totali</p><h3 class="text-3xl font-black text-white mt-1" id="statTotalIdeas">0</h3></div><div class="text-4xl">💡</div>
+                        </div>
+                        <div class="bg-[#1a1a1a] border border-[#303030] p-5 rounded-xl flex items-center justify-between">
+                            <div><p class="text-gray-400 text-xs font-bold uppercase tracking-wider">Nuove (48h)</p><h3 class="text-3xl font-black text-blue-400 mt-1" id="statNewIdeas">0</h3></div><div class="text-4xl">✨</div>
+                        </div>
+                        <div class="bg-[#1a1a1a] border border-[#303030] p-5 rounded-xl flex items-center justify-between">
+                            <div><p class="text-gray-400 text-xs font-bold uppercase tracking-wider">In Lavorazione</p><h3 class="text-3xl font-black text-purple-400 mt-1" id="statProgressIdeas">0</h3></div><div class="text-4xl">🛠️</div>
+                        </div>
+                        <div class="bg-[#1a1a1a] border border-[#303030] p-5 rounded-xl flex items-center justify-between">
+                            <div><p class="text-gray-400 text-xs font-bold uppercase tracking-wider">Video Prodotti</p><h3 class="text-3xl font-black text-green-400 mt-1" id="statCompletedIdeas">0</h3></div><div class="text-4xl">🚀</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 flex flex-col gap-6">
+                            <div class="bg-gradient-to-br from-[#1a1a1a] to-[#222] border border-[#303030] p-6 rounded-xl">
+                                <h2 class="text-lg font-bold text-white flex items-center gap-2 mb-4">🧠 Analisi & Consigli</h2>
+                                <ul id="statsInsightsList" class="space-y-3 text-sm text-gray-300"></ul>
+                            </div>
+                            <div class="bg-[#1a1a1a] border border-[#303030] rounded-xl overflow-hidden">
+                                <div class="p-4 border-b border-[#303030] bg-[#222] flex justify-between items-center">
+                                    <h2 class="text-lg font-bold text-white flex items-center gap-2">👥 Performance del Team</h2>
+                                    <select id="teamSortSelect" class="bg-[#0f0f0f] border border-[#404040] text-gray-300 text-xs rounded px-2 py-1 outline-none focus:border-blue-500">
+                                        <option value="completed">Ordina per: Finiti</option>
+                                        <option value="inProgress">Ordina per: In Corso</option>
+                                        <option value="total">Ordina per: Totali</option>
+                                    </select>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left text-sm text-gray-300">
+                                        <thead class="text-xs uppercase bg-[#111] text-gray-500">
+                                            <tr>
+                                                <th class="px-4 py-3">Membro</th>
+                                                <th class="px-4 py-3">Video in Corso</th>
+                                                <th class="px-4 py-3">Video Completati</th>
+                                                <th class="px-4 py-3">Totale Prese in Carico</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="teamPerformanceBody" class="divide-y divide-[#303030]"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-[#1a1a1a] border border-[#303030] rounded-xl overflow-hidden flex flex-col h-[500px]">
+                            <div class="p-4 border-b border-[#303030] bg-[#222] shrink-0">
+                                <h2 class="text-lg font-bold text-white flex items-center gap-2">⏱️ Timeline Recente</h2>
+                            </div>
+                            <div class="p-4 overflow-y-auto flex-1">
+                                <div class="relative border-l border-[#404040] ml-3" id="timelineContainer"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="viewDatabaseWrapper" class="hidden">
+                <div class="flex flex-col gap-6">
+                    <div class="bg-[#1a1a1a] border border-[#303030] rounded-xl p-6 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+                        <h2 class="text-2xl font-black text-white mb-1 relative z-10">Stato Database JSON</h2>
+                        <p class="text-sm text-gray-400 mb-6 relative z-10">Monitora lo spazio occupato. Meno Base64 usi, più veloce sarà il caricamento.</p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+                            <div class="bg-[#222] border border-[#404040] p-4 rounded-lg flex flex-col justify-center">
+                                <span class="text-xs text-gray-500 uppercase tracking-widest font-bold mb-1">Peso Totale Stimato</span>
+                                <div class="flex items-end gap-2">
+                                    <span class="text-4xl font-black text-blue-400" id="dbTotalSize">0</span>
+                                    <span class="text-lg text-gray-400 mb-1" id="dbTotalUnit">KB</span>
+                                </div>
+                            </div>
+                            
+                            <div class="md:col-span-2 bg-[#222] border border-[#404040] p-5 rounded-lg flex flex-col justify-center">
+                                <span class="text-xs text-gray-500 uppercase tracking-widest font-bold mb-3">Distribuzione Spazio</span>
+                                <div class="w-full h-4 bg-[#111] rounded-full overflow-hidden flex shadow-inner">
+                                    <div id="dbBarIdeas" class="h-full bg-[#3ea6ff] progress-bar-fill" style="width: 0%" title="Idee"></div>
+                                    <div id="dbBarTools" class="h-full bg-[#a855f7] progress-bar-fill" style="width: 0%" title="Strumenti"></div>
+                                    <div id="dbBarChannels" class="h-full bg-[#facc15] progress-bar-fill" style="width: 0%" title="Canali"></div>
+                                    <div id="dbBarOther" class="h-full bg-[#4ade80] progress-bar-fill" style="width: 0%" title="Altro"></div>
+                                </div>
+                                <div class="flex flex-wrap gap-4 mt-3 text-[11px] font-bold text-gray-400">
+                                    <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-[#3ea6ff]"></span> Idee: <span id="dbSizeIdeas" class="text-gray-200">0 KB</span></div>
+                                    <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-[#a855f7]"></span> Strumenti: <span id="dbSizeTools" class="text-gray-200">0 KB</span></div>
+                                    <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-[#facc15]"></span> Canali: <span id="dbSizeChannels" class="text-gray-200">0 KB</span></div>
+                                    <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-[#4ade80]"></span> Altro: <span id="dbSizeOther" class="text-gray-200">0 KB</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-[#1a1a1a] border border-[#303030] rounded-xl overflow-hidden">
+                        <div class="p-5 border-b border-[#303030] bg-red-900/10 flex justify-between items-center">
+                            <div>
+                                <h2 class="text-lg font-bold text-red-400 flex items-center gap-2">⚠️ Rilevatore Elementi Pesanti (Base64)</h2>
+                                <p class="text-xs text-gray-400 mt-1">Questi elementi contengono immagini salvate direttamente nel testo. Eliminali o sostituiscili con URL normali.</p>
+                            </div>
+                            <button onclick="renderDatabaseStats()" class="px-4 py-2 bg-[#303030] hover:bg-[#404040] text-white rounded text-sm transition-colors">Aggiorna Analisi</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm text-gray-300">
+                                <thead class="text-xs uppercase bg-[#111] text-gray-500">
+                                    <tr>
+                                        <th class="px-5 py-3">Tipo</th>
+                                        <th class="px-5 py-3">Nome / Titolo</th>
+                                        <th class="px-5 py-3">Peso Immagine</th>
+                                        <th class="px-5 py-3 text-right">Azione Ràpida</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dbHeavyItemsBody" class="divide-y divide-[#303030]"></tbody>
+                            </table>
+                            <div id="dbNoHeavyItems" class="text-center py-10 text-gray-500 hidden">
+                                <span class="text-3xl block mb-2">🎉</span>
+                                <p class="font-bold text-green-400">Nessun elemento pesante rilevato!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="viewEarningsWrapper" class="hidden">
+                <div class="bg-[#1a1a1a] rounded-xl border border-green-900/50 p-10 text-center flex flex-col items-center justify-center min-h-[400px]">
+                    <span class="text-6xl mb-4">💰</span>
+                    <h2 class="text-2xl font-black text-white mb-2">Earnings Dashboard</h2>
+                    <p class="text-gray-400 max-w-md mx-auto">Questa sezione è attualmente in fase di sviluppo. In futuro mostrerà metriche finanziarie, RPM, CPM e proiezioni di guadagno del network.</p>
+                    <div class="mt-8 px-6 py-2 bg-green-900/20 text-green-400 rounded-full border border-green-500/30 text-sm font-bold">Lavori in corso... 🚧</div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <div id="ideaDashboardModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[150] px-4 backdrop-blur-sm">
+        <div class="bg-[#1a1a1a] rounded-xl w-full max-w-2xl shadow-2xl overflow-hidden border border-[#303030] flex flex-col max-h-[90vh]">
+            <div class="relative h-40 shrink-0 bg-[#272727]">
+                <img id="dashThumb" src="" alt="Copertina" class="w-full h-full object-cover opacity-60">
+                <div class="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] to-transparent"></div>
+                <button id="closeDashBtn" class="absolute top-3 right-4 bg-black/50 text-white hover:text-red-400 hover:bg-black/80 w-8 h-8 flex items-center justify-center rounded-full text-xl leading-none transition-all">&times;</button>
+                <div class="absolute bottom-4 left-6 right-6">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span id="dashChannelBadge" class="bg-black/60 text-xs px-2 py-0.5 rounded border border-[#404040]">Canale</span>
+                        <span id="dashStatusBadge" class="bg-blue-600/20 text-blue-400 text-xs px-2 py-0.5 rounded border border-blue-500/30">Nuova Idea</span>
+                    </div>
+                    <h2 id="dashTitle" class="text-2xl font-bold text-white line-clamp-2 leading-tight">Titolo dell'idea video</h2>
+                </div>
+            </div>
+
+            <div class="p-6 overflow-y-auto flex-1 flex flex-col gap-6">
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <button id="dashDriveBtn" class="flex-1 flex items-center justify-center gap-2 bg-[#1c62b9] hover:bg-[#2573d4] text-white py-3 rounded-lg font-semibold transition-colors">
+                        <span class="text-xl">📁</span> Apri Repository Drive
+                    </button>
+                    <button id="dashDeleteBtn" class="px-4 py-3 bg-red-900/30 hover:bg-red-900/60 text-red-400 rounded-lg border border-red-900/50 transition-colors font-medium flex items-center gap-2">
+                        🗑️ Elimina Idea
+                    </button>
+                </div>
+                <hr class="border-[#303030]">
+
+                <div id="dashAssignSection" class="bg-[#212121] p-5 rounded-lg border border-[#404040]">
+                    <h3 class="text-lg font-bold mb-2 flex items-center gap-2">🎯 Prendi in Carico il Progetto</h3>
+                    <p class="text-sm text-gray-400 mb-4">Questa idea è disponibile. Assegnala a te stesso o a un collaboratore per iniziare i lavori.</p>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <select id="assigneeSelect" class="flex-1 bg-[#0f0f0f] border border-[#404040] rounded-lg p-3 text-white focus:outline-none focus:border-blue-500 appearance-none cursor-pointer">
+                            <option value="">Seleziona chi prende in carico...</option>
+                            <option value="DG">DG</option>
+                            <option value="Tomas">Tomas</option>
+                            <option value="Pierò">Pierò</option>
+                            <option value="GFS">GFS</option>
+                            <option value="Noemi">Noemi</option>
+                            <option value="Alex">Alex</option>
+                            <option value="Davide">Davide</option>
+                            <option value="Rog">Rog</option>
+                            <option value="Camel">Camel</option>
+                            <option value="Gatti">Gatti</option>
+                        </select>
+                        <button id="assignConfirmBtn" class="bg-white text-black font-bold py-3 px-6 rounded-lg hover:bg-gray-200 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            Conferma Assegnazione
+                        </button>
+                    </div>
+                </div>
+
+                <div id="dashProgressSection" class="bg-[#212121] p-5 rounded-lg border border-[#404040] hidden">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="text-lg font-bold flex items-center gap-2">📈 Stato Avanzamento</h3>
+                            <p id="dashAssignDateContainer" class="text-sm text-gray-400 mt-1 leading-relaxed"></p>
+                        </div>
+                        <div class="text-2xl font-black text-blue-400" id="dashProgressText">0%</div>
+                    </div>
+                    <div class="w-full bg-[#0f0f0f] rounded-full h-3 mb-6 border border-[#303030] overflow-hidden">
+                        <div id="dashProgressBar" class="bg-blue-500 h-3 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+                    </div>
+                    <div class="space-y-3">
+                        <label class="flex items-center gap-3 cursor-pointer group bg-[#1a1a1a] p-3 rounded border border-[#303030] hover:border-[#555] transition-colors">
+                            <div class="relative flex items-center justify-center w-6 h-6 shrink-0">
+                                <input type="checkbox" id="chkScript" class="custom-checkbox opacity-0 absolute w-full h-full cursor-pointer z-10">
+                                <div class="w-6 h-6 border-2 border-gray-500 rounded flex items-center justify-center transition-colors group-hover:border-blue-400"><svg class="hidden w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div>
+                            </div>
+                            <div class="flex flex-col"><span class="text-sm font-semibold text-gray-200 group-hover:text-white">Creazione Script</span><span class="text-[11px] text-gray-500">+25% completamento</span></div>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer group bg-[#1a1a1a] p-3 rounded border border-[#303030] hover:border-[#555] transition-colors">
+                            <div class="relative flex items-center justify-center w-6 h-6 shrink-0">
+                                <input type="checkbox" id="chkAudio" class="custom-checkbox opacity-0 absolute w-full h-full cursor-pointer z-10">
+                                <div class="w-6 h-6 border-2 border-gray-500 rounded flex items-center justify-center transition-colors group-hover:border-blue-400"><svg class="hidden w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div>
+                            </div>
+                            <div class="flex flex-col"><span class="text-sm font-semibold text-gray-200 group-hover:text-white">Creazione Traccia Audio</span><span class="text-[11px] text-gray-500">+25% completamento</span></div>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer group bg-[#1a1a1a] p-3 rounded border border-[#303030] hover:border-[#555] transition-colors">
+                            <div class="relative flex items-center justify-center w-6 h-6 shrink-0">
+                                <input type="checkbox" id="chkVideo" class="custom-checkbox opacity-0 absolute w-full h-full cursor-pointer z-10">
+                                <div class="w-6 h-6 border-2 border-gray-500 rounded flex items-center justify-center transition-colors group-hover:border-blue-400"><svg class="hidden w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div>
+                            </div>
+                            <div class="flex flex-col"><span class="text-sm font-semibold text-gray-200 group-hover:text-white">Generazione Traccia Video</span><span class="text-[11px] text-gray-500">+25% completamento</span></div>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer group bg-[#1a1a1a] p-3 rounded border border-[#303030] hover:border-[#555] transition-colors">
+                            <div class="relative flex items-center justify-center w-6 h-6 shrink-0">
+                                <input type="checkbox" id="chkFinal" class="custom-checkbox opacity-0 absolute w-full h-full cursor-pointer z-10">
+                                <div class="w-6 h-6 border-2 border-gray-500 rounded flex items-center justify-center transition-colors group-hover:border-blue-400"><svg class="hidden w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div>
+                            </div>
+                            <div class="flex flex-col"><span class="text-sm font-semibold text-gray-200 group-hover:text-white">Rifinitura</span><span class="text-[11px] text-gray-500">Finale per 100%</span></div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="addModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[100] px-4">
+        <div class="bg-[#212121] rounded-xl w-full max-w-md shadow-2xl overflow-hidden border border-[#303030] max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b border-[#303030] shrink-0">
+                <h2 class="text-lg font-bold">Aggiungi Nuova Idea Video</h2>
+                <button onclick="closeModal('addModal', 'ideaForm')" class="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-4 overflow-y-auto flex-1">
+                <form id="ideaForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Titolo del Video</label>
+                        <input type="text" id="inputTitle" required placeholder="Es: Ho provato a sopravvivere..." class="w-full bg-[#0f0f0f] border border-[#303030] rounded p-2 text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Canale</label>
+                        <select id="inputChannel" class="w-full bg-[#0f0f0f] border border-[#303030] rounded p-2 text-white focus:outline-none focus:border-blue-500 appearance-none cursor-pointer">
+                            <option value="">— Nessun canale —</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Immagine Copertina</label>
+                        <div id="thumbDropZone" class="relative w-full aspect-video rounded-lg border-2 border-dashed border-[#404040] bg-[#0f0f0f] flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 transition-all group overflow-hidden">
+                            <img id="thumbPreview" src="" alt="" class="absolute inset-0 w-full h-full object-cover rounded-lg hidden">
+                            <div id="thumbDropHint" class="flex flex-col items-center gap-2 text-gray-500 group-hover:text-gray-300 transition-colors z-10 pointer-events-none">
+                                <span class="text-3xl">🖼️</span>
+                                <span class="text-sm font-medium">Clicca o trascina un'immagine</span>
+                            </div>
+                            <input type="file" id="inputThumbFile" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                        </div>
+                        <p id="thumbFileName" class="text-[11px] text-gray-500 mt-1 hidden"></p>
+                    </div>
+                    <div class="pt-4 flex justify-end gap-2 border-t border-[#303030] mt-4">
+                        <button type="button" onclick="closeModal('addModal', 'ideaForm')" class="px-4 py-2 rounded text-sm font-medium hover:bg-[#303030] transition-colors">Annulla</button>
+                        <button type="submit" class="px-4 py-2 bg-white text-black rounded text-sm font-bold hover:bg-gray-200 transition-colors flex items-center gap-2">Aggiungi e Salva ⚡</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div id="editIdeaModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[100] px-4">
+        <div class="bg-[#212121] rounded-xl w-full max-w-md shadow-2xl overflow-hidden border border-[#303030] max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b border-[#303030] shrink-0">
+                <h2 class="text-lg font-bold flex items-center gap-2">✏️ Modifica Idea</h2>
+                <button onclick="closeModal('editIdeaModal', 'editIdeaForm')" class="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-4 overflow-y-auto flex-1">
+                <form id="editIdeaForm" class="space-y-4">
+                    <input type="hidden" id="editIdeaId">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Titolo del Video</label>
+                        <input type="text" id="editIdeaTitle" required class="w-full bg-[#0f0f0f] border border-[#303030] rounded p-2 text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Link Repository Drive</label>
+                        <input type="url" id="editIdeaDriveLink" placeholder="https://drive.google.com/..." class="w-full bg-[#0f0f0f] border border-[#303030] rounded p-2 text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div id="editIdeaAssigneeContainer" class="hidden">
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Assegnato a</label>
+                        <select id="editIdeaAssignee" class="w-full bg-[#0f0f0f] border border-[#303030] rounded p-2 text-white focus:outline-none focus:border-blue-500 appearance-none cursor-pointer">
+                            <option value="">Nessuno</option>
+                            <option value="DG">DG</option>
+                            <option value="Tomas">Tomas</option>
+                            <option value="Pierò">Pierò</option>
+                            <option value="GFS">GFS</option>
+                            <option value="Noemi">Noemi</option>
+                            <option value="Alex">Alex</option>
+                            <option value="Davide">Davide</option>
+                            <option value="Rog">Rog</option>
+                            <option value="Camel">Camel</option>
+                            <option value="Gatti">Gatti</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Sostituisci Copertina</label>
+                        <div class="flex items-center gap-4">
+                            <div class="w-24 h-14 rounded overflow-hidden bg-[#0f0f0f] border border-[#404040] shrink-0">
+                                <img id="editIdeaThumbPreview" src="" class="w-full h-full object-cover hidden">
+                                <div id="editIdeaThumbDropHint" class="w-full h-full flex items-center justify-center text-xs text-gray-500">Attuale</div>
+                            </div>
+                            <div class="flex-1">
+                                <label for="editIdeaThumbFile" class="block w-full cursor-pointer bg-[#0f0f0f] border border-dashed border-[#404040] hover:border-blue-500 rounded-lg px-3 py-2 text-center text-sm text-gray-400 hover:text-gray-200 transition-all">
+                                    Scegli Nuova
+                                </label>
+                                <input type="file" id="editIdeaThumbFile" accept="image/*" class="hidden">
+                                <p id="editIdeaThumbFileName" class="text-[10px] text-gray-500 mt-1 hidden"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="pt-4 flex justify-end gap-2 border-t border-[#303030] mt-4">
+                        <button type="button" onclick="closeModal('editIdeaModal', 'editIdeaForm')" class="px-4 py-2 rounded text-sm font-medium hover:bg-[#303030] transition-colors">Annulla</button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded text-sm font-bold transition-colors">Salva Modifiche ⚡</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="addInspChannelModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[100] px-4">
+        <div class="bg-[#212121] rounded-xl w-full max-w-md shadow-2xl overflow-hidden border border-[#303030] max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b border-[#303030] shrink-0">
+                <h2 class="text-lg font-bold">Aggiungi Canale d'Ispirazione</h2>
+                <button onclick="closeModal('addInspChannelModal')" class="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Link del Canale YouTube</label>
+                    <input type="url" id="inputSyncChannelUrl" placeholder="es: https://youtube.com/@WealthExplainerYT" class="w-full bg-[#0f0f0f] border border-[#404040] rounded-xl p-3.5 text-white focus:outline-none focus:border-blue-500 transition-colors">
+                    <p class="text-[11px] text-gray-500 mt-2">Incolla qualsiasi link del canale. Il nuovo estrattore Piped andrà a caccia dell'ID, Iscritti, Views Medie e Frequenza senza farsi bloccare.</p>
+                </div>
+                <div class="pt-4 flex justify-end gap-2 border-t border-[#303030] mt-6">
+                    <button type="button" onclick="closeModal('addInspChannelModal')" class="px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-[#303030] transition-colors text-gray-300">Annulla</button>
+                    <button type="button" id="btnSyncChannel" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold transition-all shadow-lg shadow-blue-900/20 flex items-center gap-2">
+                        ⚡ Estrai Dati Canale
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="addToolModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[100] px-4">
+        <div class="bg-[#212121] rounded-xl w-full max-w-md shadow-2xl overflow-hidden border border-[#303030] max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b border-[#303030] shrink-0">
+                <h2 class="text-lg font-bold" id="toolModalTitle">Aggiungi Strumento/Risorsa</h2>
+                <button onclick="closeModal('addToolModal', 'toolForm')" class="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-4 overflow-y-auto flex-1">
+                <form id="toolForm" class="space-y-4">
+                    <input type="hidden" id="inputToolId">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Nome Strumento</label>
+                        <input type="text" id="inputToolTitle" required placeholder="Es: Notion, ChatGPT, Epidemic Sound..." class="w-full bg-[#0f0f0f] border border-[#303030] rounded p-2 text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Descrizione breve</label>
+                        <textarea id="inputToolDesc" required rows="2" placeholder="A cosa serve questo tool?" class="w-full bg-[#0f0f0f] border border-[#303030] rounded p-2 text-white focus:outline-none focus:border-blue-500 resize-none"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Link URL</label>
+                        <input type="url" id="inputToolLink" required placeholder="https://..." class="w-full bg-[#0f0f0f] border border-[#303030] rounded p-2 text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Logo / Immagine</label>
+                        <div id="toolDropZone" class="relative w-full h-24 rounded-lg border-2 border-dashed border-[#404040] bg-[#0f0f0f] flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 transition-all group overflow-hidden">
+                            <img id="toolPreview" src="" alt="" class="absolute inset-0 w-full h-full object-cover rounded-lg hidden">
+                            <div id="toolDropHint" class="flex flex-col items-center gap-1 text-gray-500 group-hover:text-gray-300 transition-colors z-10 pointer-events-none">
+                                <span class="text-2xl">🖼️</span>
+                                <span class="text-xs font-medium">Carica Logo</span>
+                            </div>
+                            <input type="file" id="inputToolFile" accept="image/*" required class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                        </div>
+                    </div>
+                    <div class="pt-4 flex justify-end gap-2 border-t border-[#303030] mt-4">
+                        <button type="button" onclick="closeModal('addToolModal', 'toolForm')" class="px-4 py-2 rounded text-sm font-medium hover:bg-[#303030] transition-colors">Annulla</button>
+                        <button type="submit" id="btnSubmitTool" class="px-4 py-2 bg-blue-600 text-white rounded text-sm font-bold hover:bg-blue-500 transition-colors">Salva Strumento</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="addTrainingModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[100] px-4">
+        <div class="bg-[#212121] rounded-xl w-full max-w-md shadow-2xl overflow-hidden border border-[#303030] max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b border-[#303030] shrink-0">
+                <h2 class="text-lg font-bold" id="trainingModalTitle">Aggiungi Video Formazione</h2>
+                <button onclick="closeModal('addTrainingModal', 'trainingForm')" class="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-4 overflow-y-auto flex-1">
+                <form id="trainingForm" class="space-y-4">
+                    <input type="hidden" id="inputTrainingId">
+                    
+                    <div class="flex gap-4 mb-2">
+                        <label class="flex items-center gap-2 cursor-pointer text-sm">
+                            <input type="radio" name="trainingType" value="youtube" checked onchange="toggleTrainingType()"> 
+                            <span class="text-gray-300">YouTube Video</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer text-sm">
+                            <input type="radio" name="trainingType" value="custom" onchange="toggleTrainingType()"> 
+                            <span class="text-gray-300">Risorsa Esterna</span>
+                        </label>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Titolo Lezione</label>
+                        <input type="text" id="inputTrainingTitle" required placeholder="Es: Come migliorare la retention..." class="w-full bg-[#0f0f0f] border border-[#303030] rounded p-2 text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Link (YouTube o Esterno)</label>
+                        <input type="url" id="inputTrainingLink" required placeholder="https://..." class="w-full bg-[#0f0f0f] border border-[#303030] rounded p-2 text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    
+                    <div id="trainingCustomImageBlock" class="hidden">
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Immagine Copertina</label>
+                        <div id="trainingDropZone" class="relative w-full aspect-video rounded-lg border-2 border-dashed border-[#404040] bg-[#0f0f0f] flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 transition-all group overflow-hidden">
+                            <img id="trainingPreview" src="" alt="" class="absolute inset-0 w-full h-full object-cover rounded-lg hidden">
+                            <div id="trainingDropHint" class="flex flex-col items-center gap-2 text-gray-500 group-hover:text-gray-300 transition-colors z-10 pointer-events-none">
+                                <span class="text-3xl">🖼️</span>
+                                <span class="text-sm font-medium">Carica Immagine</span>
+                            </div>
+                            <input type="file" id="inputTrainingFile" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                        </div>
+                    </div>
+
+                    <div class="pt-4 flex justify-end gap-2 border-t border-[#303030] mt-4">
+                        <button type="button" onclick="closeModal('addTrainingModal', 'trainingForm')" class="px-4 py-2 rounded text-sm font-medium hover:bg-[#303030] transition-colors">Annulla</button>
+                        <button type="submit" id="btnSubmitTraining" class="px-4 py-2 bg-purple-600 text-white rounded text-sm font-bold hover:bg-purple-500 transition-colors">Salva Risorsa</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="addEHModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[100] px-4">
+        <div class="bg-[#212121] rounded-xl w-full max-w-md shadow-2xl overflow-hidden border border-[#303030] max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b border-[#303030] shrink-0">
+                <h2 class="text-lg font-bold">Aggiungi File all'Editors Hub</h2>
+                <button onclick="closeModal('addEHModal', 'ehForm')" class="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-4 overflow-y-auto flex-1">
+                <form id="ehForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Nome File</label>
+                        <input type="text" id="inputEHTitle" required placeholder="Es: Whoosh Cinematic, Icona Frecce..." class="w-full bg-[#0f0f0f] border border-[#303030] rounded p-2 text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Categoria</label>
+                        <select id="inputEHCategory" required class="w-full bg-[#0f0f0f] border border-[#303030] rounded p-2 text-white focus:outline-none focus:border-blue-500 appearance-none cursor-pointer">
+                            <option value="sfx">🔊 Sound Effects (SFX)</option>
+                            <option value="music">🎵 Musica</option>
+                            <option value="icons">🖼️ Icone/Immagini</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">File (Audio o Immagine)</label>
+                        <div id="ehDropZone" class="relative w-full h-24 rounded-lg border-2 border-dashed border-[#404040] bg-[#0f0f0f] flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 transition-all group overflow-hidden">
+                            <img id="ehIconPreview" src="" class="absolute inset-0 w-full h-full object-contain p-2 hidden">
+                            
+                            <div id="ehDropHint" class="flex flex-col items-center gap-1 text-gray-500 group-hover:text-gray-300 transition-colors z-10 pointer-events-none">
+                                <span class="text-2xl">📁</span>
+                                <span class="text-xs font-medium">Clicca o trascina il file qui</span>
+                            </div>
+                            <input type="file" id="inputEHFile" accept="audio/*,image/*,.zip,.rar" required class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                        </div>
+                        <p id="ehFileName" class="text-[11px] text-blue-400 font-bold mt-1 hidden"></p>
+                    </div>
+                    <div class="pt-4 flex justify-end gap-2 border-t border-[#303030] mt-4">
+                        <button type="button" onclick="closeModal('addEHModal', 'ehForm')" class="px-4 py-2 rounded text-sm font-medium hover:bg-[#303030] transition-colors">Annulla</button>
+                        <button type="submit" class="px-4 py-2 bg-[#3ea6ff] text-black rounded text-sm font-bold hover:bg-[#65b8ff] transition-colors">
+                            Salva File
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="addChannelModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[200] px-4">
+        <div class="bg-[#212121] rounded-xl w-full max-w-sm shadow-2xl overflow-hidden border border-[#303030]">
+            <div class="flex justify-between items-center p-4 border-b border-[#303030]">
+                <h2 class="text-lg font-bold">Nuovo Canale</h2>
+                <button id="closeChannelModalBtn" class="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-4 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Nome del Canale</label>
+                    <input type="text" id="inputChannelName" placeholder="Es: Gaming, Vlog, Tutorial..." class="w-full bg-[#0f0f0f] border border-[#303030] rounded p-2 text-white focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Immagine Profilo Canale</label>
+                    <div class="flex items-center gap-4">
+                        <div id="channelAvatarPreview" class="w-16 h-16 rounded-full bg-[#303030] flex items-center justify-center text-2xl shrink-0 overflow-hidden border-2 border-[#404040]">📺</div>
+                        <div class="flex-1">
+                            <label for="inputChannelAvatar" class="block w-full cursor-pointer bg-[#0f0f0f] border border-dashed border-[#404040] hover:border-blue-500 rounded-lg px-3 py-2.5 text-center text-sm text-gray-400 hover:text-gray-200 transition-all">
+                                Clicca per caricare
+                                <span class="block text-[11px] text-gray-600 mt-0.5">JPG, PNG, WEBP</span>
+                            </label>
+                            <input type="file" id="inputChannelAvatar" accept="image/*" class="hidden">
+                            <p id="channelAvatarName" class="text-[11px] text-gray-500 mt-1 hidden"></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="pt-2 flex justify-end gap-2">
+                    <button id="cancelChannelBtn" class="px-4 py-2 rounded text-sm font-medium hover:bg-[#303030] transition-colors">Annulla</button>
+                    <button id="saveChannelBtn" class="px-4 py-2 bg-white text-black rounded text-sm font-bold hover:bg-gray-200 transition-colors">Crea Canale</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="editChannelModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[200] px-4">
+        <div class="bg-[#212121] rounded-xl w-full max-w-sm shadow-2xl overflow-hidden border border-[#303030]">
+            <div class="flex justify-between items-center p-4 border-b border-[#303030]">
+                <h2 class="text-lg font-bold">Modifica Canale</h2>
+                <button id="closeEditChannelBtn" class="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-4 space-y-4">
+                <input type="hidden" id="editChannelId">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Nome del Canale</label>
+                    <input type="text" id="editChannelName" class="w-full bg-[#0f0f0f] border border-[#303030] rounded p-2 text-white focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Aggiorna Immagine Profilo</label>
+                    <div class="flex items-center gap-4">
+                        <div id="editChannelAvatarPreview" class="w-16 h-16 rounded-full bg-[#303030] flex items-center justify-center text-2xl shrink-0 overflow-hidden border-2 border-[#404040]">📺</div>
+                        <div class="flex-1">
+                            <label for="editChannelAvatar" class="block w-full cursor-pointer bg-[#0f0f0f] border border-dashed border-[#404040] hover:border-blue-500 rounded-lg px-3 py-2.5 text-center text-sm text-gray-400 hover:text-gray-200 transition-all">
+                                Clicca per cambiare
+                                <span class="block text-[11px] text-gray-600 mt-0.5">JPG, PNG, WEBP</span>
+                            </label>
+                            <input type="file" id="editChannelAvatar" accept="image/*" class="hidden">
+                            <p id="editChannelAvatarName" class="text-[11px] text-gray-500 mt-1 hidden"></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="pt-2 flex justify-end gap-2">
+                    <button id="cancelEditChannelBtn" class="px-4 py-2 rounded text-sm font-medium hover:bg-[#303030] transition-colors">Annulla</button>
+                    <button id="saveEditChannelBtn" class="px-4 py-2 bg-blue-600 text-white rounded text-sm font-bold hover:bg-blue-500 transition-colors">Salva Modifiche</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[300] px-4">
+        <div class="bg-[#212121] rounded-xl w-full max-w-md shadow-2xl overflow-hidden border border-[#303030]">
+            <div class="flex justify-between items-center p-4 border-b border-[#303030]">
+                <h2 class="text-lg font-bold flex items-center gap-2">⚙️ Connessione Database</h2>
+                <button id="closeSettingsBtn" class="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-4 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Web App URL (Google Apps Script)</label>
+                    <input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-[#0f0f0f] border border-[#303030] rounded p-2 text-white focus:outline-none focus:border-blue-500 text-sm font-mono">
+                    <p class="text-[11px] text-gray-400 mt-2">Incolla qui l'URL generato dal tuo Google Apps Script per abilitare la sincronizzazione diretta.</p>
+                </div>
+                <div class="pt-2 flex justify-end">
+                    <button id="saveSettingsBtn" class="px-4 py-2 bg-[#3ea6ff] text-black rounded text-sm font-bold hover:bg-[#65b8ff] transition-colors w-full">Salva e Connetti</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="adminModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[150] px-4 backdrop-blur-sm">
+        <div class="bg-[#1a1a1a] rounded-xl w-full max-w-3xl shadow-2xl overflow-hidden border border-[#444] flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-center p-4 border-b border-[#303030] bg-[#222]">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">🛠️ Pannello di Amministrazione</h2>
+                <button onclick="closeModal('adminModal')" class="text-gray-400 hover:text-white text-3xl leading-none px-2">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1 flex flex-col gap-8">
+                <div class="bg-[#212121] border border-[#303030] rounded-xl p-5">
+                    <div class="flex justify-between items-center border-b border-[#303030] pb-2 mb-4">
+                        <h3 class="text-lg font-bold text-blue-400">📺 Gestione Canali YouTube</h3>
+                    </div>
+                    <p class="text-sm text-gray-400 mb-4">Modifica il nome, cambia l'immagine del profilo o elimina i canali esistenti. Attenzione: eliminare un canale dissocerà le idee ad esso collegate.</p>
+                    <div class="bg-[#0f0f0f] border border-[#303030] rounded-lg overflow-hidden">
+                        <ul id="adminChannelList" class="divide-y divide-[#303030]"></ul>
+                    </div>
+                    <div id="adminNoChannels" class="text-center py-6 text-gray-500 hidden">Nessun canale presente nel database.</div>
+                </div>
+                <div class="flex justify-center border-t border-[#303030] pt-6">
+                    <button id="logoutBtn" class="px-6 py-3 bg-red-900/30 text-red-400 hover:bg-red-900/60 border border-red-900/50 rounded-xl text-sm font-bold transition-colors flex items-center gap-2">
+                        🚪 Logout (Cambia Utente)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="pinModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[300] px-4 backdrop-blur-sm">
+        <div class="bg-[#1e1e1e] rounded-xl w-full max-w-sm shadow-2xl overflow-hidden border border-[#444] p-6">
+            <h3 class="text-lg font-bold mb-2 flex items-center gap-2 text-white">🔒 Autenticazione Richiesta</h3>
+            <p id="pinActionMsg" class="text-sm text-gray-400 mb-5">Inserisci il PIN per procedere con l'azione.</p>
+            <input type="password" id="pinInput" placeholder="•••••" class="w-full bg-[#0f0f0f] border border-[#444] rounded p-3 text-center text-2xl tracking-[0.5em] text-white focus:outline-none focus:border-red-500 mb-2 font-mono">
+            <p id="pinError" class="text-red-500 text-sm font-bold hidden mb-4 text-center">PIN Errato. Riprova.</p>
+            <div class="flex justify-end gap-2 mt-6">
+                <button onclick="closePinModal()" class="px-4 py-2 rounded text-sm font-medium hover:bg-[#303030] transition-colors text-white">Annulla</button>
+                <button id="pinConfirmBtn" class="px-6 py-2 bg-red-600 text-white rounded text-sm font-bold hover:bg-red-500 transition-colors">Conferma</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="devConsoleModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[200] px-4 backdrop-blur-sm">
+        <div class="bg-[#1e1e1e] rounded-xl w-full max-w-3xl shadow-2xl overflow-hidden border border-[#444] flex flex-col h-[70vh]">
+            <div class="flex justify-between items-center p-3 border-b border-[#444] bg-[#2d2d2d] shrink-0">
+                <h2 class="text-sm font-mono font-bold text-green-400 flex items-center gap-2">
+                    <span>>_</span> Terminal - TMS Lab Logs
+                </h2>
+                <div class="flex gap-2">
+                    <button id="clearConsoleBtn" class="text-xs text-gray-300 hover:text-white px-3 py-1 rounded bg-[#444] hover:bg-[#555] transition-colors">Pulisci</button>
+                    <button id="closeConsoleBtn" class="text-gray-400 hover:text-white text-xl leading-none px-2">&times;</button>
+                </div>
+            </div>
+            <div id="consoleOutput" class="p-4 overflow-y-auto flex-1 font-mono text-[13px] bg-[#121212] flex flex-col gap-1">
+                </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
