@@ -89,7 +89,9 @@ export function renderFinanceDashboard() {
         dataRev.push(dayRev);
         
         // Somma costi editor per questo giorno
-        const dayCost = state.finance.editorCosts.filter(c => c.date === dateString).reduce((acc, curr) => acc + parseFloat(curr.amount), 0);
+        let dayCost = state.finance.editorCosts.filter(c => c.date === dateString).reduce((acc, curr) => acc + parseFloat(curr.amount), 0);
+        // Aggiungi costi abbonamenti che si rinnovano (o sono stati pagati) in questa data
+        dayCost += state.finance.subscriptions.filter(s => s.nextRenewal === dateString).reduce((acc, curr) => acc + parseFloat(curr.price), 0);
         dataCost.push(dayCost);
     }
 
@@ -99,7 +101,7 @@ export function renderFinanceDashboard() {
             labels: labels,
             datasets: [
                 { label: 'Entrate (€)', data: dataRev, borderColor: '#4ade80', backgroundColor: '#4ade8020', borderWidth: 2, tension: 0.3, fill: true, pointRadius: 2 },
-                { label: 'Uscite Editor (€)', data: dataCost, borderColor: '#f87171', backgroundColor: '#f8717120', borderWidth: 2, tension: 0.3, fill: true, pointRadius: 2 }
+                { label: 'Uscite Totali (€)', data: dataCost, borderColor: '#f87171', backgroundColor: '#f8717120', borderWidth: 2, tension: 0.3, fill: true, pointRadius: 2 }
             ]
         },
         options: {
@@ -720,11 +722,11 @@ export async function renderTMSPicks() {
 
     [...state.tmsPicks].reverse().forEach(pick => {
         const card = document.createElement('div');
-        card.className = 'bg-[#212121] rounded-xl overflow-hidden border border-[#303030] hover:border-[#3ea6ff] transition-colors flex flex-col group relative';
+        card.className = 'flex flex-col gap-2 cursor-pointer group relative';
         
         const act = document.createElement('div');
         act.className = 'absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-20';
-        act.innerHTML = `<button class="delBtn bg-red-600/90 hover:bg-red-500 text-white text-xs w-8 h-8 rounded-full shadow-lg hover:scale-110">🗑️</button>`;
+        act.innerHTML = `<button class="delBtn bg-red-600/90 hover:bg-red-500 text-white text-xs w-8 h-8 rounded-full shadow-lg hover:scale-110 transition-transform">🗑️</button>`;
         act.querySelector('.delBtn').onclick = (e) => {
             e.stopPropagation();
             requirePin(`Eliminare il pick "${pick.title}"?`, async () => {
@@ -736,35 +738,60 @@ export async function renderTMSPicks() {
         const thumbSrc = `https://img.youtube.com/vi/${pick.ytId}/maxresdefault.jpg`;
         
         card.innerHTML = `
-            <div class="relative aspect-video bg-[#111] cursor-pointer" onclick="window.open('${pick.link}', '_blank')">
-                <img src="${thumbSrc}" onerror="this.src='https://img.youtube.com/vi/${pick.ytId}/hqdefault.jpg'" class="w-full h-full object-cover">
-                <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            <div class="relative w-full aspect-video rounded-xl overflow-hidden bg-[#272727] border border-transparent group-hover:border-[#444] transition-colors shadow-lg" onclick="window.open('${pick.link}', '_blank')">
+                <img src="${thumbSrc}" onerror="this.src='https://img.youtube.com/vi/${pick.ytId}/hqdefault.jpg'" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                <div class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                     <span class="text-5xl drop-shadow-lg">▶️</span>
                 </div>
-                <div class="absolute bottom-2 left-2 bg-black/80 px-2 py-1 rounded text-xs font-bold text-gray-300 border border-[#444] backdrop-blur-sm flex items-center gap-1 picks-stats-${pick.ytId}">
+                <div class="absolute top-2 left-2 bg-black/80 px-2 py-0.5 rounded text-[11px] font-bold text-gray-300 uppercase border border-[#444] backdrop-blur-sm picks-stats-${pick.ytId}">
                     <span class="animate-pulse">⏳ Info...</span>
                 </div>
             </div>
-            <div class="p-4 flex-1 flex flex-col justify-center">
-                <h3 class="font-bold text-white text-sm line-clamp-2 leading-tight group-hover:text-[#3ea6ff] transition-colors" title="${pick.title}">${pick.title}</h3>
+            <div class="flex gap-3 pr-2 mt-1">
+                <div class="w-9 h-9 rounded-full bg-[#272727] flex items-center justify-center text-xs font-bold border border-[#404040] shrink-0 overflow-hidden picks-avatar-${pick.ytId}">
+                    <span class="animate-pulse text-gray-500">...</span>
+                </div>
+                <div class="flex flex-col">
+                    <h3 class="text-[14px] font-semibold text-[#f1f1f1] line-clamp-2 leading-tight group-hover:text-blue-400 transition-colors" title="${pick.title}">${pick.title}</h3>
+                    <div class="text-[12px] text-[#aaaaaa] mt-1 font-medium flex items-center gap-1 picks-author-${pick.ytId}">
+                        In caricamento...
+                    </div>
+                </div>
             </div>
         `;
         card.appendChild(act); grid.appendChild(card);
         
-        fetchYTProxy(`https://www.youtube.com/watch?v=${pick.ytId}`).then(html => {
-            const ytDataStr = html.match(/var ytInitialData = (\{.*?\});<\/script>/);
-            if (ytDataStr) {
-                const ytData = JSON.parse(ytDataStr[1]);
-                let views = "N/A views", date = "Sconosciuta";
+        const fetchPiped = async (ytId) => {
+            const instances = ['https://pipedapi.kavin.rocks', 'https://pipedapi.tokhmi.xyz', 'https://pipedapi.smnz.de'];
+            for (let url of instances) {
                 try {
-                    const primaryInfo = ytData.contents.twoColumnWatchNextResults.results.results.contents[0].videoPrimaryInfoRenderer;
-                    views = primaryInfo.viewCount.videoViewCountRenderer.shortViewCount.simpleText || primaryInfo.viewCount.videoViewCountRenderer.viewCount.simpleText;
-                    date = primaryInfo.dateText.simpleText;
+                    const res = await fetch(`${url}/streams/${ytId}`);
+                    if(res.ok) return await res.json();
                 } catch(e) {}
-                const statsEl = card.querySelector(`.picks-stats-${pick.ytId}`);
-                if (statsEl) statsEl.innerHTML = `<span>👀 ${views}</span> <span class="text-[8px] opacity-50 mx-1">•</span> <span>📅 ${date}</span>`;
             }
-        }).catch(() => { const statsEl = card.querySelector(`.picks-stats-${pick.ytId}`); if(statsEl) statsEl.innerHTML = `<span class="text-red-400">Errore info</span>`; });
+            throw new Error("Tutte le API fallite");
+        };
+
+        fetchPiped(pick.ytId).then(data => {
+            const statsEl = card.querySelector(`.picks-stats-${pick.ytId}`);
+            if (statsEl) statsEl.innerHTML = `👀 ${formatViewsCount(data.views)}`;
+            
+            const avatarEl = card.querySelector(`.picks-avatar-${pick.ytId}`);
+            if (avatarEl && data.uploaderAvatar) {
+                avatarEl.innerHTML = `<img src="${data.uploaderAvatar}" class="w-full h-full object-cover">`;
+                avatarEl.classList.remove('bg-[#272727]', 'border-[#404040]');
+            }
+            
+            const authorEl = card.querySelector(`.picks-author-${pick.ytId}`);
+            if (authorEl) authorEl.innerHTML = `${data.uploader} <span class="text-[8px] opacity-50 mx-1">•</span> ${data.uploadDate}`;
+        }).catch(() => {
+            const statsEl = card.querySelector(`.picks-stats-${pick.ytId}`);
+            if(statsEl) statsEl.innerHTML = `<span class="text-red-400">N/A</span>`;
+            const avatarEl = card.querySelector(`.picks-avatar-${pick.ytId}`);
+            if (avatarEl) avatarEl.innerHTML = `📺`;
+            const authorEl = card.querySelector(`.picks-author-${pick.ytId}`);
+            if (authorEl) authorEl.innerHTML = `Sconosciuto`;
+        });
     });
 }
 
