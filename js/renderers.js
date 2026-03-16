@@ -3,12 +3,119 @@ import { timeSince, formatViewsCount, shuffleArray, getStringSizeInKB } from './
 import { callScriptAction, autoSaveToCloud, fetchYTProxy } from './api.js';
 import { devLog, requirePin, closeModal } from './ui.js';
 
+let financeChartInstance = null;
+
 // Utilità YouTube mancante
 window.getYouTubeID = function(url) {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
     return (match && match[2].length === 11) ? match[2] : null;
 };
+
+// ==========================================
+// RENDER EARNINGS & FINANCE
+// ==========================================
+export function renderFinanceDashboard() {
+    // 1. Calcolo Totali
+    const totalRev = state.finance.revenues.reduce((acc, curr) => acc + parseFloat(curr.amount), 0);
+    const totalEditorCosts = state.finance.editorCosts.reduce((acc, curr) => acc + parseFloat(curr.amount), 0);
+    
+    // Calcoliamo i costi storici degli abbonamenti simulando 12 mesi per gli annuali, ma per semplicità
+    // nel cash flow mostreremo il costo mensile o fisso. Qui facciamo una stima semplice dei costi app pagati.
+    let totalSubCosts = 0; let monthlyBurn = 0;
+    state.finance.subscriptions.forEach(sub => {
+        let p = parseFloat(sub.price);
+        if (sub.cycle === 'Mensile') monthlyBurn += p;
+        if (sub.cycle === 'Annuale') monthlyBurn += (p / 12);
+        totalSubCosts += p; // Stima grossolana: aggiungiamo il costo base inserito al totale spese
+    });
+
+    const totalCosts = totalEditorCosts + totalSubCosts;
+    const netProfit = totalRev - totalCosts;
+
+    document.getElementById('finTotalRevenue').textContent = `€ ${totalRev.toFixed(2)}`;
+    document.getElementById('finTotalCosts').textContent = `€ ${totalCosts.toFixed(2)}`;
+    document.getElementById('finNetProfit').textContent = `€ ${netProfit.toFixed(2)}`;
+    document.getElementById('finMonthlyBurn').textContent = `Burn Rate: € ${monthlyBurn.toFixed(2)}/mese`;
+
+    const profitBg = document.getElementById('finProfitBg');
+    if (netProfit >= 0) { profitBg.className = 'absolute inset-0 opacity-10 pointer-events-none bg-green-500'; } 
+    else { profitBg.className = 'absolute inset-0 opacity-10 pointer-events-none bg-red-500'; }
+
+    // 2. Rendering Liste
+    const subList = document.getElementById('finSubList');
+    subList.innerHTML = '';
+    if(state.finance.subscriptions.length === 0) subList.innerHTML = '<li class="p-6 text-center text-gray-500 text-sm">Nessun abbonamento registrato.</li>';
+    state.finance.subscriptions.forEach(sub => {
+        const li = document.createElement('li'); li.className = 'p-4 hover:bg-[#272727] flex justify-between items-center transition-colors group relative';
+        const dateStr = new Date(sub.nextRenewal).toLocaleDateString('it-IT');
+        const isNear = (new Date(sub.nextRenewal) - new Date()) < (7 * 86400000); // Meno di 7 giorni
+        li.innerHTML = `<div class="flex flex-col"><a ${sub.site ? `href="${sub.site}" target="_blank"` : ''} class="font-bold text-blue-400 hover:underline">${sub.name}</a><span class="text-xs text-gray-500 mt-1">Rinnovo: <span class="${isNear?'text-yellow-500 font-bold':''}">${dateStr}</span></span></div><div class="flex items-center gap-4"><div class="text-right"><div class="font-bold text-red-400">- € ${parseFloat(sub.price).toFixed(2)}</div><div class="text-[10px] text-gray-500 uppercase">${sub.cycle}</div></div><button class="del-sub-btn opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-400 transition-opacity">🗑️</button></div>`;
+        li.querySelector('.del-sub-btn').onclick = () => { requirePin(`Eliminare l'abbonamento ${sub.name}?`, async () => { state.finance.subscriptions = state.finance.subscriptions.filter(s => s.id !== sub.id); renderFinanceDashboard(); await autoSaveToCloud(); }); };
+        subList.appendChild(li);
+    });
+
+    const edList = document.getElementById('finEditorCostList');
+    edList.innerHTML = '';
+    if(state.finance.editorCosts.length === 0) edList.innerHTML = '<li class="p-6 text-center text-gray-500 text-sm">Nessun pagamento registrato.</li>';
+    [...state.finance.editorCosts].sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(cost => {
+        const li = document.createElement('li'); li.className = 'p-4 hover:bg-[#272727] flex justify-between items-center transition-colors group relative';
+        const idea = state.videoIdeas.find(v => v.id === cost.ideaId);
+        const title = idea ? idea.title : 'Idea Eliminata';
+        li.innerHTML = `<div class="flex flex-col pr-4"><span class="font-bold text-gray-200 text-sm line-clamp-1" title="${title}">${title}</span><span class="text-xs text-gray-500 mt-1">Editor: <span class="text-white">${cost.editor}</span> &bull; ${new Date(cost.date).toLocaleDateString('it-IT')}</span></div><div class="flex items-center gap-4 shrink-0"><div class="font-bold text-red-400">- € ${parseFloat(cost.amount).toFixed(2)}</div><button class="del-ed-btn opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-400 transition-opacity">🗑️</button></div>`;
+        li.querySelector('.del-ed-btn').onclick = () => { requirePin(`Annullare il pagamento di ${cost.editor}?`, async () => { state.finance.editorCosts = state.finance.editorCosts.filter(c => c.id !== cost.id); renderFinanceDashboard(); await autoSaveToCloud(); }); };
+        edList.appendChild(li);
+    });
+
+    // 3. Rendering Grafico Cashflow
+    const ctx = document.getElementById('financeChart');
+    if (!ctx) return;
+    if (financeChartInstance) financeChartInstance.destroy();
+    
+    const daysStr = document.getElementById('finChartRange').value;
+    const daysLimit = parseInt(daysStr);
+    
+    const now = new Date(); now.setHours(0,0,0,0);
+    const labels = []; const dataRev = []; const dataCost = [];
+    
+    for(let i = daysLimit - 1; i >= 0; i--) {
+        const d = new Date(now); d.setDate(d.getDate() - i);
+        const dateString = d.toISOString().split('T')[0]; // YYYY-MM-DD
+        
+        labels.push(d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short' }));
+        
+        // Somma entrate per questo giorno
+        const dayRev = state.finance.revenues.filter(r => r.date === dateString).reduce((acc, curr) => acc + parseFloat(curr.amount), 0);
+        dataRev.push(dayRev);
+        
+        // Somma costi editor per questo giorno
+        const dayCost = state.finance.editorCosts.filter(c => c.date === dateString).reduce((acc, curr) => acc + parseFloat(curr.amount), 0);
+        dataCost.push(dayCost);
+    }
+
+    financeChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                { label: 'Entrate (€)', data: dataRev, borderColor: '#4ade80', backgroundColor: '#4ade8020', borderWidth: 2, tension: 0.3, fill: true, pointRadius: 2 },
+                { label: 'Uscite Editor (€)', data: dataCost, borderColor: '#f87171', backgroundColor: '#f8717120', borderWidth: 2, tension: 0.3, fill: true, pointRadius: 2 }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { labels: { color: '#aaa' } },
+                tooltip: { backgroundColor: '#111', titleColor: '#fff', bodyColor: '#fff', borderColor: '#333', borderWidth: 1 }
+            },
+            scales: {
+                x: { grid: { color: '#333', borderDash: [5,5] }, ticks: { color: '#888' } },
+                y: { grid: { color: '#333', borderDash: [5,5] }, ticks: { color: '#888', callback: (v) => '€ ' + v } }
+            }
+        }
+    });
+}
 
 // ==========================================
 // FUNZIONI SUPPORTO IDEE

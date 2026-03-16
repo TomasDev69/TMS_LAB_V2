@@ -5,7 +5,7 @@ import {
     renderVideos, getFilteredIdeas, renderChannelList, renderTools, 
     renderTraining, renderEditorsHub, renderStats, renderDatabaseStats, 
     renderInspChannels, loadInspFeed, switchEHTab, updateAudioUI, renderTMSPicks,
-    renderNextFeedBatch
+    renderNextFeedBatch, renderFinanceDashboard, getIdeaStatus
 } from './renderers.js';
 import { compressImage, shuffleArray } from './utils.js';
 
@@ -25,6 +25,35 @@ window.openEarnings = () => {
     requirePin("Inserisci il PIN di sicurezza per accedere alla Dashboard Finanziaria.", () => {
         switchView('earnings');
     });
+};
+
+window.openAddRevenueModal = () => {
+    document.getElementById('formRevenue').reset();
+    document.getElementById('revDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('addRevenueModal').classList.remove('hidden'); document.getElementById('addRevenueModal').classList.add('flex');
+};
+
+window.openAddSubModal = () => {
+    document.getElementById('formSub').reset();
+    document.getElementById('addSubModal').classList.remove('hidden'); document.getElementById('addSubModal').classList.add('flex');
+};
+
+window.openAddEditorCostModal = () => {
+    document.getElementById('formEditorCost').reset();
+    document.getElementById('edCostDate').value = new Date().toISOString().split('T')[0];
+    
+    const select = document.getElementById('edCostIdea');
+    select.innerHTML = '<option value="">Seleziona idea video...</option>';
+    
+    const completedIdeas = state.videoIdeas.filter(v => getIdeaStatus(v) === 'completed');
+    completedIdeas.forEach(idea => { select.innerHTML += `<option value="${idea.id}" data-editor="${idea.assignee || 'Sconosciuto'}">${idea.title}</option>`; });
+    
+    select.onchange = (e) => {
+        const opt = e.target.options[e.target.selectedIndex];
+        document.getElementById('edCostName').value = opt.dataset.editor || '';
+    };
+    
+    document.getElementById('addEditorCostModal').classList.remove('hidden'); document.getElementById('addEditorCostModal').classList.add('flex');
 };
 
 window.setActiveFilter = (channelId) => {
@@ -59,6 +88,47 @@ window.switchInspTab = (tabName) => {
             btn.classList.remove('active', 'border-blue-500', 'text-blue-400');
             btn.classList.add('text-gray-400');
         }
+    });
+    
+    // --- FORM: FINANZA (EARNINGS) ---
+    document.getElementById('finChartRange')?.addEventListener('change', () => { renderFinanceDashboard(); });
+
+    document.getElementById('formRevenue')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const amount = document.getElementById('revAmount').value;
+        const source = document.getElementById('revSource').value.trim();
+        const date = document.getElementById('revDate').value;
+        state.finance.revenues.push({ id: Date.now().toString(), amount, source, date });
+        renderFinanceDashboard(); closeModal('addRevenueModal', 'formRevenue'); autoSaveToCloud();
+    });
+
+    document.getElementById('formSub')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        state.finance.subscriptions.push({ 
+            id: Date.now().toString(), 
+            name: document.getElementById('subName').value.trim(), 
+            site: document.getElementById('subSite').value.trim(), 
+            price: document.getElementById('subPrice').value, 
+            cycle: document.getElementById('subCycle').value, 
+            nextRenewal: document.getElementById('subRenewal').value
+        });
+        renderFinanceDashboard(); closeModal('addSubModal', 'formSub'); autoSaveToCloud();
+    });
+
+    document.getElementById('formEditorCost')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const ideaId = document.getElementById('edCostIdea').value;
+        const editor = document.getElementById('edCostName').value;
+        if(!ideaId) { alert("Devi selezionare un'idea per poter associare un costo."); return; }
+        
+        state.finance.editorCosts.push({ 
+            id: Date.now().toString(), 
+            ideaId, 
+            editor, 
+            amount: document.getElementById('edCostAmount').value, 
+            date: document.getElementById('edCostDate').value 
+        });
+        renderFinanceDashboard(); closeModal('addEditorCostModal', 'formEditorCost'); autoSaveToCloud();
     });
     
     const mainActionBtn = document.getElementById('mainActionBtn');

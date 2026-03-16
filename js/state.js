@@ -8,6 +8,11 @@ export const state = {
     inspChannels: [],
     tmsPicks: [],
     globalFeed: [],
+    finance: {
+        revenues: [],
+        editorCosts: [],
+        subscriptions: []
+    },
     feedDisplayIndex: 0,
     activeChannelId: null,
     activeStatusFilter: 'all',

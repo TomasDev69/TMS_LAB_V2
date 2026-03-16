@@ -6,6 +6,7 @@
     <title>TMS Lab - Bacheca Idee Video</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="css/styles.css"> </head>
 <body class="h-screen flex flex-col overflow-hidden">
 
@@ -407,11 +408,66 @@
             </div>
 
             <div id="viewEarningsWrapper" class="hidden">
-                <div class="bg-[#1a1a1a] rounded-xl border border-green-900/50 p-10 text-center flex flex-col items-center justify-center min-h-[400px]">
-                    <span class="text-6xl mb-4">💰</span>
-                    <h2 class="text-2xl font-black text-white mb-2">Earnings Dashboard</h2>
-                    <p class="text-gray-400 max-w-md mx-auto">Questa sezione è attualmente in fase di sviluppo. In futuro mostrerà metriche finanziarie, RPM, CPM e proiezioni di guadagno del network.</p>
-                    <div class="mt-8 px-6 py-2 bg-green-900/20 text-green-400 rounded-full border border-green-500/30 text-sm font-bold">Lavori in corso... 🚧</div>
+                <div class="flex flex-col gap-6">
+                    <!-- Top Stats -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-[#1a1a1a] border border-[#303030] p-5 rounded-xl">
+                            <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Entrate Totali</p>
+                            <h3 class="text-3xl font-black text-green-400" id="finTotalRevenue">€ 0.00</h3>
+                        </div>
+                        <div class="bg-[#1a1a1a] border border-[#303030] p-5 rounded-xl">
+                            <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Spese Totali (App + Editor)</p>
+                            <h3 class="text-3xl font-black text-red-400" id="finTotalCosts">€ 0.00</h3>
+                        </div>
+                        <div class="bg-[#1a1a1a] border border-[#303030] p-5 rounded-xl relative overflow-hidden">
+                            <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1 relative z-10">Utile Netto</p>
+                            <h3 class="text-3xl font-black text-white relative z-10" id="finNetProfit">€ 0.00</h3>
+                            <div id="finProfitBg" class="absolute inset-0 opacity-10 pointer-events-none"></div>
+                        </div>
+                    </div>
+
+                    <!-- Chart & Actions -->
+                    <div class="bg-[#1a1a1a] border border-[#303030] rounded-xl p-5">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                            <div class="flex gap-2">
+                                <select id="finChartRange" class="bg-[#0f0f0f] border border-[#404040] text-gray-300 text-sm rounded-lg px-3 py-2 outline-none focus:border-green-500">
+                                    <option value="7">Ultimi 7 Giorni</option>
+                                    <option value="30" selected>Ultimi 30 Giorni</option>
+                                    <option value="90">Ultimi 90 Giorni</option>
+                                </select>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="window.openAddRevenueModal()" class="px-4 py-2 bg-green-900/30 text-green-400 hover:bg-green-600 hover:text-white rounded-lg text-xs font-bold transition-colors border border-green-900/50">➕ Aggiungi Entrata</button>
+                                <button onclick="window.openAddEditorCostModal()" class="px-4 py-2 bg-red-900/30 text-red-400 hover:bg-red-600 hover:text-white rounded-lg text-xs font-bold transition-colors border border-red-900/50">💸 Paga Editor</button>
+                                <button onclick="window.openAddSubModal()" class="px-4 py-2 bg-blue-900/30 text-blue-400 hover:bg-blue-600 hover:text-white rounded-lg text-xs font-bold transition-colors border border-blue-900/50">🔁 Nuovo Abbonamento</button>
+                            </div>
+                        </div>
+                        <div class="w-full h-72">
+                            <canvas id="financeChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Lists -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-[#1a1a1a] border border-[#303030] rounded-xl overflow-hidden flex flex-col h-96">
+                            <div class="p-4 border-b border-[#303030] bg-[#222] flex justify-between items-center shrink-0">
+                                <h2 class="text-sm font-bold text-white flex items-center gap-2">🔁 Abbonamenti Attivi</h2>
+                                <span class="text-xs bg-[#0f0f0f] px-2 py-1 rounded text-gray-400 border border-[#333]" id="finMonthlyBurn">Burn Rate: € 0/mese</span>
+                            </div>
+                            <div class="p-0 overflow-y-auto flex-1">
+                                <ul id="finSubList" class="divide-y divide-[#303030]"></ul>
+                            </div>
+                        </div>
+
+                        <div class="bg-[#1a1a1a] border border-[#303030] rounded-xl overflow-hidden flex flex-col h-96">
+                            <div class="p-4 border-b border-[#303030] bg-[#222] shrink-0">
+                                <h2 class="text-sm font-bold text-white flex items-center gap-2">🎬 Costi Editor (Video Finiti)</h2>
+                            </div>
+                            <div class="p-0 overflow-y-auto flex-1">
+                                <ul id="finEditorCostList" class="divide-y divide-[#303030]"></ul>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -927,6 +983,85 @@
             </div>
             <div id="consoleOutput" class="p-4 overflow-y-auto flex-1 font-mono text-[13px] bg-[#121212] flex flex-col gap-1">
                 </div>
+        </div>
+    </div>
+
+    <!-- MODAL FINANZA: WIP WARNING -->
+    <div id="wipEarningsModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[400] px-4 backdrop-blur-sm">
+        <div class="bg-[#1a1a1a] rounded-xl w-full max-w-md shadow-2xl border border-green-900/50 p-6 text-center">
+            <span class="text-5xl block mb-3">🚧</span>
+            <h2 class="text-xl font-black text-white mb-2">Sezione in Sviluppo</h2>
+            <p class="text-sm text-gray-400 mb-6">La Dashboard Finanziaria è stata attivata in Beta. Puoi registrare entrate, abbonamenti e costi editor. Alcune funzioni avanzate potrebbero subire modifiche.</p>
+            <button onclick="closeModal('wipEarningsModal')" class="w-full py-3 bg-green-600 hover:bg-green-500 text-white rounded-lg font-bold transition-colors shadow-lg shadow-green-900/20">Ho capito, fammi entrare</button>
+        </div>
+    </div>
+
+    <!-- MODAL FINANZA: ADD ENTRATA -->
+    <div id="addRevenueModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[300] px-4">
+        <div class="bg-[#212121] rounded-xl w-full max-w-sm border border-[#303030]">
+            <div class="flex justify-between items-center p-4 border-b border-[#303030]">
+                <h2 class="text-lg font-bold text-green-400">➕ Aggiungi Entrata</h2>
+                <button onclick="closeModal('addRevenueModal', 'formRevenue')" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <form id="formRevenue" class="p-4 space-y-4">
+                <div><label class="block text-xs font-bold text-gray-400 mb-1">Importo (€)</label><input type="number" step="0.01" id="revAmount" required class="w-full bg-[#0f0f0f] border border-[#444] rounded p-2 text-white"></div>
+                <div><label class="block text-xs font-bold text-gray-400 mb-1">Sorgente / Descrizione</label><input type="text" id="revSource" required placeholder="Es: AdSense Canale X, Sponsor..." class="w-full bg-[#0f0f0f] border border-[#444] rounded p-2 text-white"></div>
+                <div><label class="block text-xs font-bold text-gray-400 mb-1">Data</label><input type="date" id="revDate" required class="w-full bg-[#0f0f0f] border border-[#444] rounded p-2 text-white"></div>
+                <div class="pt-2"><button type="submit" class="w-full py-2 bg-green-600 hover:bg-green-500 text-white font-bold rounded">Salva Entrata</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL FINANZA: ADD ABBONAMENTO -->
+    <div id="addSubModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[300] px-4">
+        <div class="bg-[#212121] rounded-xl w-full max-w-sm border border-[#303030]">
+            <div class="flex justify-between items-center p-4 border-b border-[#303030]">
+                <h2 class="text-lg font-bold text-blue-400">🔁 Nuovo Abbonamento</h2>
+                <button onclick="closeModal('addSubModal', 'formSub')" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <form id="formSub" class="p-4 space-y-4">
+                <div><label class="block text-xs font-bold text-gray-400 mb-1">Nome Servizio</label><input type="text" id="subName" required placeholder="Es: Epidemic Sound, Midjourney..." class="w-full bg-[#0f0f0f] border border-[#444] rounded p-2 text-white"></div>
+                <div><label class="block text-xs font-bold text-gray-400 mb-1">Sito Web (Opzionale)</label><input type="url" id="subSite" placeholder="https://..." class="w-full bg-[#0f0f0f] border border-[#444] rounded p-2 text-white"></div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-xs font-bold text-gray-400 mb-1">Costo (€)</label><input type="number" step="0.01" id="subPrice" required class="w-full bg-[#0f0f0f] border border-[#444] rounded p-2 text-white"></div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-1">Frequenza</label>
+                        <select id="subCycle" class="w-full bg-[#0f0f0f] border border-[#444] rounded p-2 text-white">
+                            <option value="Mensile">Mensile</option>
+                            <option value="Annuale">Annuale</option>
+                        </select>
+                    </div>
+                </div>
+                <div><label class="block text-xs font-bold text-gray-400 mb-1">Prossimo Rinnovo</label><input type="date" id="subRenewal" required class="w-full bg-[#0f0f0f] border border-[#444] rounded p-2 text-white"></div>
+                <div class="pt-2"><button type="submit" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded">Salva Abbonamento</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL FINANZA: ADD COSTO EDITOR -->
+    <div id="addEditorCostModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[300] px-4">
+        <div class="bg-[#212121] rounded-xl w-full max-w-sm border border-[#303030]">
+            <div class="flex justify-between items-center p-4 border-b border-[#303030]">
+                <h2 class="text-lg font-bold text-red-400">💸 Paga Editor</h2>
+                <button onclick="closeModal('addEditorCostModal', 'formEditorCost')" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+            </div>
+            <form id="formEditorCost" class="p-4 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-1">Collega a un Video Completato</label>
+                    <select id="edCostIdea" required class="w-full bg-[#0f0f0f] border border-[#444] rounded p-2 text-white">
+                        <option value="">Seleziona idea video...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-1">Editor / Assegnatario</label>
+                    <input type="text" id="edCostName" required readonly class="w-full bg-[#111] border border-[#333] text-gray-500 rounded p-2 focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-xs font-bold text-gray-400 mb-1">Compenso (€)</label><input type="number" step="0.01" id="edCostAmount" required class="w-full bg-[#0f0f0f] border border-[#444] rounded p-2 text-white"></div>
+                    <div><label class="block text-xs font-bold text-gray-400 mb-1">Data Pagamento</label><input type="date" id="edCostDate" required class="w-full bg-[#0f0f0f] border border-[#444] rounded p-2 text-white"></div>
+                </div>
+                <div class="pt-2"><button type="submit" class="w-full py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded">Registra Pagamento</button></div>
+            </form>
         </div>
     </div>
 

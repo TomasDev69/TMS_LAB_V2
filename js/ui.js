@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { renderVideos, renderInspChannels, renderTools, renderTraining, renderEditorsHub, renderStats, renderDatabaseStats, getFilteredIdeas, loadInspFeed, renderTMSPicks } from './renderers.js';
+import { renderVideos, renderInspChannels, renderTools, renderTraining, renderEditorsHub, renderStats, renderDatabaseStats, getFilteredIdeas, loadInspFeed, renderTMSPicks, renderFinanceDashboard } from './renderers.js';
 
 export function devLog(message, type = 'info') {
     const consoleOutput = document.getElementById('consoleOutput');
@@ -36,6 +36,10 @@ export function closeModal(modalId, formId) {
     if(modalId === 'editChannelModal') { document.getElementById('editChannelAvatarPreview').innerHTML = '📺'; document.getElementById('editChannelAvatarName').classList.add('hidden'); }
     if(modalId === 'addEHModal') { document.getElementById('ehFileName').classList.add('hidden'); document.getElementById('ehDropHint').classList.remove('hidden'); document.getElementById('ehIconPreview').classList.add('hidden'); state.files.eh = null; }
     if(modalId === 'editIdeaModal') { document.getElementById('editIdeaThumbPreview').src = ''; document.getElementById('editIdeaThumbFileName').classList.add('hidden'); state.files.editIdeaThumb = null; }
+    if(modalId === 'wipEarningsModal') { document.getElementById('wipEarningsModal').classList.add('hidden'); document.getElementById('wipEarningsModal').classList.remove('flex'); }
+    if(modalId === 'addRevenueModal') { document.getElementById('addRevenueModal').classList.add('hidden'); document.getElementById('addRevenueModal').classList.remove('flex'); }
+    if(modalId === 'addSubModal') { document.getElementById('addSubModal').classList.add('hidden'); document.getElementById('addSubModal').classList.remove('flex'); }
+    if(modalId === 'addEditorCostModal') { document.getElementById('addEditorCostModal').classList.add('hidden'); document.getElementById('addEditorCostModal').classList.remove('flex'); }
 }
 
 export function closePinModal() {
@@ -153,5 +157,11 @@ export function switchView(view) {
         document.getElementById('navEarnings').classList.add('bg-green-900/40'); document.getElementById('viewEarningsWrapper').classList.remove('hidden');
         pageTitle.textContent = 'Earnings & Finance'; pageSubtitle.textContent = 'Dati finanziari privati del network.';
         mainActionBtn.classList.add('hidden');
+        
+        if (!sessionStorage.getItem('tmslab_wip_earnings_seen')) {
+            document.getElementById('wipEarningsModal').classList.remove('hidden'); document.getElementById('wipEarningsModal').classList.add('flex');
+            sessionStorage.setItem('tmslab_wip_earnings_seen', 'true');
+        }
+        renderFinanceDashboard();
     }
 }
