@@ -78,6 +78,9 @@
             <div id="navInspirations" class="channel-item flex items-center gap-3 py-2.5 mx-2 rounded-lg cursor-pointer mb-1" onclick="switchView('inspirations')">
                 <span class="text-xl">🌟</span><span class="sidebar-label text-sm font-semibold text-white whitespace-nowrap overflow-hidden">Inspirations</span>
             </div>
+            <div id="navTmsPicks" class="channel-item flex items-center gap-3 py-2.5 mx-2 rounded-lg cursor-pointer mb-1" onclick="switchView('tmspicks')">
+                <span class="text-xl">🎯</span><span class="sidebar-label text-sm font-semibold text-white whitespace-nowrap overflow-hidden">TMS Picks</span>
+            </div>
             <div id="navStrumenti" class="channel-item flex items-center gap-3 py-2.5 mx-2 rounded-lg cursor-pointer mb-1" onclick="switchView('strumenti')">
                 <span class="text-xl">🛠️</span><span class="sidebar-label text-sm font-semibold text-white whitespace-nowrap overflow-hidden">Risorse & Tools</span>
             </div>
@@ -116,6 +119,10 @@
             <div id="channelList" class="flex flex-col gap-0.5 overflow-y-auto flex-1 px-2 pb-2 border-b border-[#303030] mb-2"></div>
 
             <div class="mt-auto mb-2 px-2 flex flex-col gap-1">
+                <button id="openDevTodoBtn" class="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded hover:bg-[#272727] transition-colors group">
+                    <span class="text-gray-400 group-hover:text-purple-400 transition-colors">📋</span>
+                    <span class="sidebar-label text-xs font-mono text-gray-400 group-hover:text-purple-400 transition-colors">To-Do Sviluppo</span>
+                </button>
                 <button id="openConsoleBtn" class="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded hover:bg-[#272727] transition-colors group">
                     <span class="text-gray-400 group-hover:text-green-400 transition-colors">👨‍💻</span>
                     <span class="sidebar-label text-xs font-mono text-gray-400 group-hover:text-green-400 transition-colors">Apri Console Dev</span>
@@ -154,7 +161,6 @@
                 <div class="flex gap-6 border-b border-[#303030] mb-6 relative items-center overflow-x-auto scrollbar-hide">
                     <button class="insp-tab active pb-2 font-bold text-gray-400 whitespace-nowrap" data-insptab="channels" onclick="switchInspTab('channels')">📊 Dashboard Canali</button>
                     <button class="insp-tab pb-2 font-bold text-gray-400 whitespace-nowrap" data-insptab="feed" onclick="switchInspTab('feed')">📺 Feed Video (> 5 min)</button>
-                    <button class="insp-tab pb-2 font-bold text-gray-400 whitespace-nowrap" data-insptab="picks" onclick="switchInspTab('picks')">🎯 TMS Picks</button>
                     
                     <button id="btnRefreshFeed" class="absolute right-0 top-0 hidden bg-[#1c62b9] hover:bg-[#2573d4] text-white px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-lg flex items-center gap-1">
                         <span>🔄</span> Ricarica Feed
@@ -205,12 +211,12 @@
                         </button>
                     </div>
                 </div>
+            </div>
 
-                <div id="inspPicksView" class="hidden">
-                    <div id="picksGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
-                    <div id="noPicksResults" class="text-center py-20 text-gray-400 flex flex-col items-center">
-                        <span class="text-4xl mb-3">🎯</span><p>Nessun video in TMS Picks. Aggiungine uno!</p>
-                    </div>
+            <div id="viewTMSPicksWrapper" class="hidden">
+                <div id="picksGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+                <div id="noPicksResults" class="text-center py-20 text-gray-400 flex flex-col items-center">
+                    <span class="text-4xl mb-3">🎯</span><p>Nessun video in TMS Picks. Aggiungine uno!</p>
                 </div>
             </div>
 
@@ -983,6 +989,27 @@
             </div>
             <div id="consoleOutput" class="p-4 overflow-y-auto flex-1 font-mono text-[13px] bg-[#121212] flex flex-col gap-1">
                 </div>
+        </div>
+    </div>
+
+    <div id="devTodoModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[200] px-4 backdrop-blur-sm">
+        <div class="bg-[#1e1e1e] rounded-xl w-full max-w-2xl shadow-2xl overflow-hidden border border-[#444] flex flex-col max-h-[80vh]">
+            <div class="flex justify-between items-center p-4 border-b border-[#444] bg-[#2d2d2d] shrink-0">
+                <h2 class="text-lg font-bold text-purple-400 flex items-center gap-2">
+                    📋 To-Do List Development
+                </h2>
+                <button onclick="closeModal('devTodoModal')" class="text-gray-400 hover:text-white text-2xl leading-none px-2">&times;</button>
+            </div>
+            <div class="p-4 bg-[#121212] border-b border-[#333]">
+                <form id="devTodoForm" class="flex gap-2">
+                    <input type="text" id="devTodoInput" required placeholder="Aggiungi una nuova task per lo sviluppo..." class="flex-1 bg-[#1a1a1a] border border-[#444] rounded-lg p-2.5 text-white focus:outline-none focus:border-purple-500">
+                    <button type="submit" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold transition-colors">Aggiungi</button>
+                </form>
+            </div>
+            <div class="p-0 overflow-y-auto flex-1 bg-[#121212]">
+                <ul id="devTodoList" class="divide-y divide-[#222]"></ul>
+                <div id="devTodoEmpty" class="text-center py-10 text-gray-500 hidden">Nessuna task presente.</div>
+            </div>
         </div>
     </div>
 

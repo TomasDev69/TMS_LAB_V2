@@ -5,7 +5,7 @@ import {
     renderVideos, getFilteredIdeas, renderChannelList, renderTools, 
     renderTraining, renderEditorsHub, renderStats, renderDatabaseStats, 
     renderInspChannels, loadInspFeed, switchEHTab, updateAudioUI, renderTMSPicks,
-    renderNextFeedBatch, renderFinanceDashboard, getIdeaStatus
+    renderNextFeedBatch, renderFinanceDashboard, getIdeaStatus, renderDevTodo
 } from './renderers.js';
 import { compressImage, shuffleArray } from './utils.js';
 
@@ -19,6 +19,7 @@ window.requirePin = requirePin;
 window.renderChannelList = renderChannelList;
 window.renderDatabaseStats = renderDatabaseStats;
 window.renderTMSPicks = renderTMSPicks;
+window.renderDevTodo = renderDevTodo;
 window.switchEHTab = switchEHTab;
 
 window.openEarnings = () => {
@@ -104,15 +105,6 @@ window.switchInspTab = (tabName) => {
             document.getElementById('addInspChannelModal').classList.add('flex'); 
         };
         renderInspChannels();
-    } else if (tabName === 'picks') {
-        document.getElementById('inspChannelsView').classList.add('hidden');
-        document.getElementById('inspFeedView').classList.add('hidden');
-        document.getElementById('inspPicksView').classList.remove('hidden');
-        document.getElementById('btnRefreshFeed').classList.add('hidden');
-        mainActionBtn.classList.remove('hidden');
-        mainActionText.textContent = 'Aggiungi Pick';
-        mainActionBtn.onclick = () => { document.getElementById('addPickModal').classList.remove('hidden'); document.getElementById('addPickModal').classList.add('flex'); };
-        renderTMSPicks();
     } else {
         document.getElementById('inspChannelsView').classList.add('hidden');
         document.getElementById('inspFeedView').classList.remove('hidden');
@@ -142,7 +134,26 @@ window.toggleTrainingType = () => {
 // =============================================
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- CONSOLE DEV ---
+    // --- CONSOLE DEV E TO-DO LIST ---
+    document.getElementById('openDevTodoBtn')?.addEventListener('click', () => {
+        requirePin("Accesso alla To-Do List di Sviluppo", () => {
+            document.getElementById('devTodoModal').classList.remove('hidden');
+            document.getElementById('devTodoModal').classList.add('flex');
+            renderDevTodo();
+        });
+    });
+
+    document.getElementById('devTodoForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const input = document.getElementById('devTodoInput');
+        if (!input.value.trim()) return;
+        if (!state.devTodoList) state.devTodoList = [];
+        state.devTodoList.unshift({ id: Date.now().toString(), text: input.value.trim(), done: false });
+        input.value = '';
+        renderDevTodo();
+        await autoSaveToCloud();
+    });
+
     const devConsoleModal = document.getElementById('devConsoleModal');
     const consoleOutput = document.getElementById('consoleOutput');
     document.getElementById('openConsoleBtn')?.addEventListener('click', () => {

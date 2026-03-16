@@ -619,6 +619,16 @@ export function renderStats() {
     document.getElementById('statProgressIdeas').textContent = p;
     document.getElementById('statCompletedIdeas').textContent = c;
 
+    const insightsList = document.getElementById('statsInsightsList');
+    insightsList.innerHTML = '';
+    
+    if (n > 0) insightsList.innerHTML += `<li><span class="text-blue-400 font-bold">💡 Nuove idee:</span> Hai ${n} idee in fase di valutazione.</li>`;
+    if (p > 0) insightsList.innerHTML += `<li><span class="text-purple-400 font-bold">🛠️ In lavorazione:</span> Il team sta attualmente lavorando su ${p} video.</li>`;
+    if (c > 0) insightsList.innerHTML += `<li><span class="text-green-400 font-bold">🚀 Ottimo lavoro:</span> Avete completato ${c} video finora.</li>`;
+    if (state.channels.length === 0) insightsList.innerHTML += `<li><span class="text-yellow-400 font-bold">⚠️ Nessun canale:</span> Non hai ancora aggiunto canali alla dashboard.</li>`;
+    
+    if (insightsList.innerHTML === '') insightsList.innerHTML = `<li><span class="text-gray-400">Inizia ad aggiungere idee per generare consigli.</span></li>`;
+
     const teamBody = document.getElementById('teamPerformanceBody');
     teamBody.innerHTML = '';
     let teamData = state.TEAM_MEMBERS.map(member => {
@@ -701,6 +711,43 @@ export function renderDatabaseStats() {
             tableBody.appendChild(tr);
         });
     }
+}
+
+// ==========================================
+// RENDER TO-DO LIST SVILUPPO
+// ==========================================
+export function renderDevTodo() {
+    const list = document.getElementById('devTodoList');
+    const empty = document.getElementById('devTodoEmpty');
+    list.innerHTML = '';
+    
+    if (!state.devTodoList || state.devTodoList.length === 0) {
+        empty.classList.remove('hidden');
+        return;
+    }
+    empty.classList.add('hidden');
+    
+    state.devTodoList.forEach(todo => {
+        const li = document.createElement('li');
+        li.className = "flex items-center justify-between p-4 hover:bg-[#1a1a1a] transition-colors group";
+        li.innerHTML = `
+            <label class="flex items-center gap-3 cursor-pointer flex-1">
+                <div class="relative flex items-center justify-center w-5 h-5 shrink-0">
+                    <input type="checkbox" class="custom-checkbox opacity-0 absolute w-full h-full cursor-pointer z-10" ${todo.done ? 'checked' : ''}>
+                    <div class="w-5 h-5 border-2 border-gray-500 rounded flex items-center justify-center transition-colors group-hover:border-blue-400">
+                        <svg class="hidden w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                </div>
+                <span class="text-sm ${todo.done ? 'text-gray-500 line-through' : 'text-gray-200'}">${todo.text}</span>
+            </label>
+            <button class="text-red-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-2 text-sm" title="Elimina Task">🗑️</button>
+        `;
+        
+        li.querySelector('input').addEventListener('change', async (e) => { todo.done = e.target.checked; renderDevTodo(); await autoSaveToCloud(); });
+        li.querySelector('button').addEventListener('click', async () => { state.devTodoList = state.devTodoList.filter(t => t.id !== todo.id); renderDevTodo(); await autoSaveToCloud(); });
+        
+        list.appendChild(li);
+    });
 }
 
 // ==========================================
