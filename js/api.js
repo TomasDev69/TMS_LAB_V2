@@ -46,3 +46,35 @@ export async function autoSaveToCloud() {
         }).catch(e => { throw e; });
     } catch (error) { updateStatus("Errore Auto-Save", "error"); }
 }
+
+export async function loadDataFromCloud() {
+    if (!state.SCRIPT_URL) return;
+    
+    updateStatus("Caricamento DB...", "warning");
+    
+    try {
+        const res = await fetch(state.SCRIPT_URL, { cache: 'no-store' });
+        const data = await res.json();
+        
+        if (data.status === 'error') {
+            throw new Error(data.message);
+        }
+        
+        if (data.ideas) state.videoIdeas = data.ideas;
+        if (data.channels) state.channels = data.channels;
+        if (data.tools) state.toolsData = data.tools;
+        if (data.training) state.trainingData = data.training;
+        if (data.editorsHub) state.editorsHubData = data.editorsHub;
+        if (data.inspChannels) state.inspChannels = data.inspChannels;
+
+        updateStatus("🟢 Sincronizzato", "success");
+        devLog("[API] Dati caricati dal cloud con successo.", "success");
+        
+        if (window.renderChannelList) window.renderChannelList();
+        if (window.switchView) window.switchView(state.currentView || 'idee');
+
+    } catch (error) {
+        updateStatus("Errore Caricamento", "error");
+        devLog(`[API ERROR] Caricamento fallito: ${error.message}`, "error");
+    }
+}
