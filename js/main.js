@@ -219,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- FORM: CREAZIONE IDEA ---
-    document.getElementById('inputThumbFile').addEventListener('change', (e) => {
+    document.getElementById('inputThumbFile')?.addEventListener('change', (e) => {
         const file = e.target.files[0]; if (!file) return;
         state.files.addThumb = file;
         const reader = new FileReader();
@@ -233,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.readAsDataURL(file);
     });
 
-    document.getElementById('ideaForm').addEventListener('submit', async (e) => {
+    document.getElementById('ideaForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const submitBtn = e.target.querySelector('button[type=submit]');
         if (!state.files.addThumb) { alert('Carica un\'immagine.'); return; }
@@ -306,7 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- FORM: MODIFICA IDEA ---
-    document.getElementById('editIdeaThumbFile').addEventListener('change', (e) => {
+    document.getElementById('editIdeaThumbFile')?.addEventListener('change', (e) => {
         const file = e.target.files[0]; if (!file) return;
         state.files.editIdeaThumb = file;
         const reader = new FileReader();
@@ -321,7 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- FORM: TOOL E RISORSE ---
-    document.getElementById('inputToolFile').addEventListener('change', (e) => {
+    document.getElementById('inputToolFile')?.addEventListener('change', (e) => {
         const file = e.target.files[0]; if (!file) return;
         state.files.tool = file;
         const reader = new FileReader();
@@ -333,7 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.readAsDataURL(file);
     });
 
-    document.getElementById('toolForm').addEventListener('submit', async (e) => {
+    document.getElementById('toolForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const submitBtn = e.target.querySelector('button[type=submit]');
         const id = document.getElementById('inputToolId').value;
@@ -393,7 +393,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- FORM: FORMAZIONE ---
-    document.getElementById('inputTrainingFile').addEventListener('change', (e) => {
+    document.getElementById('inputTrainingFile')?.addEventListener('change', (e) => {
         const file = e.target.files[0]; if (!file) return;
         state.files.training = file;
         const reader = new FileReader();
@@ -406,7 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- FORM: EDITORS HUB ---
-    document.getElementById('inputEHFile').addEventListener('change', (e) => {
+    document.getElementById('inputEHFile')?.addEventListener('change', (e) => {
         const file = e.target.files[0]; if (!file) return;
         state.files.eh = file;
         document.getElementById('ehDropHint').classList.add('hidden');
@@ -425,7 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    document.getElementById('inputEHCategory').addEventListener('change', (e) => {
+    document.getElementById('inputEHCategory')?.addEventListener('change', (e) => {
         state.files.eh = null;
         document.getElementById('inputEHFile').value = '';
         document.getElementById('ehDropHint').classList.remove('hidden');
@@ -434,7 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- STATS TEAM SORT ---
-    document.getElementById('teamSortSelect').addEventListener('change', renderStats);
+    document.getElementById('teamSortSelect')?.addEventListener('change', renderStats);
 
     // --- DASHBOARD CHIUSURA ---
     const ideaDashboardModal = document.getElementById('ideaDashboardModal');
@@ -445,11 +445,11 @@ document.addEventListener('DOMContentLoaded', () => {
         ideaDashboardModal.classList.remove('flex');
         state.currentlyOpenIdeaId = null;
     }
-    closeDashBtn.addEventListener('click', closeDashModal);
-    ideaDashboardModal.addEventListener('click', (e) => { if (e.target === ideaDashboardModal) closeDashModal(); });
+    closeDashBtn?.addEventListener('click', closeDashModal);
+    ideaDashboardModal?.addEventListener('click', (e) => { if (e.target === ideaDashboardModal) closeDashModal(); });
 
     // --- INSPIRATIONS BUTTONS ---
-    document.getElementById('btnRefreshFeed').addEventListener('click', () => {
+    document.getElementById('btnRefreshFeed')?.addEventListener('click', () => {
         const btn = document.getElementById('btnRefreshFeed');
         btn.innerHTML = '<span class="animate-spin inline-block">🔄</span> Aggiornamento...';
         btn.disabled = true;
@@ -513,7 +513,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- CHANNEL MODALS ---
-    document.getElementById('inputChannelAvatar').addEventListener('change', (e) => {
+    document.getElementById('inputChannelAvatar')?.addEventListener('change', (e) => {
         state.files.channelAvatar = e.target.files[0];
         if(state.files.channelAvatar) {
             const reader = new FileReader(); 
@@ -522,7 +522,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.getElementById('addChannelBtn').addEventListener('click', () => {
+    document.getElementById('addChannelBtn')?.addEventListener('click', () => {
         requirePin("Per creare un nuovo canale devi essere autorizzato.", () => {
             document.getElementById('addChannelModal').classList.remove('hidden'); 
             document.getElementById('addChannelModal').classList.add('flex');
@@ -530,10 +530,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const closeAddChannelModal = () => { document.getElementById('addChannelModal').classList.add('hidden'); document.getElementById('addChannelModal').classList.remove('flex'); };
-    document.getElementById('closeChannelModalBtn').addEventListener('click', closeAddChannelModal); 
-    document.getElementById('cancelChannelBtn').addEventListener('click', closeAddChannelModal);
+    document.getElementById('closeChannelModalBtn')?.addEventListener('click', closeAddChannelModal); 
+    document.getElementById('cancelChannelBtn')?.addEventListener('click', closeAddChannelModal);
 
-    document.getElementById('saveChannelBtn').addEventListener('click', async () => {
+    document.getElementById('saveChannelBtn')?.addEventListener('click', async () => {
         const name = document.getElementById('inputChannelName').value.trim();
         if (!name || !state.SCRIPT_URL) return;
         const btn = document.getElementById('saveChannelBtn'); btn.disabled = true;
@@ -560,7 +560,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Edit Channel
-    document.getElementById('editChannelAvatar').addEventListener('change', (e) => {
+    document.getElementById('editChannelAvatar')?.addEventListener('change', (e) => {
         state.files.editChannelAvatar = e.target.files[0];
         if(state.files.editChannelAvatar) {
             const reader = new FileReader(); 
@@ -573,7 +573,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.getElementById('closeEditChannelBtn').addEventListener('click', () => closeModal('editChannelModal'));
-    document.getElementById('cancelEditChannelBtn').addEventListener('click', () => closeModal('editChannelModal'));
+    document.getElementById('closeEditChannelBtn')?.addEventListener('click', () => closeModal('editChannelModal'));
+    document.getElementById('cancelEditChannelBtn')?.addEventListener('click', () => closeModal('editChannelModal'));
 
 });
