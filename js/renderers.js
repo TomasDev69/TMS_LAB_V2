@@ -55,6 +55,16 @@ export function renderFinanceDashboard() {
         subList.appendChild(li);
     });
 
+    const revList = document.getElementById('finRevenueList');
+    revList.innerHTML = '';
+    if(state.finance.revenues.length === 0) revList.innerHTML = '<li class="p-6 text-center text-gray-500 text-sm">Nessuna entrata registrata.</li>';
+    [...state.finance.revenues].sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(rev => {
+        const li = document.createElement('li'); li.className = 'p-4 hover:bg-[#272727] flex justify-between items-center transition-colors group relative';
+        li.innerHTML = `<div class="flex flex-col pr-4"><span class="font-bold text-gray-200 text-sm line-clamp-1">${rev.source}</span><span class="text-xs text-gray-500 mt-1">${new Date(rev.date).toLocaleDateString('it-IT')}</span></div><div class="flex items-center gap-4 shrink-0"><div class="font-bold text-green-400">+ € ${parseFloat(rev.amount).toFixed(2)}</div><button class="del-rev-btn opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-400 transition-opacity">🗑️</button></div>`;
+        li.querySelector('.del-rev-btn').onclick = () => { requirePin(`Eliminare questa entrata?`, async () => { state.finance.revenues = state.finance.revenues.filter(r => r.id !== rev.id); renderFinanceDashboard(); await autoSaveToCloud(); }); };
+        revList.appendChild(li);
+    });
+
     const edList = document.getElementById('finEditorCostList');
     edList.innerHTML = '';
     if(state.finance.editorCosts.length === 0) edList.innerHTML = '<li class="p-6 text-center text-gray-500 text-sm">Nessun pagamento registrato.</li>';
@@ -80,7 +90,11 @@ export function renderFinanceDashboard() {
     
     for(let i = daysLimit - 1; i >= 0; i--) {
         const d = new Date(now); d.setDate(d.getDate() - i);
-        const dateString = d.toISOString().split('T')[0]; // YYYY-MM-DD
+        
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const dateString = `${year}-${month}-${day}`; 
         
         labels.push(d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short' }));
         
@@ -123,7 +137,13 @@ export function renderFinanceDashboard() {
 // FUNZIONI SUPPORTO IDEE
 // ==========================================
 export function getIdeaStatus(idea) {
-    if (idea.checklist && idea.checklist.script && idea.checklist.audio && idea.checklist.video && idea.checklist.final) { return 'completed'; }
+    if (idea.checklist) {
+        if (typeof idea.checklist.music === 'undefined') idea.checklist.music = idea.checklist.final ? true : false;
+        if (typeof idea.checklist.sfx === 'undefined') idea.checklist.sfx = idea.checklist.final ? true : false;
+        if (idea.checklist.script && idea.checklist.audio && idea.checklist.video && idea.checklist.music && idea.checklist.sfx && idea.checklist.final) { 
+            return 'completed'; 
+        }
+    }
     if (idea.assignee) { return 'progress'; }
     const createdTime = idea.createdAt || 0; 
     const hours48 = 48 * 60 * 60 * 1000;
@@ -769,76 +789,38 @@ export async function renderTMSPicks() {
 
     [...state.tmsPicks].reverse().forEach(pick => {
         const card = document.createElement('div');
-        card.className = 'flex flex-col gap-2 cursor-pointer group relative';
-        
-        const act = document.createElement('div');
-        act.className = 'absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-20';
-        act.innerHTML = `<button class="delBtn bg-red-600/90 hover:bg-red-500 text-white text-xs w-8 h-8 rounded-full shadow-lg hover:scale-110 transition-transform">🗑️</button>`;
-        act.querySelector('.delBtn').onclick = (e) => {
-            e.stopPropagation();
-            requirePin(`Eliminare il pick "${pick.title}"?`, async () => {
-                state.tmsPicks = state.tmsPicks.filter(p => p.id !== pick.id);
-                renderTMSPicks(); await autoSaveToCloud();
-            });
-        };
+        card.className = 'flex flex-col gap-2 cursor-pointer group relative hover:opacity-90 transition-opacity';
+        card.onclick = () => { if(window.openPickDashboard) window.openPickDashboard(pick); };
 
         const thumbSrc = `https://img.youtube.com/vi/${pick.ytId}/maxresdefault.jpg`;
+        let avatarHtml = pick.avatar ? `<img src="${pick.avatar}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center">📺</div>`;
         
         card.innerHTML = `
-            <div class="relative w-full aspect-video rounded-xl overflow-hidden bg-[#272727] border border-transparent group-hover:border-[#444] transition-colors shadow-lg" onclick="window.open('${pick.link}', '_blank')">
+            <div class="relative w-full aspect-video rounded-xl overflow-hidden bg-[#272727] border border-transparent group-hover:border-[#444] transition-colors shadow-lg">
                 <img src="${thumbSrc}" onerror="this.src='https://img.youtube.com/vi/${pick.ytId}/hqdefault.jpg'" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                 <div class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                    <span class="text-5xl drop-shadow-lg">▶️</span>
+                    <span class="text-4xl drop-shadow-lg">📝</span>
                 </div>
-                <div class="absolute top-2 left-2 bg-black/80 px-2 py-0.5 rounded text-[11px] font-bold text-gray-300 uppercase border border-[#444] backdrop-blur-sm picks-stats-${pick.ytId}">
-                    <span class="animate-pulse">⏳ Info...</span>
+                <div class="absolute top-2 left-2 bg-black/80 px-2 py-0.5 rounded text-[11px] font-bold text-gray-300 uppercase border border-[#444] backdrop-blur-sm">
+                    ${pick.views || 'N/A views'}
+                </div>
+                <div class="absolute bottom-2 right-2 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-bold text-white border border-[#444]">
+                    ${pick.duration || '0:00'}
                 </div>
             </div>
             <div class="flex gap-3 pr-2 mt-1">
-                <div class="w-9 h-9 rounded-full bg-[#272727] flex items-center justify-center text-xs font-bold border border-[#404040] shrink-0 overflow-hidden picks-avatar-${pick.ytId}">
-                    <span class="animate-pulse text-gray-500">...</span>
+                <div class="w-9 h-9 rounded-full bg-[#272727] flex items-center justify-center text-xs font-bold border border-[#404040] shrink-0 overflow-hidden">
+                    ${avatarHtml}
                 </div>
                 <div class="flex flex-col">
                     <h3 class="text-[14px] font-semibold text-[#f1f1f1] line-clamp-2 leading-tight group-hover:text-blue-400 transition-colors" title="${pick.title}">${pick.title}</h3>
-                    <div class="text-[12px] text-[#aaaaaa] mt-1 font-medium flex items-center gap-1 picks-author-${pick.ytId}">
-                        In caricamento...
+                    <div class="text-[12px] text-[#aaaaaa] mt-1 font-medium flex items-center gap-1">
+                        ${pick.author || 'Sconosciuto'}
                     </div>
                 </div>
             </div>
         `;
-        card.appendChild(act); grid.appendChild(card);
-        
-        const fetchPiped = async (ytId) => {
-            const instances = ['https://pipedapi.kavin.rocks', 'https://pipedapi.tokhmi.xyz', 'https://pipedapi.smnz.de'];
-            for (let url of instances) {
-                try {
-                    const res = await fetch(`${url}/streams/${ytId}`);
-                    if(res.ok) return await res.json();
-                } catch(e) {}
-            }
-            throw new Error("Tutte le API fallite");
-        };
-
-        fetchPiped(pick.ytId).then(data => {
-            const statsEl = card.querySelector(`.picks-stats-${pick.ytId}`);
-            if (statsEl) statsEl.innerHTML = `👀 ${formatViewsCount(data.views)}`;
-            
-            const avatarEl = card.querySelector(`.picks-avatar-${pick.ytId}`);
-            if (avatarEl && data.uploaderAvatar) {
-                avatarEl.innerHTML = `<img src="${data.uploaderAvatar}" class="w-full h-full object-cover">`;
-                avatarEl.classList.remove('bg-[#272727]', 'border-[#404040]');
-            }
-            
-            const authorEl = card.querySelector(`.picks-author-${pick.ytId}`);
-            if (authorEl) authorEl.innerHTML = `${data.uploader} <span class="text-[8px] opacity-50 mx-1">•</span> ${data.uploadDate}`;
-        }).catch(() => {
-            const statsEl = card.querySelector(`.picks-stats-${pick.ytId}`);
-            if(statsEl) statsEl.innerHTML = `<span class="text-red-400">N/A</span>`;
-            const avatarEl = card.querySelector(`.picks-avatar-${pick.ytId}`);
-            if (avatarEl) avatarEl.innerHTML = `📺`;
-            const authorEl = card.querySelector(`.picks-author-${pick.ytId}`);
-            if (authorEl) authorEl.innerHTML = `Sconosciuto`;
-        });
+        grid.appendChild(card);
     });
 }
 
@@ -918,15 +900,18 @@ export async function loadInspFeed() {
     grid.classList.remove('hidden'); loadMoreBtn.classList.add('hidden');
 
     let rawVideos = [];
-    for (const ch of state.inspChannels) {
-        if (!ch.ytId) continue;
+    
+    const fetchPromises = state.inspChannels.filter(ch => ch.ytId).map(async ch => {
         try {
             const html = await fetchYTProxy(`https://www.youtube.com/channel/${ch.ytId}/videos`);
             const ytDataStr = html.match(/var ytInitialData = (\{.*?\});<\/script>/);
-            if (ytDataStr) rawVideos.push(...extractVideosFromYtData(JSON.parse(ytDataStr[1]), ch.id, ch.name, ch.avatar));
+            if (ytDataStr) return extractVideosFromYtData(JSON.parse(ytDataStr[1]), ch.id, ch.name, ch.avatar);
         } catch(e) {}
-        await new Promise(r => setTimeout(r, 800)); 
-    }
+        return [];
+    });
+    
+    const results = await Promise.all(fetchPromises);
+    results.forEach(vids => rawVideos.push(...vids));
 
     rawVideos.sort((a, b) => b.pubDateMs - a.pubDateMs);
     const uniqueIds = new Set(); const uniqueVideos = [];
@@ -968,9 +953,13 @@ export function renderNextFeedBatch() {
 // ==========================================
 
 function updateChecklistProgress(idea) {
-    const total = 4;
-    const done = [idea.checklist.script, idea.checklist.audio, idea.checklist.video, idea.checklist.final].filter(Boolean).length;
-    const perc = (done / total) * 100;
+    let perc = 0;
+    if (idea.checklist.script) perc += 20;
+    if (idea.checklist.audio) perc += 20;
+    if (idea.checklist.video) perc += 20;
+    if (idea.checklist.music) perc += 10;
+    if (idea.checklist.sfx) perc += 10;
+    if (idea.checklist.final) perc += 20;
     
     document.getElementById('dashProgressText').textContent = `${perc}%`;
     document.getElementById('dashProgressBar').style.width = `${perc}%`;
@@ -996,7 +985,9 @@ function updateChecklistProgress(idea) {
 
 window.openIdeaDashboard = function(idea) {
     state.currentlyOpenIdeaId = idea.id;
-    if (!idea.checklist) idea.checklist = { script: false, audio: false, video: false, final: false };
+    if (!idea.checklist) idea.checklist = { script: false, audio: false, video: false, music: false, sfx: false, final: false };
+    if (typeof idea.checklist.music === 'undefined') idea.checklist.music = idea.checklist.final ? true : false;
+    if (typeof idea.checklist.sfx === 'undefined') idea.checklist.sfx = idea.checklist.final ? true : false;
     
     const ch = state.channels.find(c => c.id === idea.channelId);
     document.getElementById('dashThumb').src = idea.thumbnail || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop';
@@ -1030,6 +1021,8 @@ window.openIdeaDashboard = function(idea) {
         document.getElementById('chkScript').checked = idea.checklist.script;
         document.getElementById('chkAudio').checked = idea.checklist.audio;
         document.getElementById('chkVideo').checked = idea.checklist.video;
+        document.getElementById('chkMusic').checked = idea.checklist.music;
+        document.getElementById('chkSfx').checked = idea.checklist.sfx;
         document.getElementById('chkFinal').checked = idea.checklist.final;
         updateChecklistProgress(idea);
     }

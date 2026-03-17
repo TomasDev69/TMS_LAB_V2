@@ -37,6 +37,7 @@ export function closeModal(modalId, formId) {
     if(modalId === 'addEHModal') { document.getElementById('ehFileName').classList.add('hidden'); document.getElementById('ehDropHint').classList.remove('hidden'); document.getElementById('ehIconPreview').classList.add('hidden'); state.files.eh = null; }
     if(modalId === 'editIdeaModal') { document.getElementById('editIdeaThumbPreview').src = ''; document.getElementById('editIdeaThumbFileName').classList.add('hidden'); state.files.editIdeaThumb = null; }
     if(modalId === 'devTodoModal') { document.getElementById('devTodoModal').classList.add('hidden'); document.getElementById('devTodoModal').classList.remove('flex'); }
+    if(modalId === 'pickDashboardModal') { document.getElementById('pickDashboardModal').classList.add('hidden'); document.getElementById('pickDashboardModal').classList.remove('flex'); }
     if(modalId === 'wipEarningsModal') { document.getElementById('wipEarningsModal').classList.add('hidden'); document.getElementById('wipEarningsModal').classList.remove('flex'); }
     if(modalId === 'addRevenueModal') { document.getElementById('addRevenueModal').classList.add('hidden'); document.getElementById('addRevenueModal').classList.remove('flex'); }
     if(modalId === 'addSubModal') { document.getElementById('addSubModal').classList.add('hidden'); document.getElementById('addSubModal').classList.remove('flex'); }
@@ -74,9 +75,9 @@ export function requirePin(actionMessage, callback) {
 
 export function switchView(view) {
     state.currentView = view;
-    ['navIdee', 'navInspirations', 'navTmsPicks', 'navStrumenti', 'navFormazione', 'navEditorsHub', 'navScript', 'navStats', 'navDatabase'].forEach(id => document.getElementById(id).classList.remove('active'));
+    ['navIdee', 'navInspirations', 'navStrumenti', 'navFormazione', 'navEditorsHub', 'navScript', 'navStats', 'navDatabase'].forEach(id => document.getElementById(id).classList.remove('active'));
     document.getElementById('navEarnings').classList.remove('bg-green-900/40');
-    ['viewIdeeWrapper', 'viewInspirationsWrapper', 'viewTMSPicksWrapper', 'viewStrumentiWrapper', 'viewFormazioneWrapper', 'viewEditorsHubWrapper', 'viewScriptWrapper', 'viewStatsWrapper', 'viewDatabaseWrapper', 'viewEarningsWrapper'].forEach(id => document.getElementById(id).classList.add('hidden'));
+    ['viewIdeeWrapper', 'viewInspirationsWrapper', 'viewStrumentiWrapper', 'viewFormazioneWrapper', 'viewEditorsHubWrapper', 'viewScriptWrapper', 'viewStatsWrapper', 'viewDatabaseWrapper', 'viewEarningsWrapper'].forEach(id => document.getElementById(id).classList.add('hidden'));
     
     if(!state.globalAudioPlayer.paused) { state.globalAudioPlayer.pause(); state.currentlyPlayingEHId = null; }
 
@@ -94,20 +95,7 @@ export function switchView(view) {
     } else if (view === 'inspirations') {
         document.getElementById('navInspirations').classList.add('active'); document.getElementById('viewInspirationsWrapper').classList.remove('hidden');
         pageTitle.textContent = 'Inspirations'; pageSubtitle.textContent = 'Studia e analizza i canali dei competitor per prendere spunto.';
-        if (state.currentInspTab === 'channels') {
-            mainActionBtn.classList.remove('hidden'); mainActionText.textContent = 'Aggiungi Canale';
-            mainActionBtn.onclick = () => { document.getElementById('addInspChannelModal').classList.remove('hidden'); document.getElementById('addInspChannelModal').classList.add('flex'); };
-            renderInspChannels();
-        } else {
-            mainActionBtn.classList.add('hidden');
-            if(state.globalFeed.length === 0) loadInspFeed();
-        }
-    } else if (view === 'tmspicks') {
-        document.getElementById('navTmsPicks').classList.add('active'); document.getElementById('viewTMSPicksWrapper').classList.remove('hidden');
-        pageTitle.textContent = 'TMS Picks'; pageSubtitle.textContent = 'I tuoi video YouTube preferiti salvati e monitorati.';
-        mainActionBtn.classList.remove('hidden'); mainActionText.textContent = 'Aggiungi Pick';
-        mainActionBtn.onclick = () => { document.getElementById('addPickModal').classList.remove('hidden'); document.getElementById('addPickModal').classList.add('flex'); };
-        renderTMSPicks();
+        window.switchInspTab(state.currentInspTab);
     } else if (view === 'strumenti') {
         document.getElementById('navStrumenti').classList.add('active'); document.getElementById('viewStrumentiWrapper').classList.remove('hidden');
         pageTitle.textContent = 'Strumenti & Risorse'; pageSubtitle.textContent = 'Tutti i tool utili al tuo flusso di lavoro.';

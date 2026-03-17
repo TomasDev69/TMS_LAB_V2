@@ -78,9 +78,6 @@
             <div id="navInspirations" class="channel-item flex items-center gap-3 py-2.5 mx-2 rounded-lg cursor-pointer mb-1" onclick="switchView('inspirations')">
                 <span class="text-xl">🌟</span><span class="sidebar-label text-sm font-semibold text-white whitespace-nowrap overflow-hidden">Inspirations</span>
             </div>
-            <div id="navTmsPicks" class="channel-item flex items-center gap-3 py-2.5 mx-2 rounded-lg cursor-pointer mb-1" onclick="switchView('tmspicks')">
-                <span class="text-xl">🎯</span><span class="sidebar-label text-sm font-semibold text-white whitespace-nowrap overflow-hidden">TMS Picks</span>
-            </div>
             <div id="navStrumenti" class="channel-item flex items-center gap-3 py-2.5 mx-2 rounded-lg cursor-pointer mb-1" onclick="switchView('strumenti')">
                 <span class="text-xl">🛠️</span><span class="sidebar-label text-sm font-semibold text-white whitespace-nowrap overflow-hidden">Risorse & Tools</span>
             </div>
@@ -161,6 +158,7 @@
                 <div class="flex gap-6 border-b border-[#303030] mb-6 relative items-center overflow-x-auto scrollbar-hide">
                     <button class="insp-tab active pb-2 font-bold text-gray-400 whitespace-nowrap" data-insptab="channels" onclick="switchInspTab('channels')">📊 Dashboard Canali</button>
                     <button class="insp-tab pb-2 font-bold text-gray-400 whitespace-nowrap" data-insptab="feed" onclick="switchInspTab('feed')">📺 Feed Video (> 5 min)</button>
+                    <button class="insp-tab pb-2 font-bold text-gray-400 whitespace-nowrap" data-insptab="picks" onclick="switchInspTab('picks')">🎯 TMS Picks</button>
                     
                     <button id="btnRefreshFeed" class="absolute right-0 top-0 hidden bg-[#1c62b9] hover:bg-[#2573d4] text-white px-3 py-1.5 rounded text-xs font-bold transition-colors shadow-lg flex items-center gap-1">
                         <span>🔄</span> Ricarica Feed
@@ -211,12 +209,12 @@
                         </button>
                     </div>
                 </div>
-            </div>
 
-            <div id="viewTMSPicksWrapper" class="hidden">
-                <div id="picksGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
-                <div id="noPicksResults" class="text-center py-20 text-gray-400 flex flex-col items-center">
-                    <span class="text-4xl mb-3">🎯</span><p>Nessun video in TMS Picks. Aggiungine uno!</p>
+                <div id="inspPicksView" class="hidden">
+                    <div id="picksGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+                    <div id="noPicksResults" class="text-center py-20 text-gray-400 flex flex-col items-center">
+                        <span class="text-4xl mb-3">🎯</span><p>Nessun video in TMS Picks. Aggiungine uno!</p>
+                    </div>
                 </div>
             </div>
 
@@ -454,8 +452,18 @@
                     </div>
 
                     <!-- Lists -->
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div class="bg-[#1a1a1a] border border-[#303030] rounded-xl overflow-hidden flex flex-col h-96">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        
+                        <div class="bg-[#1a1a1a] border border-[#303030] rounded-xl overflow-hidden flex flex-col h-80">
+                            <div class="p-4 border-b border-[#303030] bg-[#222] shrink-0">
+                                <h2 class="text-sm font-bold text-white flex items-center gap-2">💶 Entrate Registrate</h2>
+                            </div>
+                            <div class="p-0 overflow-y-auto flex-1">
+                                <ul id="finRevenueList" class="divide-y divide-[#303030]"></ul>
+                            </div>
+                        </div>
+
+                        <div class="bg-[#1a1a1a] border border-[#303030] rounded-xl overflow-hidden flex flex-col h-80">
                             <div class="p-4 border-b border-[#303030] bg-[#222] flex justify-between items-center shrink-0">
                                 <h2 class="text-sm font-bold text-white flex items-center gap-2">🔁 Abbonamenti Attivi</h2>
                                 <span class="text-xs bg-[#0f0f0f] px-2 py-1 rounded text-gray-400 border border-[#333]" id="finMonthlyBurn">Burn Rate: € 0/mese</span>
@@ -465,9 +473,9 @@
                             </div>
                         </div>
 
-                        <div class="bg-[#1a1a1a] border border-[#303030] rounded-xl overflow-hidden flex flex-col h-96">
+                        <div class="bg-[#1a1a1a] border border-[#303030] rounded-xl overflow-hidden flex flex-col h-80">
                             <div class="p-4 border-b border-[#303030] bg-[#222] shrink-0">
-                                <h2 class="text-sm font-bold text-white flex items-center gap-2">🎬 Costi Editor (Video Finiti)</h2>
+                                <h2 class="text-sm font-bold text-white flex items-center gap-2">🎬 Pagamenti Editor</h2>
                             </div>
                             <div class="p-0 overflow-y-auto flex-1">
                                 <ul id="finEditorCostList" class="divide-y divide-[#303030]"></ul>
@@ -546,29 +554,96 @@
                                 <input type="checkbox" id="chkScript" class="custom-checkbox opacity-0 absolute w-full h-full cursor-pointer z-10">
                                 <div class="w-6 h-6 border-2 border-gray-500 rounded flex items-center justify-center transition-colors group-hover:border-blue-400"><svg class="hidden w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div>
                             </div>
-                            <div class="flex flex-col"><span class="text-sm font-semibold text-gray-200 group-hover:text-white">Creazione Script</span><span class="text-[11px] text-gray-500">+25% completamento</span></div>
+                            <div class="flex flex-col"><span class="text-sm font-semibold text-gray-200 group-hover:text-white">Creazione Script</span><span class="text-[11px] text-gray-500">+20% completamento</span></div>
                         </label>
                         <label class="flex items-center gap-3 cursor-pointer group bg-[#1a1a1a] p-3 rounded border border-[#303030] hover:border-[#555] transition-colors">
                             <div class="relative flex items-center justify-center w-6 h-6 shrink-0">
                                 <input type="checkbox" id="chkAudio" class="custom-checkbox opacity-0 absolute w-full h-full cursor-pointer z-10">
                                 <div class="w-6 h-6 border-2 border-gray-500 rounded flex items-center justify-center transition-colors group-hover:border-blue-400"><svg class="hidden w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div>
                             </div>
-                            <div class="flex flex-col"><span class="text-sm font-semibold text-gray-200 group-hover:text-white">Creazione Traccia Audio</span><span class="text-[11px] text-gray-500">+25% completamento</span></div>
+                            <div class="flex flex-col"><span class="text-sm font-semibold text-gray-200 group-hover:text-white">Creazione Traccia Audio</span><span class="text-[11px] text-gray-500">+20% completamento</span></div>
                         </label>
                         <label class="flex items-center gap-3 cursor-pointer group bg-[#1a1a1a] p-3 rounded border border-[#303030] hover:border-[#555] transition-colors">
                             <div class="relative flex items-center justify-center w-6 h-6 shrink-0">
                                 <input type="checkbox" id="chkVideo" class="custom-checkbox opacity-0 absolute w-full h-full cursor-pointer z-10">
                                 <div class="w-6 h-6 border-2 border-gray-500 rounded flex items-center justify-center transition-colors group-hover:border-blue-400"><svg class="hidden w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div>
                             </div>
-                            <div class="flex flex-col"><span class="text-sm font-semibold text-gray-200 group-hover:text-white">Generazione Traccia Video</span><span class="text-[11px] text-gray-500">+25% completamento</span></div>
+                            <div class="flex flex-col"><span class="text-sm font-semibold text-gray-200 group-hover:text-white">Generazione Traccia Video</span><span class="text-[11px] text-gray-500">+20% completamento</span></div>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer group bg-[#1a1a1a] p-3 rounded border border-[#303030] hover:border-[#555] transition-colors">
+                            <div class="relative flex items-center justify-center w-6 h-6 shrink-0">
+                                <input type="checkbox" id="chkMusic" class="custom-checkbox opacity-0 absolute w-full h-full cursor-pointer z-10">
+                                <div class="w-6 h-6 border-2 border-gray-500 rounded flex items-center justify-center transition-colors group-hover:border-blue-400"><svg class="hidden w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div>
+                            </div>
+                            <div class="flex flex-col"><span class="text-sm font-semibold text-gray-200 group-hover:text-white">Aggiunta di Musica</span><span class="text-[11px] text-gray-500">+10% completamento</span></div>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer group bg-[#1a1a1a] p-3 rounded border border-[#303030] hover:border-[#555] transition-colors">
+                            <div class="relative flex items-center justify-center w-6 h-6 shrink-0">
+                                <input type="checkbox" id="chkSfx" class="custom-checkbox opacity-0 absolute w-full h-full cursor-pointer z-10">
+                                <div class="w-6 h-6 border-2 border-gray-500 rounded flex items-center justify-center transition-colors group-hover:border-blue-400"><svg class="hidden w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div>
+                            </div>
+                            <div class="flex flex-col"><span class="text-sm font-semibold text-gray-200 group-hover:text-white">Aggiunta di SFX</span><span class="text-[11px] text-gray-500">+10% completamento</span></div>
                         </label>
                         <label class="flex items-center gap-3 cursor-pointer group bg-[#1a1a1a] p-3 rounded border border-[#303030] hover:border-[#555] transition-colors">
                             <div class="relative flex items-center justify-center w-6 h-6 shrink-0">
                                 <input type="checkbox" id="chkFinal" class="custom-checkbox opacity-0 absolute w-full h-full cursor-pointer z-10">
                                 <div class="w-6 h-6 border-2 border-gray-500 rounded flex items-center justify-center transition-colors group-hover:border-blue-400"><svg class="hidden w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div>
                             </div>
-                            <div class="flex flex-col"><span class="text-sm font-semibold text-gray-200 group-hover:text-white">Rifinitura</span><span class="text-[11px] text-gray-500">Finale per 100%</span></div>
+                            <div class="flex flex-col"><span class="text-sm font-semibold text-gray-200 group-hover:text-white">Rifinitura</span><span class="text-[11px] text-gray-500">+20% completamento</span></div>
                         </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="pickDashboardModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[150] px-4 backdrop-blur-sm">
+        <div class="bg-[#1a1a1a] rounded-xl w-full max-w-5xl shadow-2xl overflow-hidden border border-[#303030] flex flex-col h-[90vh]">
+            
+            <div class="p-5 border-b border-[#303030] bg-[#222] flex gap-4 shrink-0 relative items-center">
+                <button onclick="closeModal('pickDashboardModal')" class="absolute top-4 right-4 text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
+                
+                <div class="w-40 aspect-video bg-black rounded-lg overflow-hidden shrink-0 border border-[#444] relative cursor-pointer group" id="pickDashLink" onclick="">
+                    <img id="pickDashThumb" src="" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity">
+                    <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40"><span class="text-3xl">▶️</span></div>
+                </div>
+                
+                <div class="flex flex-col justify-center flex-1 pr-10">
+                    <h2 id="pickDashTitle" class="text-xl font-bold text-white line-clamp-2 leading-tight mb-2">Titolo</h2>
+                    <div class="flex items-center gap-4 text-sm font-medium">
+                        <span id="pickDashAuthor" class="bg-[#303030] px-2 py-1 rounded text-gray-200 border border-[#444] flex items-center gap-2"></span>
+                        <span id="pickDashViews" class="text-gray-400"></span>
+                        <span id="pickDashDuration" class="text-gray-400"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-1 overflow-hidden flex-col md:flex-row">
+                <div class="flex-1 p-5 flex flex-col bg-[#121212] relative">
+                    <div class="absolute top-2 right-4 text-[10px] uppercase font-bold tracking-widest text-purple-500 bg-purple-900/20 px-2 py-1 rounded border border-purple-500/30">Trascrizione Video</div>
+                    <textarea id="pickTranscriptInput" class="w-full flex-1 bg-transparent text-gray-300 resize-none outline-none text-base leading-relaxed placeholder-gray-600 mt-4" placeholder="Trascrizione non disponibile o in fase di caricamento..."></textarea>
+                </div>
+                
+                <div class="w-full md:w-64 bg-[#1a1a1a] border-t md:border-t-0 md:border-l border-[#303030] p-5 flex flex-col gap-4 shrink-0 overflow-y-auto">
+                    <h3 class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2">Analisi Testo (Live)</h3>
+                    
+                    <div class="bg-[#272727] p-3 rounded-lg border border-[#333]">
+                        <div class="text-2xl font-black text-blue-400" id="pickStatWords">0</div>
+                        <div class="text-[11px] text-gray-400 uppercase tracking-wide mt-1">Parole Totali</div>
+                    </div>
+                    
+                    <div class="bg-[#272727] p-3 rounded-lg border border-[#333]">
+                        <div class="text-2xl font-black text-green-400" id="pickStatTime">0s</div>
+                        <div class="text-[11px] text-gray-400 uppercase tracking-wide mt-1">Stima Lettura Script</div>
+                    </div>
+
+                    <div class="bg-[#272727] p-3 rounded-lg border border-[#333]">
+                        <div class="text-2xl font-black text-white" id="pickStatChars">0</div>
+                        <div class="text-[11px] text-gray-400 uppercase tracking-wide mt-1">Caratteri</div>
+                    </div>
+
+                    <div class="mt-auto pt-4">
+                        <button id="pickDashDeleteBtn" class="w-full py-2.5 bg-red-900/30 hover:bg-red-900/60 text-red-400 rounded-lg border border-red-900/50 transition-colors font-bold text-sm">Rimuovi dai Picks</button>
                     </div>
                 </div>
             </div>

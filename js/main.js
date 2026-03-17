@@ -7,7 +7,7 @@ import {
     renderInspChannels, loadInspFeed, switchEHTab, updateAudioUI, renderTMSPicks,
     renderNextFeedBatch, renderFinanceDashboard, getIdeaStatus, renderDevTodo
 } from './renderers.js';
-import { compressImage, shuffleArray } from './utils.js';
+import { compressImage, shuffleArray, formatViewsCount } from './utils.js';
 
 // =============================================
 // ASSOCIAZIONE FUNZIONI GLOBALI (Per l'HTML)
@@ -97,6 +97,7 @@ window.switchInspTab = (tabName) => {
     if(tabName === 'channels') {
         document.getElementById('inspChannelsView').classList.remove('hidden');
         document.getElementById('inspFeedView').classList.add('hidden');
+                    document.getElementById('inspPicksView').classList.add('hidden');
         document.getElementById('btnRefreshFeed').classList.add('hidden');
         mainActionBtn.classList.remove('hidden');
         mainActionText.textContent = 'Aggiungi Canale';
@@ -105,9 +106,19 @@ window.switchInspTab = (tabName) => {
             document.getElementById('addInspChannelModal').classList.add('flex'); 
         };
         renderInspChannels();
+                } else if (tabName === 'picks') {
+                    document.getElementById('inspChannelsView').classList.add('hidden');
+                    document.getElementById('inspFeedView').classList.add('hidden');
+                    document.getElementById('inspPicksView').classList.remove('hidden');
+                    document.getElementById('btnRefreshFeed').classList.add('hidden');
+                    mainActionBtn.classList.remove('hidden');
+                    mainActionText.textContent = 'Aggiungi Pick';
+                    mainActionBtn.onclick = () => { document.getElementById('addPickModal').classList.remove('hidden'); document.getElementById('addPickModal').classList.add('flex'); };
+                    renderTMSPicks();
     } else {
         document.getElementById('inspChannelsView').classList.add('hidden');
         document.getElementById('inspFeedView').classList.remove('hidden');
+                    document.getElementById('inspPicksView').classList.add('hidden');
         document.getElementById('btnRefreshFeed').classList.remove('hidden');
         mainActionBtn.classList.add('hidden');
         if(state.globalFeed.length === 0) loadInspFeed();
@@ -395,7 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
             createdAt: Date.now(), 
             title, thumbnail: thumbnailUrl, driveLink: ideaFolderLink, ideaFolderId, channelId, author: "Tu", timeAgo: new Date().toLocaleDateString('it-IT'),
             assignee: null, assignedAt: null, completedAt: null,
-            checklist: { script: false, audio: false, video: false, final: false }
+            checklist: { script: false, audio: false, video: false, music: false, sfx: false, final: false }
         };
 
         state.videoIdeas.unshift(newIdea);
@@ -550,6 +561,33 @@ document.addEventListener('DOMContentLoaded', () => {
     closeDashBtn?.addEventListener('click', closeDashModal);
     ideaDashboardModal?.addEventListener('click', (e) => { if (e.target === ideaDashboardModal) closeDashModal(); });
 
+    // --- GESTIONE DASHBOARD TMS PICKS ---
+    window.openPickDashboard = function(pick) {
+        document.getElementById('pickDashThumb').src = `https://img.youtube.com/vi/${pick.ytId}/hqdefault.jpg`;
+        document.getElementById('pickDashTitle').textContent = pick.title;
+        document.getElementById('pickDashAuthor').innerHTML = pick.avatar ? `<img src="${pick.avatar}" class="w-5 h-5 rounded-full object-cover"> ${pick.author}` : `📺 ${pick.author}`;
+        document.getElementById('pickDashViews').textContent = `👀 ${pick.views}`;
+        document.getElementById('pickDashDuration').textContent = `⏱️ ${pick.duration}`;
+        document.getElementById('pickDashLink').onclick = () => window.open(pick.link, '_blank');
+        
+        const txtArea = document.getElementById('pickTranscriptInput');
+        txtArea.value = pick.transcript || "Trascrizione non presente. Aggiorna o reinserisci il link.";
+        
+        const updateStats = () => {
+            const text = txtArea.value.trim();
+            const chars = text.length; const words = text === '' ? 0 : text.split(/\s+/).length;
+            const timeSecs = Math.ceil(words / 3);
+            document.getElementById('pickStatChars').textContent = chars;
+            document.getElementById('pickStatWords').textContent = words;
+            document.getElementById('pickStatTime').textContent = timeSecs > 60 ? `${Math.floor(timeSecs/60)}m ${timeSecs%60}s` : `${timeSecs}s`;
+        };
+        updateStats(); txtArea.oninput = updateStats;
+        
+        document.getElementById('pickDashDeleteBtn').onclick = () => { requirePin(`Eliminare "${pick.title}"?`, async () => { state.tmsPicks = state.tmsPicks.filter(p => p.id !== pick.id); closeModal('pickDashboardModal'); renderTMSPicks(); await autoSaveToCloud(); }); };
+        
+        document.getElementById('pickDashboardModal').classList.remove('hidden'); document.getElementById('pickDashboardModal').classList.add('flex');
+    };
+
     // --- INSPIRATIONS BUTTONS ---
     document.getElementById('btnRefreshFeed')?.addEventListener('click', () => {
         const btn = document.getElementById('btnRefreshFeed');
@@ -581,25 +619,98 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         submitBtn.disabled = true; submitBtn.textContent = '🔄 Recupero info...';
-        devLog(`[PICKS] Inizio aggiunta video con ID: ${ytId}`, 'info');
 
-        let title = "Video YouTube";
+        let title = "Video YouTube", author = "Sconosciuto", avatar = "", views = "N/A views", durationStr = "0:00", transcript = "Trascrizione in elaborazione...";
+        
         try {
-            devLog(`[PICKS] Tentativo recupero titolo da API pubblica...`, 'info');
-            const res = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${ytId}`);
-            const data = await res.json();
-            if (data && data.title) {
-                title = data.title;
-                devLog(`[PICKS] Titolo recuperato con successo: ${title}`, 'success');
-            } else {
-                devLog(`[PICKS] Nessun titolo valido ricevuto, uso nome generico.`, 'warning');
+            devLog(`[PICKS] Analisi video tramite sistema interno Proxy...`, 'info');
+            const html = await fetchYTProxy(`https://www.youtube.com/watch?v=${ytId}`);
+            
+            let playerRes = null;
+            let ytData = null;
+            
+            const playerStart = html.indexOf('var ytInitialPlayerResponse = ');
+            if (playerStart !== -1) {
+                const jsonStart = playerStart + 30;
+                let end = html.indexOf(';</script>', jsonStart);
+                if (end === -1) end = html.indexOf(';var ', jsonStart);
+                if (end !== -1) try { playerRes = JSON.parse(html.substring(jsonStart, end)); } catch(e) {}
             }
-        } catch (error) {
-            devLog(`[PICKS ERROR] Recupero titolo fallito: ${error.message}. Salvo come sconosciuto.`, 'error');
+            
+            const dataStart = html.indexOf('var ytInitialData = ');
+            if (dataStart !== -1) {
+                const jsonStart = dataStart + 20;
+                let end = html.indexOf(';</script>', jsonStart);
+                if (end === -1) end = html.indexOf(';var ', jsonStart);
+                if (end !== -1) try { ytData = JSON.parse(html.substring(jsonStart, end)); } catch(e) {}
+            }
+
+            if (playerRes) {
+                const details = playerRes.videoDetails;
+                if (details) {
+                    title = details.title || title;
+                    author = details.author || author;
+                    if (details.lengthSeconds) {
+                        const sec = parseInt(details.lengthSeconds);
+                        durationStr = `${Math.floor(sec/60)}:${(sec%60).toString().padStart(2,'0')}`;
+                    }
+                    if (details.viewCount) views = formatViewsCount(details.viewCount);
+                }
+                
+                const captionTracks = playerRes.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+                if (captionTracks && captionTracks.length > 0) {
+                    let track = captionTracks.find(t => t.languageCode.startsWith('it')) || captionTracks.find(t => t.languageCode.startsWith('en')) || captionTracks[0];
+                    try {
+                        let subXml;
+                        try {
+                            const subRes = await fetch(track.baseUrl);
+                            if(!subRes.ok) throw new Error("CORS limit");
+                            subXml = await subRes.text();
+                        } catch(netErr) {
+                            subXml = await fetchYTProxy(track.baseUrl);
+                        }
+                        transcript = subXml.replace(/<[^>]+>/g, ' ').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&').replace(/\s{2,}/g, ' ').trim();
+                        devLog(`[PICKS] Trascrizione generata con successo!`, 'success');
+                    } catch(subErr) {
+                        transcript = "Errore durante la decodifica dei sottotitoli.";
+                        devLog(`[PICKS] Impossibile estrarre XML: ${subErr.message}`, 'warning');
+                    }
+                } else {
+                    transcript = "Nessun sottotitolo disponibile per questo video.";
+                }
+            } else {
+                throw new Error("Dati Player non trovati nella pagina.");
+            }
+
+            if (ytData) {
+                try {
+                    const secondary = ytData.contents?.twoColumnWatchNextResults?.results?.results?.contents?.find(c => c.videoSecondaryInfoRenderer)?.videoSecondaryInfoRenderer;
+                    if (secondary?.owner?.videoOwnerRenderer) {
+                        const owner = secondary.owner.videoOwnerRenderer;
+                        if (!author || author === "Sconosciuto") author = owner.title?.runs[0]?.text || author;
+                        if (owner.thumbnail?.thumbnails?.length > 0) avatar = owner.thumbnail.thumbnails[0].url;
+                    }
+                } catch(e) {}
+            }
+            
+        } catch(err) {
+            devLog(`[PICKS] Errore di scraping: ${err.message}. Uso fallback base.`, 'warning');
+            try {
+                const res = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${ytId}`);
+                const json = await res.json();
+                if(json && json.title) {
+                    title = json.title;
+                    author = json.author_name || author;
+                }
+            } catch(e) {}
+            transcript = "Impossibile scaricare la trascrizione (YouTube ha bloccato la richiesta).";
         }
         
         if(!state.tmsPicks) state.tmsPicks = [];
-        state.tmsPicks.push({ id: Date.now().toString(), ytId: ytId, title: title, link: `https://www.youtube.com/watch?v=${ytId}`, addedAt: Date.now() });
+        state.tmsPicks.push({ 
+            id: Date.now().toString(), ytId, title, author, avatar, views, duration: durationStr, transcript,
+            link: `https://www.youtube.com/watch?v=${ytId}`, addedAt: Date.now() 
+        });
         
         renderTMSPicks(); closeModal('addPickModal', 'pickForm'); autoSaveToCloud();
         
@@ -641,6 +752,12 @@ document.addEventListener('DOMContentLoaded', () => {
                  if(!finalId && header.channelId) finalId = header.channelId;
             }
             
+            if (state.inspChannels.some(c => (finalId && c.ytId === finalId) || c.name === name)) {
+                alert(`Il canale "${name}" è già presente nella dashboard!`);
+                closeModal('addInspChannelModal'); document.getElementById('inputSyncChannelUrl').value = '';
+                return;
+            }
+
             state.inspChannels.push({
                 id: Date.now().toString(), ytId: finalId, name: name, avatar: avatar,
                 url: handle ? `https://www.youtube.com/@${handle}` : `https://www.youtube.com/channel/${channelId}`,
