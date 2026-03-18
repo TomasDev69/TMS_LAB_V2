@@ -22,6 +22,29 @@ window.renderTMSPicks = renderTMSPicks;
 window.renderDevTodo = renderDevTodo;
 window.switchEHTab = switchEHTab;
 
+window.setLabContext = (labId) => {
+    state.activeLab = labId;
+    const dbRef = state.db[labId];
+    
+    state.videoIdeas = dbRef.videoIdeas;
+    state.channels = dbRef.channels;
+    state.toolsData = dbRef.toolsData;
+    state.trainingData = dbRef.trainingData;
+    state.editorsHubData = dbRef.editorsHubData;
+    state.inspChannels = dbRef.inspChannels;
+    state.tmsPicks = dbRef.tmsPicks;
+    state.finance = dbRef.finance;
+    if(!state.finance.revenues) state.finance.revenues = [];
+    if(!state.finance.editorCosts) state.finance.editorCosts = [];
+    if(!state.finance.subscriptions) state.finance.subscriptions = [];
+    state.devTodoList = dbRef.devTodoList;
+
+    devLog(`[SYSTEM] Contesto impostato su: ${labId === '3d' ? 'TMS 3D Lab' : 'TMS YT Lab'}`, "info");
+    
+    if (window.renderChannelList) window.renderChannelList();
+    if (window.switchView) window.switchView(state.currentView || 'idee');
+};
+
 window.openEarnings = () => {
     requirePin("Inserisci il PIN di sicurezza per accedere alla Dashboard Finanziaria.", () => {
         switchView('earnings');
@@ -145,6 +168,54 @@ window.toggleTrainingType = () => {
 // =============================================
 document.addEventListener('DOMContentLoaded', () => {
 
+    // --- SPLASH SCREEN: IDEAS TO REALITY ---
+    const splashHtml = `
+        <div id="tmsSplashScreen" class="fixed inset-0 z-[9999] bg-[#0f0f0f] flex flex-col items-center justify-center transition-opacity duration-500">
+            <h1 class="text-4xl md:text-6xl font-black text-white mb-12 tracking-widest uppercase animate-pulse drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] text-center px-4">Ideas to Reality</h1>
+            <div class="flex flex-col sm:flex-row gap-6 items-center">
+                <button id="btnYTLab" class="w-64 px-8 py-6 bg-gradient-to-br from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white rounded-2xl font-black text-xl transition-all shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:scale-105 border border-blue-400/30 flex flex-col items-center gap-2">
+                    <span class="text-3xl">🎥</span>
+                    TMS YT Lab
+                </button>
+                <button id="btn3DLab" class="w-64 px-8 py-6 bg-gradient-to-br from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white rounded-2xl font-black text-xl transition-all shadow-[0_0_20px_rgba(147,51,234,0.4)] hover:scale-105 border border-purple-400/30 flex flex-col items-center gap-2">
+                    <span class="text-3xl">🧊</span>
+                    TMS 3D Lab <span class="text-sm font-normal bg-black/30 px-2 py-0.5 rounded-full mt-1">🔒 Protetto</span>
+                </button>
+            </div>
+            <div id="labPasswordSection" class="hidden mt-8 flex-col items-center gap-4 bg-black/40 p-6 rounded-2xl border border-white/10 backdrop-blur-sm">
+                <p class="text-gray-300 text-sm font-semibold uppercase tracking-widest mb-1">Accesso TMS 3D Lab</p>
+                <div class="flex gap-2">
+                    <input type="password" id="labPasswordInput" placeholder="Inserisci Password..." class="w-64 px-4 py-3 bg-[#111] text-white rounded-lg border border-[#444] outline-none focus:border-purple-500 text-center font-mono">
+                    <button id="labPasswordConfirm" class="px-6 py-3 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-500 transition-colors">Entra</button>
+                </div>
+                <p id="labPasswordError" class="text-red-500 text-sm hidden font-bold mt-1">Password errata!</p>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', splashHtml);
+
+    document.getElementById('btnYTLab').addEventListener('click', () => window.initLabFlow('yt'));
+
+    document.getElementById('btn3DLab').addEventListener('click', () => {
+        document.getElementById('labPasswordSection').classList.remove('hidden');
+        document.getElementById('labPasswordSection').classList.add('flex');
+        document.getElementById('labPasswordInput').focus();
+    });
+
+    const handleLabPass = () => {
+        const pass = document.getElementById('labPasswordInput').value;
+        if (pass === "TMSLAB69") {
+            window.initLabFlow('3d');
+        } else {
+            document.getElementById('labPasswordError').classList.remove('hidden');
+            document.getElementById('labPasswordInput').value = '';
+        }
+    };
+    
+    document.getElementById('labPasswordConfirm').addEventListener('click', handleLabPass);
+    document.getElementById('labPasswordInput').addEventListener('keydown', (e) => { if(e.key === 'Enter') handleLabPass(); });
+
+
     // --- CONSOLE DEV E TO-DO LIST ---
     document.getElementById('openDevTodoBtn')?.addEventListener('click', () => {
         requirePin("Accesso alla To-Do List di Sviluppo", () => {
@@ -261,27 +332,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- INIT AUTH CHECK ---
-    const savedUser = localStorage.getItem('tmslab_logged_in_user');
-    if (savedUser) {
-        const adminBtn = document.getElementById('adminBtn');
-        if (adminBtn) adminBtn.textContent = savedUser.substring(0, 2).toUpperCase();
-        if (state.SCRIPT_URL) {
-            loadDataFromCloud();
-        } else {
-            switchView('idee'); 
+    window.initLabFlow = function(labId) {
+        const splash = document.getElementById('tmsSplashScreen');
+        if (splash) {
+            splash.classList.add('opacity-0');
+            setTimeout(() => splash.remove(), 500);
         }
-    } else {
-        const loginOverlay = document.getElementById('loginOverlay');
-        if (loginOverlay) {
-            loginOverlay.classList.remove('hidden');
-            loginOverlay.classList.add('flex');
+        
+        window.setLabContext(labId);
+
+        // --- INIT AUTH CHECK DOPO LA SCELTA DEL LAB ---
+        const savedUser = localStorage.getItem('tmslab_logged_in_user');
+        if (savedUser) {
+            const adminBtn = document.getElementById('adminBtn');
+            if (adminBtn) adminBtn.textContent = savedUser.substring(0, 2).toUpperCase();
+            if (state.SCRIPT_URL) {
+                loadDataFromCloud();
+            } else {
+                switchView('idee'); 
+            }
         } else {
-            // Bypass automatico se non esiste la schermata di login HTML
-            if (state.SCRIPT_URL) loadDataFromCloud();
-            else switchView('idee'); 
+            const loginOverlay = document.getElementById('loginOverlay');
+            if (loginOverlay) {
+                loginOverlay.classList.remove('hidden');
+                loginOverlay.classList.add('flex');
+            } else {
+                if (state.SCRIPT_URL) loadDataFromCloud();
+                else switchView('idee'); 
+            }
         }
-    }
+    };
 
     // --- HEADER E SIDEBAR ---
     document.getElementById('sidebarToggle')?.addEventListener('click', () => {

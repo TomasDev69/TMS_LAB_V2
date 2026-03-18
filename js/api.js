@@ -47,12 +47,26 @@ export async function fetchYTProxy(url) {
 export async function autoSaveToCloud() {
     if (!state.SCRIPT_URL) return;
     updateStatus("Salvataggio...", "warning");
-    const payload = { 
-        ideas: state.videoIdeas, channels: state.channels, tools: state.toolsData, 
-        training: state.trainingData, editorsHub: state.editorsHubData, inspChannels: state.inspChannels,
+
+    state.db[state.activeLab] = {
+        videoIdeas: state.videoIdeas,
+        channels: state.channels,
+        toolsData: state.toolsData,
+        trainingData: state.trainingData,
+        editorsHubData: state.editorsHubData,
+        inspChannels: state.inspChannels,
         tmsPicks: state.tmsPicks,
         finance: state.finance,
         devTodoList: state.devTodoList
+    };
+
+    const payload = { 
+        db: state.db,
+        ideas: state.db.yt.videoIdeas, channels: state.db.yt.channels, tools: state.db.yt.toolsData, 
+        training: state.db.yt.trainingData, editorsHub: state.db.yt.editorsHubData, inspChannels: state.db.yt.inspChannels,
+        tmsPicks: state.db.yt.tmsPicks,
+        finance: state.db.yt.finance,
+        devTodoList: state.db.yt.devTodoList
     };
     try {
         callScriptAction({ action: 'saveDB', data: payload }).then(() => {
@@ -87,24 +101,34 @@ export async function loadDataFromCloud() {
         }
         
         if (Array.isArray(data)) {
-            state.videoIdeas = data;
+            state.db.yt.videoIdeas = data;
             devLog("[API] Rilevato database V1 (solo idee). Retrocompatibilità attivata.", "warning");
         } else {
-            if (data.ideas) state.videoIdeas = data.ideas;
-            if (data.channels) state.channels = data.channels;
-            if (data.tools) state.toolsData = data.tools;
-            if (data.training) state.trainingData = data.training;
-            if (data.editorsHub) state.editorsHubData = data.editorsHub;
-            if (data.inspChannels) state.inspChannels = data.inspChannels;
-            if (data.tmsPicks) state.tmsPicks = data.tmsPicks;
-            if (data.devTodoList) state.devTodoList = data.devTodoList;
-            
-            if (data.finance) {
-                state.finance = data.finance;
-                if(!state.finance.revenues) state.finance.revenues = [];
-                if(!state.finance.editorCosts) state.finance.editorCosts = [];
-                if(!state.finance.subscriptions) state.finance.subscriptions = [];
+            if (data.db) {
+                state.db = data.db;
+            } else {
+                if (data.ideas) state.db.yt.videoIdeas = data.ideas;
+                if (data.channels) state.db.yt.channels = data.channels;
+                if (data.tools) state.db.yt.toolsData = data.tools;
+                if (data.training) state.db.yt.trainingData = data.training;
+                if (data.editorsHub) state.db.yt.editorsHubData = data.editorsHub;
+                if (data.inspChannels) state.db.yt.inspChannels = data.inspChannels;
+                if (data.tmsPicks) state.db.yt.tmsPicks = data.tmsPicks;
+                if (data.devTodoList) state.db.yt.devTodoList = data.devTodoList;
+                if (data.finance) {
+                    state.db.yt.finance = data.finance;
+                }
             }
+        }
+
+        if(!state.db['3d']) state.db['3d'] = { videoIdeas: [], channels: [], toolsData: [], trainingData: [], editorsHubData: [], inspChannels: [], tmsPicks: [], devTodoList: [] };
+        if(!state.db.yt) state.db.yt = { videoIdeas: [], channels: [], toolsData: [], trainingData: [], editorsHubData: [], inspChannels: [], tmsPicks: [], devTodoList: [] };
+        
+        if(!state.db['3d'].finance) state.db['3d'].finance = { revenues: [], editorCosts: [], subscriptions: [] };
+        if(!state.db.yt.finance) state.db.yt.finance = { revenues: [], editorCosts: [], subscriptions: [] };
+
+        if (window.setLabContext) {
+            window.setLabContext(state.activeLab || 'yt');
         }
 
         updateStatus("🟢 Sincronizzato", "success");
