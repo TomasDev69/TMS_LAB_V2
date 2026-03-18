@@ -38,6 +38,10 @@ window.setLabContext = (labId) => {
     if(!state.finance.editorCosts) state.finance.editorCosts = [];
     if(!state.finance.subscriptions) state.finance.subscriptions = [];
     state.devTodoList = dbRef.devTodoList;
+    state.brainstormingText = dbRef.brainstormingText || "";
+
+    const bsInput = document.getElementById('brainstormingInput');
+    if (bsInput) bsInput.value = state.brainstormingText;
 
     devLog(`[SYSTEM] Contesto impostato su: ${labId === '3d' ? 'TMS 3D Lab' : 'TMS YT Lab'}`, "info");
     
@@ -174,16 +178,157 @@ window.toggleTrainingType = () => {
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- SPLASH SCREEN: IDEAS TO REALITY ---
-    const splashHtml = `
-        <div id="tmsSplashScreen" class="fixed inset-0 z-[9999] bg-[#0f0f0f] flex flex-col items-center justify-center transition-opacity duration-500">
-            <h1 class="text-4xl md:text-6xl font-black text-white mb-12 tracking-widest uppercase animate-pulse drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] text-center px-4">Ideas into Reality</h1>
-        </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', splashHtml);
+    // Rimosso lo Splash Screen iniziale come richiesto. Accesso diretto:
+    window.initLabFlow('yt');
 
+    // --- BINDING TASTINI FILTRO STATI IDEE ---
     setTimeout(() => {
-        window.initLabFlow('yt');
-    }, 1500);
+        ['new', 'available', 'progress', 'completed'].forEach(status => {
+            const countEl = document.getElementById('count' + status.charAt(0).toUpperCase() + status.slice(1));
+            if (countEl) {
+                // Modalità robusta di ricerca della card-contenitore
+                const card = countEl.closest('div[class*="rounded-2xl"], div[class*="bg-[#212121]"]') || countEl.parentElement.parentElement;
+                if (card && card.tagName !== 'BUTTON') {
+                    card.style.cursor = 'pointer';
+                    card.title = `Filtra per stato: ${status}`;
+                    card.classList.add('transition-all', 'duration-200', 'hover:scale-105', 'hover:shadow-[0_0_15px_rgba(59,130,246,0.3)]');
+                    
+                    card.onclick = () => {
+                        state.activeStatusFilter = state.activeStatusFilter === status ? 'all' : status;
+                        
+                        // Highlight visivo della card selezionata
+                        ['new', 'available', 'progress', 'completed'].forEach(s => {
+                            const cEl = document.getElementById('count' + s.charAt(0).toUpperCase() + s.slice(1));
+                            const cCard = cEl ? (cEl.closest('div[class*="rounded-2xl"], div[class*="bg-[#212121]"]') || cEl.parentElement.parentElement) : null;
+                            if (cCard) {
+                                if (state.activeStatusFilter === s) {
+                                    cCard.classList.add('ring-2', 'ring-blue-500', 'bg-[#2a2a2a]');
+                                } else {
+                                    cCard.classList.remove('ring-2', 'ring-blue-500', 'bg-[#2a2a2a]');
+                                }
+                            }
+                        });
+                        renderVideos(getFilteredIdeas());
+                    };
+                }
+            }
+        });
+    }, 1000);
+
+    // --- INJECT BRAINSTORMING VIEW & NAV (Dinamico) ---
+    setTimeout(() => {
+        const sidebarNav = document.querySelector('#sidebar nav') || document.querySelector('nav');
+        if (sidebarNav && !document.getElementById('navBrainstorming')) {
+            const ideeNav = document.getElementById('navIdee');
+            if (ideeNav) {
+                const brainNav = ideeNav.cloneNode(true);
+                brainNav.id = 'navBrainstorming';
+                
+                const textWalker = document.createTreeWalker(brainNav, NodeFilter.SHOW_TEXT, null, false);
+                let node;
+                while ((node = textWalker.nextNode())) {
+                    if (node.nodeValue.includes('Idee')) node.nodeValue = node.nodeValue.replace(/Idee Video|Idee/g, 'Brainstorming');
+                    if (node.nodeValue.includes('💡')) node.nodeValue = node.nodeValue.replace('💡', '🧠');
+                }
+                
+                ideeNav.parentNode.insertBefore(brainNav, ideeNav.nextSibling);
+                brainNav.classList.remove('active');
+                brainNav.addEventListener('click', (e) => { e.preventDefault(); window.switchView('brainstorming'); });
+            }
+        }
+
+        const mainContent = document.getElementById('viewIdeeWrapper')?.parentNode;
+        if (mainContent && !document.getElementById('viewBrainstormingWrapper')) {
+            const brainView = document.createElement('div');
+            brainView.id = 'viewBrainstormingWrapper';
+            brainView.className = 'hidden flex flex-col h-[calc(100vh-140px)] gap-6';
+            brainView.innerHTML = `
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+                    <div class="lg:col-span-1 bg-[#1a1a1a] rounded-2xl border border-[#333] p-6 flex flex-col gap-4 overflow-y-auto">
+                        <h2 class="text-xl font-black text-white uppercase tracking-widest flex items-center gap-2"><span>🔥</span> Format Virali</h2>
+                        <p class="text-sm text-gray-400 leading-relaxed">Sfrutta questi template testati per generare idee ad alta CTR:</p>
+                        <ul class="text-sm text-gray-300 space-y-3 mt-2">
+                            <li class="p-3 bg-[#222] rounded-xl border border-[#444] hover:border-blue-500 hover:bg-[#2a2a2a] transition-all cursor-pointer group" onclick="document.getElementById('brainstormingInput').value += '\\n\\n- Every level of... '">
+                                <span class="font-bold text-white group-hover:text-blue-400 transition-colors">Every level of...</span>
+                                <span class="block text-[11px] text-gray-500 mt-1 italic">Es: Every level of programming languages</span>
+                            </li>
+                            <li class="p-3 bg-[#222] rounded-xl border border-[#444] hover:border-purple-500 hover:bg-[#2a2a2a] transition-all cursor-pointer group" onclick="document.getElementById('brainstormingInput').value += '\\n\\n- Every rank of... '">
+                                <span class="font-bold text-white group-hover:text-purple-400 transition-colors">Every rank of...</span>
+                                <span class="block text-[11px] text-gray-500 mt-1 italic">Es: Every rank of chess players</span>
+                            </li>
+                            <li class="p-3 bg-[#222] rounded-xl border border-[#444] hover:border-green-500 hover:bg-[#2a2a2a] transition-all cursor-pointer group" onclick="document.getElementById('brainstormingInput').value += '\\n\\n- POV: '">
+                                <span class="font-bold text-white group-hover:text-green-400 transition-colors">POV: ...</span>
+                                <span class="block text-[11px] text-gray-500 mt-1 italic">Es: POV: You are a junior developer</span>
+                            </li>
+                            <li class="p-3 bg-[#222] rounded-xl border border-[#444] hover:border-red-500 hover:bg-[#2a2a2a] transition-all cursor-pointer group" onclick="document.getElementById('brainstormingInput').value += '\\n\\n- ... explained '">
+                                <span class="font-bold text-white group-hover:text-red-400 transition-colors">... explained</span>
+                                <span class="block text-[11px] text-gray-500 mt-1 italic">Es: Quantum physics explained</span>
+                            </li>
+                            <li class="p-3 bg-[#222] rounded-xl border border-[#444] hover:border-yellow-500 hover:bg-[#2a2a2a] transition-all cursor-pointer group" onclick="document.getElementById('brainstormingInput').value += '\\n\\n- Every ... explained in ... minutes '">
+                                <span class="font-bold text-white group-hover:text-yellow-400 transition-colors">Every ... explained in ... mins</span>
+                                <span class="block text-[11px] text-gray-500 mt-1 italic">Es: Every paradox explained in 10 minutes</span>
+                            </li>
+                            <li class="p-3 bg-[#222] rounded-xl border border-[#444] hover:border-orange-500 hover:bg-[#2a2a2a] transition-all cursor-pointer group" onclick="document.getElementById('brainstormingInput').value += '\\n\\n- ... made simple '">
+                                <span class="font-bold text-white group-hover:text-orange-400 transition-colors">... made simple</span>
+                                <span class="block text-[11px] text-gray-500 mt-1 italic">Es: Machine learning made simple</span>
+                            </li>
+                            <li class="p-3 bg-[#222] rounded-xl border border-[#444] hover:border-teal-500 hover:bg-[#2a2a2a] transition-all cursor-pointer group" onclick="document.getElementById('brainstormingInput').value += '\\n\\n- ... explained like you\\'re 5 '">
+                                <span class="font-bold text-white group-hover:text-teal-400 transition-colors">... explained like you're 5</span>
+                                <span class="block text-[11px] text-gray-500 mt-1 italic">Es: The stock market explained like you're 5</span>
+                            </li>
+                            <li class="p-3 bg-[#222] rounded-xl border border-[#444] hover:border-pink-500 hover:bg-[#2a2a2a] transition-all cursor-pointer group" onclick="document.getElementById('brainstormingInput').value += '\\n\\n- What it\\'s like to be... '">
+                                <span class="font-bold text-white group-hover:text-pink-400 transition-colors">What it's like to be...</span>
+                                <span class="block text-[11px] text-gray-500 mt-1 italic">Es: What it's like to be an astronaut</span>
+                            </li>
+                            <li class="p-3 bg-[#222] rounded-xl border border-[#444] hover:border-indigo-500 hover:bg-[#2a2a2a] transition-all cursor-pointer group" onclick="document.getElementById('brainstormingInput').value += '\\n\\n- Your life as a... '">
+                                <span class="font-bold text-white group-hover:text-indigo-400 transition-colors">Your life as a...</span>
+                                <span class="block text-[11px] text-gray-500 mt-1 italic">Es: Your life as a medieval king</span>
+                            </li>
+                            <li class="p-3 bg-[#222] rounded-xl border border-[#444] hover:border-rose-500 hover:bg-[#2a2a2a] transition-all cursor-pointer group" onclick="document.getElementById('brainstormingInput').value += '\\n\\n- The worst... '">
+                                <span class="font-bold text-white group-hover:text-rose-400 transition-colors">The worst...</span>
+                                <span class="block text-[11px] text-gray-500 mt-1 italic">Es: The worst design flaws in history</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="lg:col-span-2 bg-[#1a1a1a] rounded-2xl border border-[#333] flex flex-col h-full overflow-hidden shadow-2xl relative">
+                        <div class="p-4 bg-[#222] border-b border-[#333] flex justify-between items-center z-10 shadow-sm">
+                            <h2 class="text-lg font-bold text-white flex items-center gap-2"><span>📝</span> Blocco Appunti Libero</h2>
+                            <div class="flex items-center gap-3">
+                                <span id="bsSaveStatus" class="text-xs text-gray-400 font-medium"></span>
+                                <button id="btnSaveBrainstorming" class="px-5 py-2 bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 shadow hover:shadow-blue-500/25 text-white text-sm font-bold rounded-lg transition-all active:scale-95">Salva Ora</button>
+                            </div>
+                        </div>
+                        <textarea id="brainstormingInput" class="flex-1 w-full p-8 bg-transparent text-gray-200 resize-none outline-none leading-relaxed text-lg placeholder:text-gray-600 custom-scrollbar" placeholder="Butta giù tutto quello che ti passa per la testa... Clicca sui format a sinistra per inserirli qui rapidamente."></textarea>
+                    </div>
+                </div>
+            `;
+            mainContent.appendChild(brainView);
+
+            const bsInput = document.getElementById('brainstormingInput');
+            const btnSaveBs = document.getElementById('btnSaveBrainstorming');
+            const bsStatus = document.getElementById('bsSaveStatus');
+            
+            if (bsInput) bsInput.value = state.brainstormingText || '';
+
+            const triggerSave = async () => {
+                if (state.brainstormingText === bsInput.value) return;
+                state.brainstormingText = bsInput.value;
+                btnSaveBs.textContent = '🔄...'; btnSaveBs.disabled = true; bsStatus.textContent = "Salvataggio...";
+                await autoSaveToCloud();
+                btnSaveBs.textContent = 'Salva Ora'; btnSaveBs.disabled = false; bsStatus.textContent = "Salvato ✓";
+                setTimeout(() => { if (bsStatus.textContent === "Salvato ✓") bsStatus.textContent = ""; }, 2500);
+            };
+
+            btnSaveBs.addEventListener('click', triggerSave);
+
+            let bsTimeout;
+            bsInput.addEventListener('input', () => {
+                bsStatus.textContent = "Modificato...";
+                clearTimeout(bsTimeout);
+                bsTimeout = setTimeout(triggerSave, 2500); // Autosave dopo 2.5s di inattività
+            });
+        }
+    }, 1000);
 
     // --- LAB SWITCHER (MODAL & DROPDOWN LOGIC) ---
     const switcherHtml = `

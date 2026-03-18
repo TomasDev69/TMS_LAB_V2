@@ -75,9 +75,15 @@ export function requirePin(actionMessage, callback) {
 
 export function switchView(view) {
     state.currentView = view;
-    ['navIdee', 'navInspirations', 'navStrumenti', 'navFormazione', 'navEditorsHub', 'navScript', 'navStats', 'navDatabase'].forEach(id => document.getElementById(id).classList.remove('active'));
+    ['navIdee', 'navInspirations', 'navStrumenti', 'navFormazione', 'navEditorsHub', 'navScript', 'navStats', 'navDatabase', 'navBrainstorming'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+    });
     document.getElementById('navEarnings').classList.remove('bg-green-900/40');
-    ['viewIdeeWrapper', 'viewInspirationsWrapper', 'viewStrumentiWrapper', 'viewFormazioneWrapper', 'viewEditorsHubWrapper', 'viewScriptWrapper', 'viewStatsWrapper', 'viewDatabaseWrapper', 'viewEarningsWrapper'].forEach(id => document.getElementById(id).classList.add('hidden'));
+    ['viewIdeeWrapper', 'viewInspirationsWrapper', 'viewStrumentiWrapper', 'viewFormazioneWrapper', 'viewEditorsHubWrapper', 'viewScriptWrapper', 'viewStatsWrapper', 'viewDatabaseWrapper', 'viewEarningsWrapper', 'viewBrainstormingWrapper'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+    });
     
     if(!state.globalAudioPlayer.paused) { state.globalAudioPlayer.pause(); state.currentlyPlayingEHId = null; }
 
@@ -154,5 +160,12 @@ export function switchView(view) {
             sessionStorage.setItem('tmslab_wip_earnings_seen', 'true');
         }
         renderFinanceDashboard();
+    } else if (view === 'brainstorming') {
+        const nav = document.getElementById('navBrainstorming'); if (nav) nav.classList.add('active');
+        const viewEl = document.getElementById('viewBrainstormingWrapper'); if (viewEl) viewEl.classList.remove('hidden');
+        pageTitle.textContent = 'Brainstorming & Idee'; pageSubtitle.textContent = 'Prendi spunto dai format virali e butta giù le tue intuizioni.';
+        mainActionBtn.classList.add('hidden');
+        const bsInput = document.getElementById('brainstormingInput');
+        if (bsInput) bsInput.value = state.brainstormingText || '';
     }
 }

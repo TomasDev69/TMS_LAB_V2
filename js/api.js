@@ -57,7 +57,8 @@ export async function autoSaveToCloud() {
         inspChannels: state.inspChannels,
         tmsPicks: state.tmsPicks,
         finance: state.finance,
-        devTodoList: state.devTodoList
+        devTodoList: state.devTodoList,
+        brainstormingText: state.brainstormingText
     };
 
     const payload = { 
@@ -66,7 +67,8 @@ export async function autoSaveToCloud() {
         training: state.db.yt.trainingData, editorsHub: state.db.yt.editorsHubData, inspChannels: state.db.yt.inspChannels,
         tmsPicks: state.db.yt.tmsPicks,
         finance: state.db.yt.finance,
-        devTodoList: state.db.yt.devTodoList
+        devTodoList: state.db.yt.devTodoList,
+        brainstormingText: state.db.yt.brainstormingText
     };
     try {
         callScriptAction({ action: 'saveDB', data: payload }).then(() => {
@@ -118,6 +120,7 @@ export async function loadDataFromCloud() {
                 if (data.finance) {
                     state.db.yt.finance = data.finance;
                 }
+                if (data.brainstormingText !== undefined) state.db.yt.brainstormingText = data.brainstormingText;
             }
         }
 
@@ -126,6 +129,9 @@ export async function loadDataFromCloud() {
         
         if(!state.db['3d'].finance) state.db['3d'].finance = { revenues: [], editorCosts: [], subscriptions: [] };
         if(!state.db.yt.finance) state.db.yt.finance = { revenues: [], editorCosts: [], subscriptions: [] };
+        
+        if(typeof state.db['3d'].brainstormingText === 'undefined') state.db['3d'].brainstormingText = "";
+        if(typeof state.db.yt.brainstormingText === 'undefined') state.db.yt.brainstormingText = "";
 
         if (window.setLabContext) {
             window.setLabContext(state.activeLab || 'yt');

@@ -2,10 +2,10 @@ export const state = {
     activeLab: 'yt',
     db: {
         yt: {
-            videoIdeas: [], channels: [], toolsData: [], trainingData: [], editorsHubData: [], inspChannels: [], tmsPicks: [], finance: { revenues: [], editorCosts: [], subscriptions: [] }, devTodoList: []
+            videoIdeas: [], channels: [], toolsData: [], trainingData: [], editorsHubData: [], inspChannels: [], tmsPicks: [], finance: { revenues: [], editorCosts: [], subscriptions: [] }, devTodoList: [], brainstormingText: ""
         },
         '3d': {
-            videoIdeas: [], channels: [], toolsData: [], trainingData: [], editorsHubData: [], inspChannels: [], tmsPicks: [], finance: { revenues: [], editorCosts: [], subscriptions: [] }, devTodoList: []
+            videoIdeas: [], channels: [], toolsData: [], trainingData: [], editorsHubData: [], inspChannels: [], tmsPicks: [], finance: { revenues: [], editorCosts: [], subscriptions: [] }, devTodoList: [], brainstormingText: ""
         }
     },
     SCRIPT_URL: localStorage.getItem('creatorhub_script_url') || "",
@@ -23,6 +23,7 @@ export const state = {
         subscriptions: []
     },
     devTodoList: [],
+    brainstormingText: "",
     feedDisplayIndex: 0,
     activeChannelId: null,
     activeStatusFilter: 'all',
