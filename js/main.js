@@ -41,6 +41,11 @@ window.setLabContext = (labId) => {
 
     devLog(`[SYSTEM] Contesto impostato su: ${labId === '3d' ? 'TMS 3D Lab' : 'TMS YT Lab'}`, "info");
     
+    // Aggiorna visivamente il testo nel logo della sidebar
+    document.querySelectorAll('.lab-switch-target').forEach(el => {
+        el.innerHTML = `${labId === '3d' ? 'TMS 3D Lab' : 'TMS YT Lab'} <span class="text-[10px] opacity-50 ml-1 relative -top-0.5">▼</span>`;
+    });
+
     if (window.renderChannelList) window.renderChannelList();
     if (window.switchView) window.switchView(state.currentView || 'idee');
 };
@@ -171,49 +176,105 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- SPLASH SCREEN: IDEAS TO REALITY ---
     const splashHtml = `
         <div id="tmsSplashScreen" class="fixed inset-0 z-[9999] bg-[#0f0f0f] flex flex-col items-center justify-center transition-opacity duration-500">
-            <h1 class="text-4xl md:text-6xl font-black text-white mb-12 tracking-widest uppercase animate-pulse drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] text-center px-4">Ideas to Reality</h1>
-            <div class="flex flex-col sm:flex-row gap-6 items-center">
-                <button id="btnYTLab" class="w-64 px-8 py-6 bg-gradient-to-br from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white rounded-2xl font-black text-xl transition-all shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:scale-105 border border-blue-400/30 flex flex-col items-center gap-2">
-                    <span class="text-3xl">🎥</span>
-                    TMS YT Lab
-                </button>
-                <button id="btn3DLab" class="w-64 px-8 py-6 bg-gradient-to-br from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white rounded-2xl font-black text-xl transition-all shadow-[0_0_20px_rgba(147,51,234,0.4)] hover:scale-105 border border-purple-400/30 flex flex-col items-center gap-2">
-                    <span class="text-3xl">🧊</span>
-                    TMS 3D Lab <span class="text-sm font-normal bg-black/30 px-2 py-0.5 rounded-full mt-1">🔒 Protetto</span>
-                </button>
-            </div>
-            <div id="labPasswordSection" class="hidden mt-8 flex-col items-center gap-4 bg-black/40 p-6 rounded-2xl border border-white/10 backdrop-blur-sm">
-                <p class="text-gray-300 text-sm font-semibold uppercase tracking-widest mb-1">Accesso TMS 3D Lab</p>
-                <div class="flex gap-2">
-                    <input type="password" id="labPasswordInput" placeholder="Inserisci Password..." class="w-64 px-4 py-3 bg-[#111] text-white rounded-lg border border-[#444] outline-none focus:border-purple-500 text-center font-mono">
-                    <button id="labPasswordConfirm" class="px-6 py-3 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-500 transition-colors">Entra</button>
-                </div>
-                <p id="labPasswordError" class="text-red-500 text-sm hidden font-bold mt-1">Password errata!</p>
-            </div>
+            <h1 class="text-4xl md:text-6xl font-black text-white mb-12 tracking-widest uppercase animate-pulse drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] text-center px-4">Ideas into Reality</h1>
         </div>
     `;
     document.body.insertAdjacentHTML('beforeend', splashHtml);
 
-    document.getElementById('btnYTLab').addEventListener('click', () => window.initLabFlow('yt'));
+    setTimeout(() => {
+        window.initLabFlow('yt');
+    }, 1500);
 
-    document.getElementById('btn3DLab').addEventListener('click', () => {
-        document.getElementById('labPasswordSection').classList.remove('hidden');
-        document.getElementById('labPasswordSection').classList.add('flex');
-        document.getElementById('labPasswordInput').focus();
+    // --- LAB SWITCHER (MODAL & DROPDOWN LOGIC) ---
+    const switcherHtml = `
+        <div id="labSwitchModal" class="hidden fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center backdrop-blur-sm transition-opacity">
+            <div class="bg-[#1a1a1a] border border-[#333] rounded-2xl p-6 w-[90%] max-w-sm shadow-2xl flex flex-col gap-4 relative">
+                <button id="closeLabSwitchBtn" class="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors text-xl">✖</button>
+                <h2 class="text-xl font-black text-white mb-2 uppercase tracking-widest text-center">Cambia Dashboard</h2>
+                <button id="btnSwitchYTLab" class="w-full px-6 py-4 bg-gradient-to-br from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white rounded-xl font-black text-lg transition-all shadow-lg hover:scale-[1.02] border border-blue-400/30 flex items-center gap-3 justify-center">
+                    <span class="text-2xl">🎥</span> TMS YT Lab
+                </button>
+                <button id="btnSwitch3DLab" class="w-full px-6 py-4 bg-gradient-to-br from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white rounded-xl font-black text-lg transition-all shadow-lg hover:scale-[1.02] border border-purple-400/30 flex flex-col items-center gap-1 justify-center relative">
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">🧊</span> TMS 3D Lab
+                    </div>
+                    <span class="absolute right-4 text-xs font-normal bg-black/40 px-2 py-0.5 rounded-full">🔒</span>
+                </button>
+                <div id="switchLabPasswordSection" class="hidden flex-col items-center gap-3 mt-2 pt-4 border-t border-[#333]">
+                    <p class="text-gray-300 text-xs font-semibold uppercase tracking-widest text-center">Accesso TMS 3D Lab</p>
+                    <input type="password" id="switchLabPasswordInput" placeholder="Inserisci Password..." class="w-full px-4 py-3 bg-[#111] text-white rounded-lg border border-[#444] outline-none focus:border-purple-500 text-center font-mono">
+                    <button id="switchLabPasswordConfirm" class="w-full px-6 py-3 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-500 transition-colors">Conferma ed Entra</button>
+                    <p id="switchLabPasswordError" class="text-red-500 text-sm hidden font-bold text-center">Password errata!</p>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', switcherHtml);
+
+    document.getElementById('closeLabSwitchBtn').addEventListener('click', () => {
+        document.getElementById('labSwitchModal').classList.add('hidden');
+        document.getElementById('labSwitchModal').classList.remove('flex');
+        document.getElementById('switchLabPasswordSection').classList.add('hidden');
+        document.getElementById('switchLabPasswordSection').classList.remove('flex');
+        document.getElementById('switchLabPasswordInput').value = '';
+        document.getElementById('switchLabPasswordError').classList.add('hidden');
     });
 
-    const handleLabPass = () => {
-        const pass = document.getElementById('labPasswordInput').value;
+    document.getElementById('btnSwitchYTLab').addEventListener('click', () => {
+        window.setLabContext('yt');
+        document.getElementById('closeLabSwitchBtn').click();
+    });
+
+    document.getElementById('btnSwitch3DLab').addEventListener('click', () => {
+        document.getElementById('switchLabPasswordSection').classList.remove('hidden');
+        document.getElementById('switchLabPasswordSection').classList.add('flex');
+        document.getElementById('switchLabPasswordInput').focus();
+    });
+
+    const handleSwitchLabPass = () => {
+        const pass = document.getElementById('switchLabPasswordInput').value;
         if (pass === "TMSLAB69") {
-            window.initLabFlow('3d');
+            window.setLabContext('3d');
+            document.getElementById('closeLabSwitchBtn').click();
         } else {
-            document.getElementById('labPasswordError').classList.remove('hidden');
-            document.getElementById('labPasswordInput').value = '';
+            document.getElementById('switchLabPasswordError').classList.remove('hidden');
+            document.getElementById('switchLabPasswordInput').value = '';
         }
     };
     
-    document.getElementById('labPasswordConfirm').addEventListener('click', handleLabPass);
-    document.getElementById('labPasswordInput').addEventListener('keydown', (e) => { if(e.key === 'Enter') handleLabPass(); });
+    document.getElementById('switchLabPasswordConfirm').addEventListener('click', handleSwitchLabPass);
+    document.getElementById('switchLabPasswordInput').addEventListener('keydown', (e) => { if(e.key === 'Enter') handleSwitchLabPass(); });
+
+    window.openLabSwitcher = () => {
+        document.getElementById('labSwitchModal').classList.remove('hidden');
+        document.getElementById('labSwitchModal').classList.add('flex');
+    };
+
+    // Auto-hook click sulla scritta in alto a sinistra della sidebar
+    setTimeout(() => {
+        const sidebars = document.querySelectorAll('#sidebar, header, nav, .sidebar');
+        sidebars.forEach(container => {
+            const textWalker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
+            let node;
+            while ((node = textWalker.nextNode())) {
+                const text = node.nodeValue.trim().toUpperCase();
+                if (text === 'TMS LAB' || text === 'TMS YT LAB' || text === 'TMS 3D LAB') {
+                    const parent = node.parentElement;
+                    if(parent && !parent.classList.contains('lab-switch-target') && parent.tagName !== 'BUTTON') {
+                        parent.classList.add('lab-switch-target');
+                        parent.style.cursor = 'pointer';
+                        parent.title = 'Cambia Dashboard';
+                        parent.innerHTML = `${text} <span class="text-[10px] opacity-50 ml-1 relative -top-0.5">▼</span>`;
+                        parent.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            window.openLabSwitcher();
+                        });
+                    }
+                }
+            }
+        });
+    }, 500);
 
 
     // --- CONSOLE DEV E TO-DO LIST ---
@@ -507,6 +568,59 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('editIdeaThumbFileName').classList.remove('hidden');
         };
         reader.readAsDataURL(file);
+    });
+
+    document.getElementById('editIdeaForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = e.target.querySelector('button[type=submit]') || document.getElementById('btnSubmitEditIdea');
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '🔄 Salvataggio...'; }
+
+        const id = document.getElementById('editIdeaId').value;
+        const title = document.getElementById('editIdeaTitle').value.trim();
+        const driveLink = document.getElementById('editIdeaDriveLink').value.trim();
+        const assigneeEl = document.getElementById('editIdeaAssignee');
+
+        const idea = state.videoIdeas.find(v => v.id === id);
+        if (idea) {
+            idea.title = title;
+            idea.driveLink = driveLink;
+            if (assigneeEl && !assigneeEl.parentElement.classList.contains('hidden')) {
+                idea.assignee = assigneeEl.value || null;
+            }
+
+            if (state.files.editIdeaThumb) {
+                const compressedImg = await compressImage(state.files.editIdeaThumb, 900, 0.8, 'image/webp');
+                if (compressedImg.sizeKB > 1500) {
+                     alert("L'immagine è troppo pesante.");
+                     if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Salva Modifiche'; }
+                     return;
+                }
+                idea.thumbnail = compressedImg.dataUrl;
+            }
+        }
+
+        renderVideos(getFilteredIdeas());
+        closeModal('editIdeaModal', 'editIdeaForm');
+        state.files.editIdeaThumb = null;
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Salva Modifiche'; }
+        
+        autoSaveToCloud();
+    });
+
+    // --- SCRIPT ANALYSIS ---
+    document.getElementById('scriptInput')?.addEventListener('input', (e) => {
+        const text = e.target.value.trim();
+        const chars = text.length;
+        const words = text === '' ? 0 : text.split(/\s+/).length;
+        const timeSecs = Math.ceil(words / 2.5); // Stima di lettura: ~150 parole al minuto
+        
+        const charsEl = document.getElementById('scriptChars') || document.getElementById('scriptCharCount');
+        const wordsEl = document.getElementById('scriptWords') || document.getElementById('scriptWordCount');
+        const timeEl = document.getElementById('scriptTime') || document.getElementById('scriptTimeCount');
+        
+        if (charsEl) charsEl.textContent = chars;
+        if (wordsEl) wordsEl.textContent = words;
+        if (timeEl) timeEl.textContent = timeSecs > 60 ? `${Math.floor(timeSecs/60)}m ${timeSecs%60}s` : `${timeSecs}s`;
     });
 
     // --- FORM: TOOL E RISORSE ---
