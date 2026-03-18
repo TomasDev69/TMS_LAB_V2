@@ -978,7 +978,8 @@ window.removeCollaborator = async (ideaId, member) => {
             if (idea.taskAssignees) {
                 for (let k in idea.taskAssignees) {
                     idea.taskAssignees[k] = idea.taskAssignees[k].filter(n => n !== member);
-                    ichetgth > 0;}
+                    idea.checklist[k] = idea.taskAssignees[k].length > 0;
+                }
             }
         }
         await autoSaveToCloud(); renderVideos(getFilteredIdeas());
