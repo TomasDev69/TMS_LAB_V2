@@ -978,8 +978,7 @@ window.removeCollaborator = async (ideaId, member) => {
             if (idea.taskAssignees) {
                 for (let k in idea.taskAssignees) {
                     idea.taskAssignees[k] = idea.taskAssignees[k].filter(n => n !== member);
-                    if (idea.taskAssignees[k].length === 0) idea.checklist[k] = false;
-                }
+                    ichetgth > 0;}
             }
         }
         await autoSaveToCloud(); renderVideos(getFilteredIdeas());
@@ -1037,7 +1036,14 @@ window.updateChecklistProgress = function(idea) {
             const newCollabSelect = document.getElementById('newCollabSelect');
             if (newCollabSelect) {
                 newCollabSelect.onchange = async (e) => {
-                    if (e.target.value) { idea.assignee += `, ${e.target.value}`; await autoSaveToCloud(); renderVideos(getFilteredIdeas()); window.openIdeaDashboard(idea); }
+                    if (e.target.value) { 
+                        const oldAssignee., ${e.target.value}`; 
+                        if (!idea.taskAssignees) {
+                            idea.taskAssignees = { script: [], audio: [], video: [], music: [], sfx: [], final: [] };
+                            ['script', 'audio', 'video', 'music', 'sfx', 'final'].forEach(k => { if (idea.checklist[k] && oldAssigneesArr[0]) idea.taskAssignees[k].push(oldAssigneesArr[0]); });
+                        }
+                        await autoSaveToCloud(); renderVideos(getFilteredIdeas()); window.openIdeaDashboard(idea); 
+                    }
                 };
             }
         }, 50);
@@ -1087,7 +1093,11 @@ window.openIdeaDashboard = function(idea) {
         assignSec.classList.add('hidden'); progSec.classList.remove('hidden');
         
         const assigneesArr = idea.assignee.split(',').map(s=>s.trim());
-        if (!idea.taskAssignees) idea.taskAssignees = { script: [], audio: [], video: [], music: [], sfx: [], final: [] };
+        if (!idea.taskAssignees && assigneesArr.length > 0) {
+            idea.taskAssignees = { script: [], audio: [], video: [],  s[k].push(assigneesArr[0]); });
+        } else if (!idea.taskAssignees) {
+            idea.taskAssignees = { script: [], audio: [], video: [], music: [], sfx: [], final: [] };
+        }
 
         ['script', 'audio', 'video', 'music', 'sfx', 'final'].forEach(key => {
             const chk = document.getElementById('chk' + key.charAt(0).toUpperCase() + key.slice(1));
@@ -1105,6 +1115,7 @@ window.openIdeaDashboard = function(idea) {
                     
                     let html = `<span class="text-[10px] text-gray-500 w-full mb-0.5">Completato da:</span>`;
                     assigneesArr.forEach(name => {
+                        if (!idea.taskAssignees[key]) idea.taskAssignees[key] = [];
                         const isChecked = idea.taskAssignees[key] && idea.taskAssignees[key].includes(name);
                         html += `<button class="task-collab-btn px-2 py-0.5 rounded text-[10px] font-bold transition-colors border ${isChecked ? 'bg-blue-600/20 text-blue-400 border-blue-500/50' : 'bg-[#222] text-gray-500 border-[#333] hover:border-gray-400'}" data-task="${key}" data-name="${name}">${name}</button>`;
                     });
@@ -1119,8 +1130,13 @@ window.openIdeaDashboard = function(idea) {
                             if (idea.taskAssignees[key].includes(n)) idea.taskAssignees[key] = idea.taskAssignees[key].filter(x => x !== n);
                             else idea.taskAssignees[key].push(n);
                             
-                            idea.checklist[key] = idea.taskAssignees[key].length > 0; chk.checked = idea.checklist[key];
-                            window.updateChecklistProgress(idea); window.renderVideos(window.getFilteredIdeas()); window.openIdeaDashboard(idea); await autoSaveToCloud();
+                            idea.checklist[key] = idea.taskAssignees[key].length > 0; 
+                            chk.checked = idea.checklist[key];window.updateChecklistProgress(idea); window.renderVideos(window.getFilteredIdeas()); 
+                            
+                                const isC = idea.taskAssignees[key].includes(b.dataset.name);
+                                b.className = `task-collab-btn px-2 py-0.5 rounded text-[10px] font-bold transition-colors border ${isC ? 'bg-blue-600/20 text-blue-400 border-blue-500/50' : 'bg-[#222] text-gray-500 border-[#333] hover:border-gray-400'}`;
+                            });
+                            await autoSaveToCloud();
                         };
                     });
                 } else { if (selectContainer) selectContainer.classList.add('hidden'); }
