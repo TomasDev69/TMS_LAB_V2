@@ -177,43 +177,65 @@ window.toggleTrainingType = () => {
 // =============================================
 document.addEventListener('DOMContentLoaded', () => {
 
+    window.initLabFlow = function(labId) {
+        const splash = document.getElementById('tmsSplashScreen');
+        if (splash) {
+            splash.classList.add('opacity-0');
+            setTimeout(() => splash.remove(), 500);
+        }
+        
+        window.setLabContext(labId);
+
+        // --- INIT AUTH CHECK DOPO LA SCELTA DEL LAB ---
+        const savedUser = localStorage.getItem('tmslab_logged_in_user');
+        if (savedUser) {
+            const adminBtn = document.getElementById('adminBtn');
+            if (adminBtn) adminBtn.textContent = savedUser.substring(0, 2).toUpperCase();
+            if (state.SCRIPT_URL) loadDataFromCloud();
+            else switchView('idee');
+        } else {
+            const loginOverlay = document.getElementById('loginOverlay');
+            if (loginOverlay) {
+                loginOverlay.classList.remove('hidden');
+                loginOverlay.classList.add('flex');
+            } else {
+                if (state.SCRIPT_URL) loadDataFromCloud();
+                else switchView('idee'); 
+            }
+        }
+    };
+
     // --- SPLASH SCREEN: IDEAS TO REALITY ---
     // Rimosso lo Splash Screen iniziale come richiesto. Accesso diretto:
     window.initLabFlow('yt');
 
-    // --- BINDING TASTINI FILTRO STATI IDEE ---
-    setTimeout(() => {
+    // --- BINDING TASTINI FILTRO STATI IDEE (INFALLIBILE) ---
+    window.applyStatusFilter = function(status) {
+        state.activeStatusFilter = state.activeStatusFilter === status ? 'all' : status;
+        ['new', 'available', 'progress', 'completed'].forEach(status => {
+            const cEl = document.getElementById('count' + status.charAt(0).toUpperCase() + status.slice(1));
+            const cCard = cEl ? (cEl.closest('div[class*="rounded-2xl"], div[class*="bg-[#212121]"]') || cEl.parentElement.parentElement) : null;
+            if (cCard) {
+                if (state.activeStatusFilter === status) cCard.classList.add('ring-2', 'ring-blue-500', 'bg-[#2a2a2a]');
+                else cCard.classList.remove('ring-2', 'ring-blue-500', 'bg-[#2a2a2a]');
+            }
+        });
+        renderVideos(getFilteredIdeas());
+    };
+
+    setInterval(() => {
         ['new', 'available', 'progress', 'completed'].forEach(status => {
             const countEl = document.getElementById('count' + status.charAt(0).toUpperCase() + status.slice(1));
-            if (countEl) {
-                // Modalità robusta di ricerca della card-contenitore
+            if (countEl && !countEl.dataset.hooked) {
                 const card = countEl.closest('div[class*="rounded-2xl"], div[class*="bg-[#212121]"]') || countEl.parentElement.parentElement;
-                if (card && card.tagName !== 'BUTTON') {
-                    card.style.cursor = 'pointer';
-                    card.title = `Filtra per stato: ${status}`;
-                    card.classList.add('transition-all', 'duration-200', 'hover:scale-105', 'hover:shadow-[0_0_15px_rgba(59,130,246,0.3)]');
-                    
-                    card.onclick = () => {
-                        state.activeStatusFilter = state.activeStatusFilter === status ? 'all' : status;
-                        
-                        // Highlight visivo della card selezionata
-                        ['new', 'available', 'progress', 'completed'].forEach(s => {
-                            const cEl = document.getElementById('count' + s.charAt(0).toUpperCase() + s.slice(1));
-                            const cCard = cEl ? (cEl.closest('div[class*="rounded-2xl"], div[class*="bg-[#212121]"]') || cEl.parentElement.parentElement) : null;
-                            if (cCard) {
-                                if (state.activeStatusFilter === s) {
-                                    cCard.classList.add('ring-2', 'ring-blue-500', 'bg-[#2a2a2a]');
-                                } else {
-                                    cCard.classList.remove('ring-2', 'ring-blue-500', 'bg-[#2a2a2a]');
-                                }
-                            }
-                        });
-                        renderVideos(getFilteredIdeas());
-                    };
+                if (card) {
+                    card.style.cursor = 'pointer'; card.title = `Filtra per stato: ${status}`;
+                    card.onclick = () => window.applyStatusFilter(status);
+                    countEl.dataset.hooked = "true";
                 }
             }
         });
-    }, 1000);
+    }, 1500); // Controlla ogni 1.5 secondi per agganciare i tasti in modo indistruttibile
 
     // --- INJECT BRAINSTORMING VIEW & NAV (Dinamico) ---
     setTimeout(() => {
@@ -538,34 +560,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    window.initLabFlow = function(labId) {
-        const splash = document.getElementById('tmsSplashScreen');
-        if (splash) {
-            splash.classList.add('opacity-0');
-            setTimeout(() => splash.remove(), 500);
-        }
-        
-        window.setLabContext(labId);
-
-        // --- INIT AUTH CHECK DOPO LA SCELTA DEL LAB ---
-        const savedUser = localStorage.getItem('tmslab_logged_in_user');
-        if (savedUser) {
-            const adminBtn = document.getElementById('adminBtn');
-            if (adminBtn) adminBtn.textContent = savedUser.substring(0, 2).toUpperCase();
-            if (state.SCRIPT_URL) loadDataFromCloud();
-            else switchView('idee');
-        } else {
-            const loginOverlay = document.getElementById('loginOverlay');
-            if (loginOverlay) {
-                loginOverlay.classList.remove('hidden');
-                loginOverlay.classList.add('flex');
-            } else {
-                if (state.SCRIPT_URL) loadDataFromCloud();
-                else switchView('idee'); 
-            }
-        }
-    };
-
     // --- HEADER E SIDEBAR ---
     document.getElementById('sidebarToggle')?.addEventListener('click', () => {
         state.sidebarOpen = !state.sidebarOpen;
@@ -753,19 +747,49 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- SCRIPT ANALYSIS ---
-    document.getElementById('scriptInput')?.addEventListener('input', (e) => {
-        const text = e.target.value.trim();
-        const chars = text.length;
-        const words = text === '' ? 0 : text.split(/\s+/).length;
-        const timeSecs = Math.ceil(words / 2.5); // Stima di lettura: ~150 parole al minuto
-        
-        const charsEl = document.getElementById('scriptChars') || document.getElementById('scriptCharCount');
-        const wordsEl = document.getElementById('scriptWords') || document.getElementById('scriptWordCount');
-        const timeEl = document.getElementById('scriptTime') || document.getElementById('scriptTimeCount');
-        
-        if (charsEl) charsEl.textContent = chars;
-        if (wordsEl) wordsEl.textContent = words;
-        if (timeEl) timeEl.textContent = timeSecs > 60 ? `${Math.floor(timeSecs/60)}m ${timeSecs%60}s` : `${timeSecs}s`;
+    setInterval(() => {
+        const txtArea = document.getElementById('scriptInput') || document.querySelector('#viewScriptWrapper textarea');
+        if (txtArea && !txtArea.dataset.scriptHooked) {
+            txtArea.dataset.scriptHooked = "true";
+            
+            const updateStats = () => {
+                const text = txtArea.value.trim();
+                const chars = text.length;
+                const words = text === '' ? 0 : text.split(/\s+/).length;
+                const timeSecs = Math.ceil(words / 2.5); // Stima di lettura: ~150 parole al minuto
+                
+                // Ricerca super-robusta per gli elementi delle statistiche
+                const wrapper = document.getElementById('viewScriptWrapper') || document;
+                const allElsWithId = Array.from(wrapper.querySelectorAll('[id]'));
+                
+                const charsEl = document.getElementById('scriptChars') || document.getElementById('scriptCharCount') || allElsWithId.find(el => el.id.toLowerCase().includes('char'));
+                const wordsEl = document.getElementById('scriptWords') || document.getElementById('scriptWordCount') || allElsWithId.find(el => el.id.toLowerCase().includes('word'));
+                const timeEl = document.getElementById('scriptTime') || document.getElementById('scriptTimeCount') || allElsWithId.find(el => el.id.toLowerCase().includes('time'));
+                
+                if (charsEl) charsEl.textContent = chars;
+                if (wordsEl) wordsEl.textContent = words;
+                if (timeEl) timeEl.textContent = timeSecs > 60 ? `${Math.floor(timeSecs/60)}m ${timeSecs%60}s` : `${timeSecs}s`;
+            };
+            
+            txtArea.addEventListener('input', updateStats);
+            txtArea.addEventListener('keyup', updateStats);
+            txtArea.addEventListener('paste', () => setTimeout(updateStats, 50));
+        }
+    }, 1500);
+    
+    // Genera eventi globali per le checkbox della checklist in modo che non si perdano
+    document.addEventListener('change', async (e) => {
+        const match = e.target.id?.match(/^chk(Script|Audio|Video|Music|Sfx|Final)$/);
+        if (match && state.currentlyOpenIdeaId) {
+            const key = match[1].toLowerCase();
+            const idea = state.videoIdeas.find(v => v.id === state.currentlyOpenIdeaId);
+            if(idea) {
+                idea.checklist[key] = e.target.checked;
+                if(window.updateChecklistProgress) window.updateChecklistProgress(idea);
+                renderVideos(getFilteredIdeas());
+                await autoSaveToCloud();
+            }
+        }
     });
 
     // --- FORM: TOOL E RISORSE ---
@@ -1128,7 +1152,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('saveChannelBtn')?.addEventListener('click', async () => {
         const name = document.getElementById('inputChannelName').value.trim();
-        if (!name || !state.SCRIPT_URL) return;
+        if (!name) return; // Permette di creare canali anche se non c'è l'URL API impostato!
         const btn = document.getElementById('saveChannelBtn'); btn.disabled = true;
 
         let driveFolderId = '', profilePicUrl = '';

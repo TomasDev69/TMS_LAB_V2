@@ -952,7 +952,7 @@ export function renderNextFeedBatch() {
 // MODALS ESTERNE E BINDINGS (GLOBALI)
 // ==========================================
 
-function updateChecklistProgress(idea) {
+window.updateChecklistProgress = function(idea) {
     let perc = 0;
     if (idea.checklist.script) perc += 20;
     if (idea.checklist.audio) perc += 20;
@@ -1024,7 +1024,7 @@ window.openIdeaDashboard = function(idea) {
         document.getElementById('chkMusic').checked = idea.checklist.music;
         document.getElementById('chkSfx').checked = idea.checklist.sfx;
         document.getElementById('chkFinal').checked = idea.checklist.final;
-        updateChecklistProgress(idea);
+        window.updateChecklistProgress(idea);
     }
 
     document.getElementById('dashDeleteBtn').onclick = () => {
@@ -1053,22 +1053,3 @@ window.openEditIdeaModal = function(idea) {
     document.getElementById('editIdeaModal').classList.remove('hidden');
     document.getElementById('editIdeaModal').classList.add('flex');
 };
-
-// Listeners permanenti per le checkbox del modal Dashboard
-setTimeout(() => {
-    ['script', 'audio', 'video', 'final'].forEach(key => {
-        const el = document.getElementById('chk' + key.charAt(0).toUpperCase() + key.slice(1));
-        if(el) {
-            el.addEventListener('change', async (e) => {
-                if(!state.currentlyOpenIdeaId) return;
-                const idea = state.videoIdeas.find(v => v.id === state.currentlyOpenIdeaId);
-                if(idea) {
-                    idea.checklist[key] = e.target.checked;
-                    updateChecklistProgress(idea);
-                    renderVideos(getFilteredIdeas());
-                    await autoSaveToCloud();
-                }
-            });
-        }
-    });
-}, 500);
