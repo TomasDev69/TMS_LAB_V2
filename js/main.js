@@ -722,7 +722,13 @@ document.addEventListener('DOMContentLoaded', () => {
             idea.title = title;
             idea.driveLink = driveLink;
             if (assigneeEl && !assigneeEl.parentElement.classList.contains('hidden')) {
-                idea.assignee = assigneeEl.value || null;
+                const newAssignee = assigneeEl.value || null;
+                if (idea.assignee && !newAssignee) {
+                    idea.checklist = { script: false, audio: false, video: false, music: false, sfx: false, final: false };
+                    idea.assignedAt = null;
+                    idea.completedAt = null;
+                }
+                idea.assignee = newAssignee;
             }
 
             if (state.files.editIdeaThumb) {
