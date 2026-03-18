@@ -155,7 +155,8 @@ export function getFilteredIdeas() {
     let filtered = [...state.videoIdeas];
     if (state.activeChannelId !== null) filtered = filtered.filter(v => v.channelId === state.activeChannelId);
     
-    const term = document.getElementById('searchInput').value.toLowerCase();
+    const sInput = document.getElementById('searchInput');
+    const term = sInput ? sInput.value.toLowerCase() : '';
     if (term) filtered = filtered.filter(v => v.title.toLowerCase().includes(term));
     
     let n = 0, a = 0, p = 0, c = 0;
@@ -167,11 +168,11 @@ export function getFilteredIdeas() {
         else if(s === 'completed') c++; 
     });
     
-    document.getElementById('countNew').textContent = n; 
-    document.getElementById('countAvailable').textContent = a; 
-    document.getElementById('countProgress').textContent = p; 
-    document.getElementById('countCompleted').textContent = c;
-
+    const cN = document.getElementById('countNew'); if(cN) cN.textContent = n; 
+    const cA = document.getElementById('countAvailable'); if(cA) cA.textContent = a; 
+    const cP = document.getElementById('countProgress'); if(cP) cP.textContent = p; 
+    const cC = document.getElementById('countCompleted'); if(cC) cC.textContent = c;
+    
     if (state.activeStatusFilter !== 'all') {
         filtered = filtered.filter(v => {
             const stat = getIdeaStatus(v);
@@ -652,7 +653,10 @@ export function renderStats() {
     const teamBody = document.getElementById('teamPerformanceBody');
     teamBody.innerHTML = '';
     let teamData = state.TEAM_MEMBERS.map(member => {
-        const assigned = state.videoIdeas.filter(v => v.assignee === member);
+        const assigned = state.videoIdeas.filter(v => {
+            if (!v.assignee) return false;
+            return v.assignee.split(',').map(s=>s.trim()).includes(member);
+        });
         const completed = assigned.filter(v => getIdeaStatus(v) === 'completed').length;
         return { name: member, completed, inProgress: assigned.length - completed, total: assigned.length };
     });
@@ -952,6 +956,30 @@ export function renderNextFeedBatch() {
 // MODALS ESTERNE E BINDINGS (GLOBALI)
 // ==========================================
 
+window.removeCollaborator = async (ideaId, member) => {
+    const idea = state.videoIdeas.find(v => v.id === ideaId);
+    if (idea) {
+        let arr = idea.assignee.split(',').map(s=>s.trim()).filter(m => m !== member);
+        if (arr.length === 0) {
+            idea.assignee = null;
+            idea.checklist = { script: false, audio: false, video: false, music: false, sfx: false, final: false };
+            idea.taskAssignees = null;
+            idea.assignedAt = null;
+            idea.completedAt = null;
+        } else {
+            idea.assignee = arr.join(', ');
+            if (idea.taskAssignees) {
+                for (let k in idea.taskAssignees) {
+                    idea.taskAssignees[k] = idea.taskAssignees[k].filter(n => n !== member);
+                    if (idea.taskAssignees[k].length === 0) idea.checklist[k] = false;
+                }
+            }
+        }
+        await autoSaveToCloud(); renderVideos(getFilteredIdeas());
+        if (state.currentlyOpenIdeaId === ideaId) window.openIdeaDashboard(idea);
+    }
+};
+
 window.updateChecklistProgress = function(idea) {
     let perc = 0;
     if (idea.checklist.script) perc += 20;
@@ -974,9 +1002,41 @@ window.updateChecklistProgress = function(idea) {
         idea.completedAt = null;
     }
 
-    let dateHtml = `Preso in carico da <span class="font-bold text-white">${idea.assignee}</span> il <span class="text-gray-300">${idea.assignedAt || ''}</span>`;
-    if (idea.completedAt) dateHtml += `<br><span class="text-green-400 font-medium text-xs">Completato il ${idea.completedAt} ✅</span>`;
-    document.getElementById('dashAssignDateContainer').innerHTML = dateHtml;
+    const assigneesArr = idea.assignee ? idea.assignee.split(',').map(s=>s.trim()) : [];
+    
+    let dateHtml = ``;
+    if (assigneesArr.length === 1) {
+        dateHtml = `Preso in carico da <span class="font-bold text-white">${idea.assignee}</span> il <span class="text-gray-300">${idea.assignedAt || ''}</span>`;
+    } else if (assigneesArr.length > 1) {
+        dateHtml = `In lavorazione dal <span class="text-gray-300">${idea.assignedAt || ''}</span>`;
+    }
+
+    if (idea.completedAt) dateHtml += `<br><span class="text-green-400 font-medium text-xs mt-1 inline-block">Completato il ${idea.completedAt} ✅</span>`;
+
+    if (idea.assignee) {
+        const availableMembers = state.TEAM_MEMBERS.filter(m => !assigneesArr.includes(m));
+        let teamHtml = `<div class="mt-3 flex items-center gap-1.5 flex-wrap">`;
+        teamHtml += `<span class="text-xs text-gray-400 mr-1">Team:</span>`;
+        assigneesArr.forEach(m => {
+            teamHtml += `<span class="bg-[#2a2a2a] border border-[#444] px-2 py-0.5 rounded-full text-[11px] text-white flex items-center gap-1 shadow-sm">${m} <button class="text-red-400 hover:text-red-300 font-bold ml-0.5 outline-none" onclick="window.removeCollaborator('${idea.id}', '${m}')">×</button></span>`;
+        });
+        if (availableMembers.length > 0) {
+            teamHtml += `<select id="newCollabSelect" class="bg-[#111] text-gray-300 px-2 py-0.5 rounded-full text-[11px] border border-[#444] outline-none cursor-pointer hover:border-gray-300 transition-colors appearance-none text-center"><option value="">+ Aggiungi</option>${availableMembers.map(m => `<option value="${m}">${m}</option>`).join('')}</select>`;
+        }
+        teamHtml += `</div>`;
+        document.getElementById('dashAssignDateContainer').innerHTML = dateHtml + teamHtml;
+
+        setTimeout(() => {
+            const newCollabSelect = document.getElementById('newCollabSelect');
+            if (newCollabSelect) {
+                newCollabSelect.onchange = async (e) => {
+                    if (e.target.value) { idea.assignee += `, ${e.target.value}`; await autoSaveToCloud(); renderVideos(getFilteredIdeas()); window.openIdeaDashboard(idea); }
+                };
+            }
+        }, 50);
+    } else {
+        document.getElementById('dashAssignDateContainer').innerHTML = dateHtml;
+    }
 
     const sb = document.getElementById('dashStatusBadge');
     if (perc === 100) { sb.textContent='Completata'; sb.className='bg-green-600/20 text-green-400 text-xs px-2 py-0.5 rounded border border-green-500/30'; } 
@@ -1018,12 +1078,48 @@ window.openIdeaDashboard = function(idea) {
         };
     } else {
         assignSec.classList.add('hidden'); progSec.classList.remove('hidden');
-        document.getElementById('chkScript').checked = idea.checklist.script;
-        document.getElementById('chkAudio').checked = idea.checklist.audio;
-        document.getElementById('chkVideo').checked = idea.checklist.video;
-        document.getElementById('chkMusic').checked = idea.checklist.music;
-        document.getElementById('chkSfx').checked = idea.checklist.sfx;
-        document.getElementById('chkFinal').checked = idea.checklist.final;
+        
+        const assigneesArr = idea.assignee.split(',').map(s=>s.trim());
+        if (!idea.taskAssignees) idea.taskAssignees = { script: [], audio: [], video: [], music: [], sfx: [], final: [] };
+
+        ['script', 'audio', 'video', 'music', 'sfx', 'final'].forEach(key => {
+            const chk = document.getElementById('chk' + key.charAt(0).toUpperCase() + key.slice(1));
+            if (chk) {
+                chk.checked = idea.checklist[key];
+                
+                let selectContainer = document.getElementById(`collab_select_${key}`);
+                if (assigneesArr.length > 1) {
+                    if (!selectContainer) {
+                        selectContainer = document.createElement('div');
+                        selectContainer.id = `collab_select_${key}`;
+                        selectContainer.className = 'ml-7 mt-1 mb-3 flex flex-wrap gap-1.5 items-center';
+                        chk.parentElement.insertAdjacentElement('afterend', selectContainer);
+                    }
+                    
+                    let html = `<span class="text-[10px] text-gray-500 w-full mb-0.5">Completato da:</span>`;
+                    assigneesArr.forEach(name => {
+                        const isChecked = idea.taskAssignees[key] && idea.taskAssignees[key].includes(name);
+                        html += `<button class="task-collab-btn px-2 py-0.5 rounded text-[10px] font-bold transition-colors border ${isChecked ? 'bg-blue-600/20 text-blue-400 border-blue-500/50' : 'bg-[#222] text-gray-500 border-[#333] hover:border-gray-400'}" data-task="${key}" data-name="${name}">${name}</button>`;
+                    });
+                    selectContainer.innerHTML = html;
+                    selectContainer.classList.remove('hidden');
+                    
+                    selectContainer.querySelectorAll('.task-collab-btn').forEach(btn => {
+                        btn.onclick = async (e) => {
+                            e.preventDefault();
+                            if (!idea.taskAssignees[key]) idea.taskAssignees[key] = [];
+                            const n = btn.dataset.name;
+                            if (idea.taskAssignees[key].includes(n)) idea.taskAssignees[key] = idea.taskAssignees[key].filter(x => x !== n);
+                            else idea.taskAssignees[key].push(n);
+                            
+                            idea.checklist[key] = idea.taskAssignees[key].length > 0; chk.checked = idea.checklist[key];
+                            window.updateChecklistProgress(idea); window.renderVideos(window.getFilteredIdeas()); window.openIdeaDashboard(idea); await autoSaveToCloud();
+                        };
+                    });
+                } else { if (selectContainer) selectContainer.classList.add('hidden'); }
+            }
+        });
+
         window.updateChecklistProgress(idea);
     }
 
@@ -1044,8 +1140,24 @@ window.openEditIdeaModal = function(idea) {
     document.getElementById('editIdeaId').value = idea.id;
     document.getElementById('editIdeaTitle').value = idea.title;
     document.getElementById('editIdeaDriveLink').value = idea.driveLink || '';
-    if (idea.assignee) { document.getElementById('editIdeaAssigneeContainer').classList.remove('hidden'); document.getElementById('editIdeaAssignee').value = idea.assignee; } 
-    else { document.getElementById('editIdeaAssigneeContainer').classList.add('hidden'); document.getElementById('editIdeaAssignee').value = ""; }
+    const assigneeSelect = document.getElementById('editIdeaAssignee');
+    const assigneesArr = idea.assignee ? idea.assignee.split(',').map(s=>s.trim()) : [];
+    
+    if (idea.assignee) { 
+        document.getElementById('editIdeaAssigneeContainer').classList.remove('hidden'); 
+        if (assigneeSelect) {
+            if (assigneesArr.length > 1) {
+                if (!assigneeSelect.querySelector(`option[value="${idea.assignee}"]`)) assigneeSelect.insertAdjacentHTML('afterbegin', `<option value="${idea.assignee}">${idea.assignee} (Team)</option>`);
+                assigneeSelect.value = idea.assignee; assigneeSelect.disabled = true; assigneeSelect.title = "Gestisci i collaboratori dalla Dashboard principale";
+            } else {
+                assigneeSelect.disabled = false; assigneeSelect.title = ""; assigneeSelect.value = idea.assignee;
+            }
+        }
+    } else { 
+        document.getElementById('editIdeaAssigneeContainer').classList.add('hidden'); 
+        if (assigneeSelect) { assigneeSelect.value = ""; assigneeSelect.disabled = false; assigneeSelect.title = ""; }
+    }
+    
     if (idea.thumbnail) { document.getElementById('editIdeaThumbPreview').src = idea.thumbnail; document.getElementById('editIdeaThumbPreview').classList.remove('hidden'); document.getElementById('editIdeaThumbDropHint').classList.add('hidden'); } 
     else { document.getElementById('editIdeaThumbPreview').src = ''; document.getElementById('editIdeaThumbPreview').classList.add('hidden'); document.getElementById('editIdeaThumbDropHint').classList.remove('hidden'); }
     document.getElementById('editIdeaThumbFileName').classList.add('hidden');

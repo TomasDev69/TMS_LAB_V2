@@ -209,28 +209,39 @@ document.addEventListener('DOMContentLoaded', () => {
     // Rimosso lo Splash Screen iniziale come richiesto. Accesso diretto:
     window.initLabFlow('yt');
 
-    // --- BINDING TASTINI FILTRO STATI IDEE (INFALLIBILE) ---
-    window.applyStatusFilter = function(status) {
-        state.activeStatusFilter = state.activeStatusFilter === status ? 'all' : status;
-        ['new', 'available', 'progress', 'completed'].forEach(status => {
-            const cEl = document.getElementById('count' + status.charAt(0).toUpperCase() + status.slice(1));
-            const cCard = cEl ? (cEl.closest('div[class*="rounded-2xl"], div[class*="bg-[#212121]"]') || cEl.parentElement.parentElement) : null;
+    // --- BINDING TASTINI FILTRO STATI IDEE (EVENT DELEGATION) ---
+    window.applyStatusFilter = function(targetStatus) {
+        state.activeStatusFilter = state.activeStatusFilter === targetStatus ? 'all' : targetStatus;
+        ['new', 'available', 'progress', 'completed'].forEach(s => {
+            const cEl = document.getElementById('count' + s.charAt(0).toUpperCase() + s.slice(1));
+            const cCard = cEl ? (cEl.closest('button') || cEl.closest('.flex-col') || cEl.closest('div[class*="rounded"]') || cEl.closest('div[class*="bg-[#"]') || cEl.parentElement) : null;
             if (cCard) {
-                if (state.activeStatusFilter === status) cCard.classList.add('ring-2', 'ring-blue-500', 'bg-[#2a2a2a]');
+                if (state.activeStatusFilter === s) cCard.classList.add('ring-2', 'ring-blue-500', 'bg-[#2a2a2a]');
                 else cCard.classList.remove('ring-2', 'ring-blue-500', 'bg-[#2a2a2a]');
             }
         });
         renderVideos(getFilteredIdeas());
     };
 
+    document.addEventListener('click', (e) => {
+        ['new', 'available', 'progress', 'completed'].forEach(s => {
+            const countEl = document.getElementById('count' + s.charAt(0).toUpperCase() + s.slice(1));
+            if (countEl) {
+                const card = countEl.closest('button') || countEl.closest('.flex-col') || countEl.closest('div[class*="rounded"]') || countEl.closest('div[class*="bg-[#"]') || countEl.parentElement;
+                if (card && (e.target === card || card.contains(e.target))) {
+                    window.applyStatusFilter(s);
+                }
+            }
+        });
+    });
+
     setInterval(() => {
         ['new', 'available', 'progress', 'completed'].forEach(status => {
             const countEl = document.getElementById('count' + status.charAt(0).toUpperCase() + status.slice(1));
             if (countEl && !countEl.dataset.hooked) {
-                const card = countEl.closest('div[class*="rounded-2xl"], div[class*="bg-[#212121]"]') || countEl.parentElement.parentElement;
+                const card = countEl.closest('button') || countEl.closest('.flex-col') || countEl.closest('div[class*="rounded"]') || countEl.closest('div[class*="bg-[#"]') || countEl.parentElement;
                 if (card) {
                     card.style.cursor = 'pointer'; card.title = `Filtra per stato: ${status}`;
-                    card.onclick = () => window.applyStatusFilter(status);
                     countEl.dataset.hooked = "true";
                 }
             }
@@ -789,6 +800,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const idea = state.videoIdeas.find(v => v.id === state.currentlyOpenIdeaId);
             if(idea) {
                 idea.checklist[key] = e.target.checked;
+                
+                const assigneesArr = idea.assignee ? idea.assignee.split(',').map(s=>s.trim()) : [];
+                if (assigneesArr.length > 1) {
+                    if (!idea.taskAssignees) idea.taskAssignees = { script: [], audio: [], video: [], music: [], sfx: [], final: [] };
+                    if (!e.target.checked) {
+                        idea.taskAssignees[key] = [];
+                    } else {
+                        if (!idea.taskAssignees[key] || idea.taskAssignees[key].length === 0) {
+                            idea.taskAssignees[key] = [...assigneesArr]; // Assegna a tutti per default
+                        }
+                    }
+                    if(window.openIdeaDashboard) window.openIdeaDashboard(idea);
+                }
+
                 if(window.updateChecklistProgress) window.updateChecklistProgress(idea);
                 renderVideos(getFilteredIdeas());
                 await autoSaveToCloud();
