@@ -332,14 +332,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    window.initLabFlow = function(labId) {
+        const splash = document.getElementById('tmsSplashScreen');
+        if (splash) {
+            splash.classList.add('opacity-0');
+            setTimeout(() => splash.remove(), 500);
+        }
+        
+        window.setLabContext(labId);
+
         // --- INIT AUTH CHECK DOPO LA SCELTA DEL LAB ---
         const savedUser = localStorage.getItem('tmslab_logged_in_user');
         if (savedUser) {
             const adminBtn = document.getElementById('adminBtn');
             if (adminBtn) adminBtn.textContent = savedUser.substring(0, 2).toUpperCase();
-            if (state.SCRIPT_URL) {
-        
-   w        if (loginOverlay) {
+            if (state.SCRIPT_URL) loadDataFromCloud();
+            else switchView('idee');
+        } else {
+            const loginOverlay = document.getElementById('loginOverlay');
+            if (loginOverlay) {
                 loginOverlay.classList.remove('hidden');
                 loginOverlay.classList.add('flex');
             } else {
@@ -351,7 +362,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- HEADER E SIDEBAR ---
     document.getElementById('sidebarToggle')?.addEventListener('click', () => {
-        state.siidebar-label').forEach(el => el.style.display = state.sidebarOpen ? '' : 'none');
+        state.sidebarOpen = !state.sidebarOpen;
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) { sidebar.classList.toggle('w-64', state.sidebarOpen); sidebar.classList.toggle('w-20', !state.sidebarOpen); }
+        document.querySelectorAll('.sidebar-label').forEach(el => el.style.display = state.sidebarOpen ? '' : 'none');
     });
 
     document.getElementById('searchInput')?.addEventListener('input', () => {
