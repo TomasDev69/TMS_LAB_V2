@@ -711,9 +711,9 @@ export function renderDatabaseStats() {
     }
 
     const heavyItems = [];
-    state.videoIdeas.forEach(i => { if (i.thumbnail && i.thumbnail.length > 1000) heavyItems.push({ type: 'Idea', id: i.id, title: i.title, size: getStringSizeInKB(i.thumbnail), arrayRef: state.videoIdeas }); });
-    state.toolsData.forEach(t => { if (t.image && t.image.length > 1000) heavyItems.push({ type: 'Tool', id: t.id, title: t.title, size: getStringSizeInKB(t.image), arrayRef: state.toolsData }); });
-    state.channels.forEach(c => { if (c.profilePicUrl && c.profilePicUrl.length > 1000) heavyItems.push({ type: 'Canale', id: c.id, title: c.name, size: getStringSizeInKB(c.profilePicUrl), arrayRef: state.channels }); });
+    state.videoIdeas.forEach(i => { if (i.thumbnail && i.thumbnail.length > 1000) heavyItems.push({ type: 'Idea', id: i.id, title: i.title, size: getStringSizeInKB(i.thumbnail), arrayRef: state.videoIdeas, prop: 'thumbnail' }); });
+    state.toolsData.forEach(t => { if (t.image && t.image.length > 1000) heavyItems.push({ type: 'Tool', id: t.id, title: t.title, size: getStringSizeInKB(t.image), arrayRef: state.toolsData, prop: 'image' }); });
+    state.channels.forEach(c => { if (c.profilePicUrl && c.profilePicUrl.length > 1000) heavyItems.push({ type: 'Canale', id: c.id, title: c.name, size: getStringSizeInKB(c.profilePicUrl), arrayRef: state.channels, prop: 'profilePicUrl' }); });
 
     heavyItems.sort((a, b) => parseFloat(b.size) - parseFloat(a.size));
     const tableBody = document.getElementById('dbHeavyItemsBody');
@@ -725,11 +725,18 @@ export function renderDatabaseStats() {
         tableBody.parentElement.classList.remove('hidden'); document.getElementById('dbNoHeavyItems').classList.add('hidden');
         heavyItems.forEach(item => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td class="px-5 py-3"><span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-gray-500/30">${item.type}</span></td><td class="px-5 py-3 font-semibold text-white">${item.title}</td><td class="px-5 py-3 text-yellow-400 font-bold">${item.size} KB</td><td class="px-5 py-3 text-right"><button class="delete-heavy-btn text-xs bg-red-900/40 hover:bg-red-600 text-red-400 hover:text-white px-3 py-1.5 rounded transition-colors font-bold">Elimina Elemento</button></td>`;
+            tr.innerHTML = `<td class="px-5 py-3"><span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-gray-500/30">${item.type}</span></td><td class="px-5 py-3 font-semibold text-white">${item.title}</td><td class="px-5 py-3 text-yellow-400 font-bold">${item.size} KB</td><td class="px-5 py-3 text-right"><button class="delete-heavy-btn text-xs bg-red-900/40 hover:bg-red-600 text-red-400 hover:text-white px-3 py-1.5 rounded transition-colors font-bold">Elimina Immagine</button></td>`;
             tr.querySelector('.delete-heavy-btn').addEventListener('click', () => {
-                requirePin(`Eliminare "${item.title}" per liberare spazio?`, async () => {
-                    const idx = item.arrayRef.findIndex(x => x.id === item.id);
-                    if (idx > -1) { item.arrayRef.splice(idx, 1); renderDatabaseStats(); await autoSaveToCloud(); }
+                requirePin(`Vuoi eliminare l'immagine pesante di "${item.title}"? L'elemento in sé NON verrà cancellato e conserverà tutti i dati e le task.`, async () => {
+                    const obj = item.arrayRef.find(x => x.id === item.id);
+                    if (obj) { 
+                        obj[item.prop] = ''; 
+                        renderDatabaseStats(); 
+                        if(item.type === 'Idea') renderVideos(getFilteredIdeas());
+                        else if(item.type === 'Tool') renderTools();
+                        else if(item.type === 'Canale') renderChannelList();
+                        await autoSaveToCloud(); 
+                    }
                 });
             });
             tableBody.appendChild(tr);
