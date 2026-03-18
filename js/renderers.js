@@ -1037,7 +1037,8 @@ window.updateChecklistProgress = function(idea) {
             if (newCollabSelect) {
                 newCollabSelect.onchange = async (e) => {
                     if (e.target.value) { 
-                        const oldAssignee., ${e.target.value}`; 
+                        const oldAssigneesArr = idea.assignee.split(',').map(s=>s.trim());
+                        idea.assignee += `, ${e.target.value}`; 
                         if (!idea.taskAssignees) {
                             idea.taskAssignees = { script: [], audio: [], video: [], music: [], sfx: [], final: [] };
                             ['script', 'audio', 'video', 'music', 'sfx', 'final'].forEach(k => { if (idea.checklist[k] && oldAssigneesArr[0]) idea.taskAssignees[k].push(oldAssigneesArr[0]); });
@@ -1094,7 +1095,8 @@ window.openIdeaDashboard = function(idea) {
         
         const assigneesArr = idea.assignee.split(',').map(s=>s.trim());
         if (!idea.taskAssignees && assigneesArr.length > 0) {
-            idea.taskAssignees = { script: [], audio: [], video: [],  s[k].push(assigneesArr[0]); });
+            idea.taskAssignees = { script: [], audio: [], video: [], music: [], sfx: [], final: [] };
+            ['script', 'audio', 'video', 'music', 'sfx', 'final'].forEach(k => { if (idea.checklist[k]) idea.taskAssignees[k].push(assigneesArr[0]); });
         } else if (!idea.taskAssignees) {
             idea.taskAssignees = { script: [], audio: [], video: [], music: [], sfx: [], final: [] };
         }
@@ -1131,8 +1133,10 @@ window.openIdeaDashboard = function(idea) {
                             else idea.taskAssignees[key].push(n);
                             
                             idea.checklist[key] = idea.taskAssignees[key].length > 0; 
-                            chk.checked = idea.checklist[key];window.updateChecklistProgress(idea); window.renderVideos(window.getFilteredIdeas()); 
+                            chk.checked = idea.checklist[key];
+                            window.updateChecklistProgress(idea); window.renderVideos(window.getFilteredIdeas()); 
                             
+                            selectContainer.querySelectorAll('.task-collab-btn').forEach(b => {
                                 const isC = idea.taskAssignees[key].includes(b.dataset.name);
                                 b.className = `task-collab-btn px-2 py-0.5 rounded text-[10px] font-bold transition-colors border ${isC ? 'bg-blue-600/20 text-blue-400 border-blue-500/50' : 'bg-[#222] text-gray-500 border-[#333] hover:border-gray-400'}`;
                             });
