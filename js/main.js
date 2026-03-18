@@ -238,29 +238,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 1500); // Controlla ogni 1.5 secondi per agganciare i tasti in modo indistruttibile
 
     // --- INJECT BRAINSTORMING VIEW & NAV (Dinamico) ---
-    setTimeout(() => {
-        const sidebarNav = document.querySelector('#sidebar nav') || document.querySelector('nav');
-        if (sidebarNav && !document.getElementById('navBrainstorming')) {
-            const ideeNav = document.getElementById('navIdee');
-            if (ideeNav) {
-                const brainNav = ideeNav.cloneNode(true);
-                brainNav.id = 'navBrainstorming';
-                
-                const textWalker = document.createTreeWalker(brainNav, NodeFilter.SHOW_TEXT, null, false);
-                let node;
-                while ((node = textWalker.nextNode())) {
-                    if (node.nodeValue.includes('Idee')) node.nodeValue = node.nodeValue.replace(/Idee Video|Idee/g, 'Brainstorming');
-                    if (node.nodeValue.includes('💡')) node.nodeValue = node.nodeValue.replace('💡', '🧠');
-                }
-                
-                ideeNav.parentNode.insertBefore(brainNav, ideeNav.nextSibling);
-                brainNav.classList.remove('active');
-                brainNav.addEventListener('click', (e) => { e.preventDefault(); window.switchView('brainstorming'); });
-            }
-        }
-
+    const bsInterval = setInterval(() => {
+        const ideeNav = document.getElementById('navIdee');
         const mainContent = document.getElementById('viewIdeeWrapper')?.parentNode;
-        if (mainContent && !document.getElementById('viewBrainstormingWrapper')) {
+        
+        if (ideeNav && mainContent && !document.getElementById('navBrainstorming')) {
+            const brainNav = ideeNav.cloneNode(true);
+            brainNav.id = 'navBrainstorming';
+            
+            const textWalker = document.createTreeWalker(brainNav, NodeFilter.SHOW_TEXT, null, false);
+            let node;
+            while ((node = textWalker.nextNode())) {
+                if (node.nodeValue.includes('Idee')) node.nodeValue = node.nodeValue.replace(/Idee Video|Idee/g, 'Brainstorming');
+                if (node.nodeValue.includes('💡')) node.nodeValue = node.nodeValue.replace('💡', '🧠');
+            }
+            
+            ideeNav.parentNode.insertBefore(brainNav, ideeNav.nextSibling);
+            brainNav.classList.remove('active');
+            brainNav.addEventListener('click', (e) => { e.preventDefault(); window.switchView('brainstorming'); });
+
             const brainView = document.createElement('div');
             brainView.id = 'viewBrainstormingWrapper';
             brainView.className = 'hidden flex flex-col h-[calc(100vh-140px)] gap-6';
@@ -349,6 +345,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 clearTimeout(bsTimeout);
                 bsTimeout = setTimeout(triggerSave, 2500); // Autosave dopo 2.5s di inattività
             });
+            
+            clearInterval(bsInterval); // Interrompe la ricerca non appena ha iniettato con successo
         }
     }, 1000);
 
