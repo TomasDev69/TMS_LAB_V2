@@ -332,45 +332,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- INIT AUTH CHECK ---
-    const savedUser = localStorage.getItem('tmslab_logged_in_user');
-    if (savedUser) {
-        const adminBtn = document.getElementById('adminBtn');
-        if (adminBtn) adminBtn.textContent = savedUser.substring(0, 2).toUpperCase();
-        if (state.SCRIPT_URL) {
-            loadDataFromCloud();
-        } else {
-            switchView('idee'); 
-    window.initLabFlow = function(labId) {
-        const splash = document.getElementById('tmsSplashScreen');
-        if (splash) {
-            splash.classList.add('opacity-0');
-            setTimeout(() => splash.remove(), 500);
-        }
-    } else {
-        const loginOverlay = document.getElementById('loginOverlay');
-        if (loginOverlay) {
-            loginOverlay.classList.remove('hidden');
-            loginOverlay.classList.add('flex');
-        
-        window.setLabContext(labId);
-
         // --- INIT AUTH CHECK DOPO LA SCELTA DEL LAB ---
         const savedUser = localStorage.getItem('tmslab_logged_in_user');
         if (savedUser) {
             const adminBtn = document.getElementById('adminBtn');
             if (adminBtn) adminBtn.textContent = savedUser.substring(0, 2).toUpperCase();
             if (state.SCRIPT_URL) {
-                loadDataFromCloud();
-            } else {
-                switchView('idee'); 
-            }
-        } else {
-            // Bypass automatico se non esiste la schermata di login HTML
-            if (state.SCRIPT_URL) loadDataFromCloud();
-            else switchView('idee'); 
-            const loginOverlay = document.getElementById('loginOverlay');
-            if (loginOverlay) {
+        
+   w        if (loginOverlay) {
                 loginOverlay.classList.remove('hidden');
                 loginOverlay.classList.add('flex');
             } else {
@@ -378,15 +347,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 else switchView('idee'); 
             }
         }
-    }
     };
 
     // --- HEADER E SIDEBAR ---
     document.getElementById('sidebarToggle')?.addEventListener('click', () => {
-        state.sidebarOpen = !state.sidebarOpen;
-        document.getElementById('sidebar').classList.toggle('sidebar-expanded', state.sidebarOpen);
-        document.getElementById('sidebar').classList.toggle('sidebar-collapsed', !state.sidebarOpen);
-        document.querySelectorAll('.sidebar-label').forEach(el => el.style.display = state.sidebarOpen ? '' : 'none');
+        state.siidebar-label').forEach(el => el.style.display = state.sidebarOpen ? '' : 'none');
     });
 
     document.getElementById('searchInput')?.addEventListener('input', () => {
@@ -395,8 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if(state.currentInspTab === 'channels') renderInspChannels();
             else { state.feedDisplayIndex = 0; document.getElementById('inspFeedGrid').innerHTML = ''; renderNextFeedBatch(); }
         }
-        if (state.currentView === 'strumenti') renderTools();
-        if (state.currentView === 'formazione') renderTraining();
+            if (state.currentView === 'formazione') renderTraining();
         if (state.currentView === 'editorshub') renderEditorsHub();
     });
 
