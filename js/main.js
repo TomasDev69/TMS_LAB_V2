@@ -880,6 +880,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const title = document.getElementById('inputTitle').value.trim();
         const channelId = document.getElementById('inputChannel').value || '';
         const ch = state.channels.find(c => c.id === channelId);
+        const sourcesEl = document.getElementById('inputIdeaSources');
+        const sourcesText = sourcesEl ? sourcesEl.value.trim() : '';
 
         let ideaFolderId = ''; let ideaFolderLink = ''; let thumbnailUrl = '';
         devLog(`[IDEA] Avvio creazione nuova idea: "${title}"...`, "info");
@@ -931,7 +933,8 @@ document.addEventListener('DOMContentLoaded', () => {
             createdAt: Date.now(), 
             title, thumbnail: thumbnailUrl, driveLink: ideaFolderLink, ideaFolderId, channelId, author: "Tu", timeAgo: new Date().toLocaleDateString('it-IT'),
             assignee: null, assignedAt: null, completedAt: null,
-            checklist: { script: false, audio: false, video: false, music: false, sfx: false, final: false }
+            checklist: { script: false, audio: false, video: false, music: false, sfx: false, final: false },
+            sources: sourcesText
         };
 
         state.videoIdeas.unshift(newIdea);
@@ -967,11 +970,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const title = document.getElementById('editIdeaTitle').value.trim();
         const driveLink = document.getElementById('editIdeaDriveLink').value.trim();
         const assigneeEl = document.getElementById('editIdeaAssignee');
+        const sourcesEl = document.getElementById('editIdeaSources');
 
         const idea = state.videoIdeas.find(v => v.id === id);
         if (idea) {
             idea.title = title;
             idea.driveLink = driveLink;
+            if (sourcesEl) idea.sources = sourcesEl.value.trim();
             if (assigneeEl && !assigneeEl.parentElement.classList.contains('hidden')) {
                 const newAssignee = assigneeEl.value || null;
                 if (idea.assignee && !newAssignee) {

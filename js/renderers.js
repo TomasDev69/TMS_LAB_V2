@@ -1103,6 +1103,32 @@ window.openIdeaDashboard = function(idea) {
 
     document.getElementById('dashDriveBtn').onclick = () => { if(idea.driveLink) window.open(idea.driveLink, '_blank'); else alert('Nessun link Drive.'); };
 
+    const sourcesContainer = document.getElementById('dashSourcesContainer');
+    if (sourcesContainer) {
+        if (idea.sources && idea.sources.trim() !== '') {
+            const links = idea.sources.split('\n').filter(l => l.trim() !== '');
+            let html = '<h4 class="text-[10px] text-gray-500 uppercase font-bold mb-2 mt-4">Risorse / Inspirations</h4><ul class="flex flex-col gap-1.5">';
+            links.forEach(link => {
+                const cleanLink = link.trim();
+                const urlMatch = cleanLink.match(/https?:\/\/[^\s]+/);
+                if (urlMatch) {
+                    const url = urlMatch[0];
+                    let label = cleanLink.replace(url, '').trim() || url;
+                    if (label.length > 50) label = label.substring(0, 47) + '...';
+                    html += `<li><a href="${url}" target="_blank" class="text-xs text-blue-400 hover:text-blue-300 transition-colors break-all flex items-start gap-1 bg-[#222] px-2 py-1.5 rounded border border-[#333] w-full shadow-sm"><span class="shrink-0">🔗</span> <span class="line-clamp-2">${label}</span></a></li>`;
+                } else {
+                    html += `<li class="text-xs text-gray-300 flex items-start gap-1 bg-[#222] px-2 py-1.5 rounded border border-[#333]"><span class="shrink-0">📄</span> <span>${cleanLink}</span></li>`;
+                }
+            });
+            html += '</ul>';
+            sourcesContainer.innerHTML = html;
+            sourcesContainer.classList.remove('hidden');
+        } else {
+            sourcesContainer.innerHTML = '';
+            sourcesContainer.classList.add('hidden');
+        }
+    }
+
     const assignSec = document.getElementById('dashAssignSection');
     const progSec = document.getElementById('dashProgressSection');
     const select = document.getElementById('assigneeSelect');
@@ -1193,6 +1219,8 @@ window.openEditIdeaModal = function(idea) {
     document.getElementById('editIdeaId').value = idea.id;
     document.getElementById('editIdeaTitle').value = idea.title;
     document.getElementById('editIdeaDriveLink').value = idea.driveLink || '';
+    const sourcesEl = document.getElementById('editIdeaSources');
+    if (sourcesEl) sourcesEl.value = idea.sources || '';
     const assigneeSelect = document.getElementById('editIdeaAssignee');
     const assigneesArr = idea.assignee ? idea.assignee.split(',').map(s=>s.trim()) : [];
     
