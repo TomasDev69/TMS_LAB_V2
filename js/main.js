@@ -39,6 +39,7 @@ window.setLabContext = (labId) => {
     if(!state.finance.subscriptions) state.finance.subscriptions = [];
     state.devTodoList = dbRef.devTodoList;
     state.brainstormingText = dbRef.brainstormingText || "";
+    state.competitorsAnalysis = dbRef.competitorsAnalysis || [];
 
     const bsInput = document.getElementById('brainstormingInput');
     if (bsInput) bsInput.value = state.brainstormingText;
@@ -358,6 +359,245 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             clearInterval(bsInterval); // Interrompe la ricerca non appena ha iniettato con successo
+        }
+    }, 1000);
+
+    // --- INJECT COMPETITORS ANALYSIS VIEW & NAV (Dinamico) ---
+    const compInterval = setInterval(() => {
+        const inspNav = document.getElementById('navInspirations');
+        const mainContent = document.getElementById('viewIdeeWrapper')?.parentNode;
+        
+        if (inspNav && mainContent && !document.getElementById('navCompetitors')) {
+            const compNav = inspNav.cloneNode(true);
+            compNav.id = 'navCompetitors';
+            
+            const textWalker = document.createTreeWalker(compNav, NodeFilter.SHOW_TEXT, null, false);
+            let node;
+            while ((node = textWalker.nextNode())) {
+                if (node.nodeValue.includes('Inspirations')) node.nodeValue = node.nodeValue.replace('Inspirations', 'Competitors Analysis');
+                if (node.nodeValue.includes('✨') || node.nodeValue.includes('📺')) node.nodeValue = node.nodeValue.replace(/✨|📺/g, '🕵️‍♂️');
+            }
+            
+            inspNav.parentNode.insertBefore(compNav, inspNav.nextSibling);
+            compNav.classList.remove('active');
+            compNav.addEventListener('click', (e) => { e.preventDefault(); window.switchView('competitors'); });
+
+            const compView = document.createElement('div');
+            compView.id = 'viewCompetitorsWrapper';
+            compView.className = 'hidden flex flex-col h-[calc(100vh-140px)] gap-6 overflow-y-auto custom-scrollbar pr-2 pb-6';
+            compView.innerHTML = `
+                <div id="noCompetitors" class="hidden flex flex-col items-center justify-center py-20 text-gray-500">
+                    <span class="text-6xl mb-4">🕵️‍♂️</span>
+                    <p class="text-lg font-semibold text-gray-300">Nessuna analisi competitor.</p>
+                    <p class="text-sm mt-2">Aggiungi un link video da studiare.</p>
+                </div>
+                <div id="competitorsGrid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"></div>
+            `;
+            mainContent.appendChild(compView);
+
+            const modalsHtml = `
+                <div id="addCompetitorModal" class="hidden fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center backdrop-blur-sm">
+                    <div class="bg-[#1a1a1a] border border-[#333] rounded-2xl p-6 w-[90%] max-w-md shadow-2xl">
+                        <h2 class="text-xl font-black text-white mb-4 flex items-center gap-2"><span>🕵️‍♂️</span> Aggiungi Video</h2>
+                        <form id="competitorForm" class="flex flex-col gap-4">
+                            <input type="url" id="inputCompLink" placeholder="Link Video YouTube..." required class="px-4 py-3 bg-[#111] text-white rounded-lg border border-[#444] outline-none focus:border-blue-500">
+                            <div class="flex justify-end gap-3 mt-2">
+                                <button type="button" class="px-4 py-2 bg-[#2a2a2a] hover:bg-[#333] text-gray-300 rounded font-bold transition-colors" onclick="closeModal('addCompetitorModal', 'competitorForm')">Annulla</button>
+                                <button type="submit" id="btnSubmitComp" class="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold transition-colors">Analizza Link</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="compDashboardModal" class="hidden fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center backdrop-blur-sm p-4">
+                    <div class="bg-[#1a1a1a] border border-[#333] rounded-2xl w-full max-w-[1200px] max-h-full flex flex-col shadow-2xl overflow-hidden relative">
+                        <button class="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors text-2xl z-20 bg-black/50 w-8 h-8 rounded-full flex items-center justify-center" onclick="closeModal('compDashboardModal')">✖</button>
+                        
+                        <div class="flex-1 overflow-y-auto custom-scrollbar p-6">
+                            <div class="flex flex-col lg:flex-row gap-6 mb-4">
+                                <div class="w-full lg:w-1/3 shrink-0 flex flex-col gap-4">
+                                    <div class="rounded-xl overflow-hidden aspect-video border border-[#333] relative bg-[#111]">
+                                        <img id="compDashThumb" class="w-full h-full object-cover">
+                                        <div class="absolute bottom-2 right-2 bg-black/80 px-2 py-0.5 rounded text-[10px] font-bold text-white border border-[#444]" id="compDashDuration">0:00</div>
+                                    </div>
+                                    <h2 id="compDashTitle" class="text-xl font-bold text-white leading-tight"></h2>
+                                    <div class="flex items-center gap-3 bg-[#222] p-3 rounded-xl border border-[#333]">
+                                        <div id="compDashAvatar" class="w-10 h-10 rounded-full overflow-hidden shrink-0 border border-[#444] bg-[#111]"></div>
+                                        <div class="flex flex-col">
+                                            <span id="compDashAuthor" class="text-sm font-bold text-gray-200"></span>
+                                            <span id="compDashViews" class="text-xs text-gray-400"></span>
+                                        </div>
+                                    </div>
+                                    <button id="compDashLinkBtn" class="w-full py-2 bg-[#2a2a2a] hover:bg-[#333] border border-[#444] text-white rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2">Apri su YouTube ↗</button>
+                                    <button id="compDashDeleteBtn" class="w-full py-2 bg-red-900/30 hover:bg-red-900/60 border border-red-500/30 text-red-400 rounded-lg text-sm font-bold transition-colors mt-auto">Elimina Analisi</button>
+                                </div>
+                                
+                                <div class="w-full lg:w-2/3 flex flex-col gap-6">
+                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        <div class="bg-[#222] p-3 rounded-xl border border-[#333] flex flex-col">
+                                            <label class="text-[10px] text-gray-500 uppercase font-bold mb-1">Video Length</label>
+                                            <input type="text" id="compInpVideoLength" class="bg-transparent text-white font-bold outline-none w-full text-sm" placeholder="es. 10:05">
+                                        </div>
+                                        <div class="bg-[#222] p-3 rounded-xl border border-[#333] flex flex-col">
+                                            <label class="text-[10px] text-gray-500 uppercase font-bold mb-1">Script (Parole)</label>
+                                            <input type="number" id="compInpScriptLen" class="bg-transparent text-white font-bold outline-none w-full text-sm" placeholder="es. 1500">
+                                        </div>
+                                        <div class="bg-[#222] p-3 rounded-xl border border-[#333] flex flex-col">
+                                            <label class="text-[10px] text-gray-500 uppercase font-bold mb-1">Minuti Musica</label>
+                                            <input type="text" id="compInpMusicMin" class="bg-transparent text-white font-bold outline-none w-full text-sm" placeholder="es. 8:30">
+                                        </div>
+                                        <div class="bg-[#222] p-3 rounded-xl border border-[#333] flex flex-col">
+                                            <label class="text-[10px] text-gray-500 uppercase font-bold mb-1">% Musica su Video</label>
+                                            <input type="text" id="compInpMusicPerc" class="bg-transparent text-white font-bold outline-none w-full text-sm" placeholder="es. 85%">
+                                        </div>
+                                        <div class="bg-[#222] p-3 rounded-xl border border-[#333] flex flex-col">
+                                            <label class="text-[10px] text-gray-500 uppercase font-bold mb-1">Cambi Musica</label>
+                                            <input type="number" id="compInpMusicChanges" class="bg-transparent text-white font-bold outline-none w-full text-sm" placeholder="0">
+                                        </div>
+                                        <div class="bg-[#222] p-3 rounded-xl border border-[#333] flex flex-col">
+                                            <label class="text-[10px] text-gray-500 uppercase font-bold mb-1">Durata Media</label>
+                                            <input type="text" id="compInpAvgMusic" class="bg-transparent text-white font-bold outline-none w-full text-sm" placeholder="es. 0:45">
+                                        </div>
+                                        <div class="bg-[#222] p-3 rounded-xl border border-[#333] flex flex-col">
+                                            <label class="text-[10px] text-gray-500 uppercase font-bold mb-1">Tagli Netti Musica</label>
+                                            <select id="compInpHardCuts" class="bg-transparent text-white font-bold outline-none w-full cursor-pointer appearance-none text-sm"><option value="No">No</option><option value="Si">Si</option></select>
+                                        </div>
+                                        <div class="bg-[#222] p-3 rounded-xl border border-[#333] flex flex-col">
+                                            <label class="text-[10px] text-gray-500 uppercase font-bold mb-1">Immagini Still</label>
+                                            <input type="number" id="compInpStill" class="bg-transparent text-white font-bold outline-none w-full text-sm" placeholder="0">
+                                        </div>
+                                        <div class="bg-[#222] p-3 rounded-xl border border-[#333] flex flex-col md:col-span-2">
+                                            <label class="text-[10px] text-gray-500 uppercase font-bold mb-1">Immagini con Edits</label>
+                                            <input type="number" id="compInpEdited" class="bg-transparent text-white font-bold outline-none w-full text-sm" placeholder="0">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="bg-[#222] p-4 rounded-xl border border-[#333]">
+                                        <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2"><span>🎨</span> Timeline Color Code (DaVinci)</h3>
+                                        <div class="flex flex-col gap-2">
+                                            <div class="flex items-center gap-3"><span class="w-4 h-4 rounded-sm bg-yellow-500 shrink-0"></span><span class="text-xs text-gray-300 w-24">Musica</span><input type="text" id="compColorMusic" class="flex-1 bg-[#111] px-2 py-1 rounded border border-[#444] text-sm text-white" placeholder="Note sulla traccia musicale..."></div>
+                                            <div class="flex items-center gap-3"><span class="w-4 h-4 rounded-sm bg-green-500 shrink-0"></span><span class="text-xs text-gray-300 w-24">Immagine</span><input type="text" id="compColorImg" class="flex-1 bg-[#111] px-2 py-1 rounded border border-[#444] text-sm text-white" placeholder="Note sulle immagini fisse..."></div>
+                                            <div class="flex items-center gap-3"><span class="w-4 h-4 rounded-sm bg-blue-500 shrink-0"></span><span class="text-xs text-gray-300 w-24">Video</span><input type="text" id="compColorVid" class="flex-1 bg-[#111] px-2 py-1 rounded border border-[#444] text-sm text-white" placeholder="Note sui video/clip b-roll..."></div>
+                                            <div class="flex items-center gap-3"><span class="w-4 h-4 rounded-sm bg-purple-500 shrink-0"></span><span class="text-xs text-gray-300 w-24">Img (Zoom/FX)</span><input type="text" id="compColorFX" class="flex-1 bg-[#111] px-2 py-1 rounded border border-[#444] text-sm text-white" placeholder="Note su effetti, keyframes, zoom..."></div>
+                                            <div class="flex items-center gap-3"><span class="w-4 h-4 rounded-sm bg-amber-700 shrink-0"></span><span class="text-xs text-gray-300 w-24">SFX</span><input type="text" id="compColorSFX" class="flex-1 bg-[#111] px-2 py-1 rounded border border-[#444] text-sm text-white" placeholder="Note sugli effetti sonori (riser, chiusure, chiacchiericcio)..."></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="bg-[#222] p-4 rounded-xl border border-[#333]">
+                                        <div class="flex justify-between items-center mb-3">
+                                            <h3 class="text-sm font-bold text-white flex items-center gap-2"><span>🖼️</span> Screen di Analisi</h3>
+                                            <label class="cursor-pointer text-xs bg-blue-600/30 hover:bg-blue-600/50 text-blue-400 font-bold border border-blue-500/30 px-3 py-1.5 rounded transition-colors">
+                                                + Aggiungi Screen
+                                                <input type="file" id="compAddImage" class="hidden" accept="image/*">
+                                            </label>
+                                        </div>
+                                        <div id="compImagesGrid" class="flex gap-4 overflow-x-auto pb-2 custom-scrollbar"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-[#111] border-t border-[#333] flex justify-end gap-4 shrink-0">
+                            <span id="compSaveStatus" class="text-sm text-gray-400 self-center"></span>
+                            <button id="compSaveBtn" class="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold transition-colors shadow">Salva Analisi</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalsHtml);
+
+            // --- BINDING LOGICA COMPETITORS ---
+            window.handleCompSubmit = async (e) => {
+                e.preventDefault();
+                const submitBtn = document.getElementById('btnSubmitComp');
+                const link = document.getElementById('inputCompLink').value.trim();
+                const ytId = window.getYouTubeID(link);
+
+                if (!ytId) { alert("Link YouTube non valido."); return; }
+                submitBtn.disabled = true; submitBtn.textContent = '🔄 Analisi in corso...';
+
+                let title = "Video Competitor", author = "Sconosciuto", avatar = "", views = "N/A views", durationStr = "0:00", thumbnail = `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg`;
+                
+                try {
+                    const html = await fetchYTProxy(`https://www.youtube.com/watch?v=${ytId}`);
+                    let playerRes = null; let ytData = null;
+                    
+                    const playerStart = html.indexOf('var ytInitialPlayerResponse = ');
+                    if (playerStart !== -1) {
+                        const jsonStart = playerStart + 30; let end = html.indexOf(';</script>', jsonStart);
+                        if (end === -1) end = html.indexOf(';var ', jsonStart);
+                        if (end !== -1) try { playerRes = JSON.parse(html.substring(jsonStart, end)); } catch(err) {}
+                    }
+                    
+                    const dataStart = html.indexOf('var ytInitialData = ');
+                    if (dataStart !== -1) {
+                        const jsonStart = dataStart + 20; let end = html.indexOf(';</script>', jsonStart);
+                        if (end === -1) end = html.indexOf(';var ', jsonStart);
+                        if (end !== -1) try { ytData = JSON.parse(html.substring(jsonStart, end)); } catch(err) {}
+                    }
+
+                    if (playerRes && playerRes.videoDetails) {
+                        const details = playerRes.videoDetails;
+                        title = details.title || title; author = details.author || author;
+                        if (details.lengthSeconds) {
+                            const sec = parseInt(details.lengthSeconds);
+                            durationStr = `${Math.floor(sec/60)}:${(sec%60).toString().padStart(2,'0')}`;
+                        }
+                        if (details.viewCount) views = formatViewsCount(details.viewCount);
+                    }
+                    if (ytData) {
+                        try {
+                            const secondary = ytData.contents?.twoColumnWatchNextResults?.results?.results?.contents?.find(c => c.videoSecondaryInfoRenderer)?.videoSecondaryInfoRenderer;
+                            if (secondary?.owner?.videoOwnerRenderer) {
+                                const owner = secondary.owner.videoOwnerRenderer;
+                                if (!author || author === "Sconosciuto") author = owner.title?.runs[0]?.text || author;
+                                if (owner.thumbnail?.thumbnails?.length > 0) avatar = owner.thumbnail.thumbnails[0].url;
+                            }
+                        } catch(e) {}
+                    }
+                } catch(err) { console.warn(err); }
+                
+                if(!state.competitorsAnalysis) state.competitorsAnalysis = [];
+                state.competitorsAnalysis.push({ 
+                    id: Date.now().toString(), ytId, title, author, avatar, views, duration: durationStr, thumbnail, link,
+                    analysis: { videoLength: durationStr, scriptLength: '', musicMin: '', musicPerc: '', musicChanges: '', avgMusic: '', hardCuts: 'No', stillImages: '', editedImages: '', colorMusic: '', colorImg: '', colorVid: '', colorFX: '', colorSFX: '', images: [] }
+                });
+                
+                if(window.renderCompetitors) window.renderCompetitors();
+                closeModal('addCompetitorModal', 'competitorForm');
+                autoSaveToCloud();
+                submitBtn.disabled = false; submitBtn.textContent = 'Analizza Link'; document.getElementById('inputCompLink').value = '';
+            };
+
+            window.saveCompAnalysis = async () => {
+                const comp = state.competitorsAnalysis.find(c => c.id === state.currentCompId);
+                if(!comp) return;
+                
+                const btn = document.getElementById('compSaveBtn'); const status = document.getElementById('compSaveStatus');
+                btn.disabled = true; btn.textContent = '🔄...'; status.textContent = "Salvataggio...";
+
+                if(!comp.analysis) comp.analysis = {};
+                comp.analysis.videoLength = document.getElementById('compInpVideoLength').value; comp.analysis.scriptLength = document.getElementById('compInpScriptLen').value; comp.analysis.musicMin = document.getElementById('compInpMusicMin').value; comp.analysis.musicPerc = document.getElementById('compInpMusicPerc').value; comp.analysis.musicChanges = document.getElementById('compInpMusicChanges').value; comp.analysis.avgMusic = document.getElementById('compInpAvgMusic').value; comp.analysis.hardCuts = document.getElementById('compInpHardCuts').value; comp.analysis.stillImages = document.getElementById('compInpStill').value; comp.analysis.editedImages = document.getElementById('compInpEdited').value; comp.analysis.colorMusic = document.getElementById('compColorMusic').value; comp.analysis.colorImg = document.getElementById('compColorImg').value; comp.analysis.colorVid = document.getElementById('compColorVid').value; comp.analysis.colorFX = document.getElementById('compColorFX').value; comp.analysis.colorSFX = document.getElementById('compColorSFX').value;
+
+                await autoSaveToCloud();
+                btn.disabled = false; btn.textContent = 'Salva Analisi'; status.textContent = "Salvato ✓";
+                setTimeout(() => { if(status.textContent === "Salvato ✓") status.textContent = ""; }, 2500);
+            };
+
+            window.handleCompImageAdd = async (e) => {
+                const file = e.target.files[0]; if(!file) return;
+                const comp = state.competitorsAnalysis.find(c => c.id === state.currentCompId); if(!comp) return;
+                const compressed = await compressImage(file, 800, 0.8, 'image/webp');
+                if(compressed.sizeKB > 1500) { alert('L\\'immagine è troppo pesante.'); return; }
+                if(!comp.analysis.images) comp.analysis.images = [];
+                comp.analysis.images.push(compressed.dataUrl);
+                window.renderCompImages(comp.analysis.images); await autoSaveToCloud(); e.target.value = '';
+            };
+
+            document.getElementById('competitorForm')?.addEventListener('submit', window.handleCompSubmit);
+            document.getElementById('compSaveBtn')?.addEventListener('click', window.saveCompAnalysis);
+            document.getElementById('compAddImage')?.addEventListener('change', window.handleCompImageAdd);
+
+            clearInterval(compInterval);
         }
     }, 1000);
 

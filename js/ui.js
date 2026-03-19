@@ -42,6 +42,7 @@ export function closeModal(modalId, formId) {
     if(modalId === 'addRevenueModal') { document.getElementById('addRevenueModal').classList.add('hidden'); document.getElementById('addRevenueModal').classList.remove('flex'); }
     if(modalId === 'addSubModal') { document.getElementById('addSubModal').classList.add('hidden'); document.getElementById('addSubModal').classList.remove('flex'); }
     if(modalId === 'addEditorCostModal') { document.getElementById('addEditorCostModal').classList.add('hidden'); document.getElementById('addEditorCostModal').classList.remove('flex'); }
+    if(modalId === 'compDashboardModal') { document.getElementById('compDashboardModal').classList.add('hidden'); document.getElementById('compDashboardModal').classList.remove('flex'); }
 }
 
 export function closePinModal() {
@@ -75,12 +76,12 @@ export function requirePin(actionMessage, callback) {
 
 export function switchView(view) {
     state.currentView = view;
-    ['navIdee', 'navInspirations', 'navStrumenti', 'navFormazione', 'navEditorsHub', 'navScript', 'navStats', 'navDatabase', 'navBrainstorming'].forEach(id => {
+    ['navIdee', 'navInspirations', 'navStrumenti', 'navFormazione', 'navEditorsHub', 'navScript', 'navStats', 'navDatabase', 'navBrainstorming', 'navCompetitors'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.remove('active');
     });
     document.getElementById('navEarnings').classList.remove('bg-green-900/40');
-    ['viewIdeeWrapper', 'viewInspirationsWrapper', 'viewStrumentiWrapper', 'viewFormazioneWrapper', 'viewEditorsHubWrapper', 'viewScriptWrapper', 'viewStatsWrapper', 'viewDatabaseWrapper', 'viewEarningsWrapper', 'viewBrainstormingWrapper'].forEach(id => {
+    ['viewIdeeWrapper', 'viewInspirationsWrapper', 'viewStrumentiWrapper', 'viewFormazioneWrapper', 'viewEditorsHubWrapper', 'viewScriptWrapper', 'viewStatsWrapper', 'viewDatabaseWrapper', 'viewEarningsWrapper', 'viewBrainstormingWrapper', 'viewCompetitorsWrapper'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('hidden');
     });
@@ -167,5 +168,12 @@ export function switchView(view) {
         mainActionBtn.classList.add('hidden');
         const bsInput = document.getElementById('brainstormingInput');
         if (bsInput) bsInput.value = state.brainstormingText || '';
+    } else if (view === 'competitors') {
+        const nav = document.getElementById('navCompetitors'); if (nav) nav.classList.add('active');
+        const viewEl = document.getElementById('viewCompetitorsWrapper'); if (viewEl) viewEl.classList.remove('hidden');
+        pageTitle.textContent = 'Competitors Analysis'; pageSubtitle.textContent = 'Analisi dettagliata della struttura e montaggio dei video per prendere spunto.';
+        mainActionBtn.classList.remove('hidden'); mainActionText.textContent = 'Aggiungi Video';
+        mainActionBtn.onclick = () => { document.getElementById('addCompetitorModal').classList.remove('hidden'); document.getElementById('addCompetitorModal').classList.add('flex'); };
+        if(window.renderCompetitors) window.renderCompetitors();
     }
 }

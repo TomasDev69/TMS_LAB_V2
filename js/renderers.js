@@ -1193,3 +1193,112 @@ window.openEditIdeaModal = function(idea) {
     document.getElementById('editIdeaModal').classList.remove('hidden');
     document.getElementById('editIdeaModal').classList.add('flex');
 };
+
+// ==========================================
+// COMPETITORS ANALYSIS SYSTEM
+// ==========================================
+window.renderCompetitors = function() {
+    const grid = document.getElementById('competitorsGrid');
+    const noRes = document.getElementById('noCompetitors');
+    if (!grid) return;
+    
+    grid.innerHTML = '';
+    
+    if (!state.competitorsAnalysis || state.competitorsAnalysis.length === 0) {
+        noRes.classList.remove('hidden'); grid.classList.add('hidden');
+        return;
+    }
+    
+    noRes.classList.add('hidden'); grid.classList.remove('hidden');
+
+    [...state.competitorsAnalysis].reverse().forEach(comp => {
+        const card = document.createElement('div');
+        card.className = 'flex flex-col gap-2 cursor-pointer group relative hover:opacity-90 transition-opacity bg-[#212121] rounded-xl p-3 border border-[#333] hover:border-blue-500 shadow';
+        card.onclick = () => { if(window.openCompDashboard) window.openCompDashboard(comp); };
+
+        const thumbSrc = comp.thumbnail;
+        let avatarHtml = comp.avatar ? `<img src="${comp.avatar}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-[10px]">📺</div>`;
+        
+        card.innerHTML = `
+            <div class="relative w-full aspect-video rounded-lg overflow-hidden bg-[#111] border border-[#333] transition-colors mb-2">
+                <img src="${thumbSrc}" onerror="this.src='https://img.youtube.com/vi/${comp.ytId}/hqdefault.jpg'" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                <div class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                    <span class="text-4xl drop-shadow-lg">📊</span>
+                </div>
+                <div class="absolute bottom-2 right-2 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-bold text-white border border-[#444]">${comp.duration || '0:00'}</div>
+            </div>
+            <div class="flex gap-3 px-1 pb-1">
+                <div class="w-8 h-8 rounded-full bg-[#111] flex items-center justify-center text-xs font-bold border border-[#404040] shrink-0 overflow-hidden">${avatarHtml}</div>
+                <div class="flex flex-col flex-1">
+                    <h3 class="text-sm font-bold text-[#f1f1f1] line-clamp-2 leading-tight group-hover:text-blue-400 transition-colors" title="${comp.title}">${comp.title}</h3>
+                    <div class="text-[11px] text-[#aaaaaa] mt-1.5 font-medium flex items-center justify-between">
+                        <span class="truncate pr-2">${comp.author || 'Sconosciuto'}</span>
+                        <span class="shrink-0 text-white bg-black/30 px-1.5 py-0.5 rounded border border-[#333]">${comp.views || ''}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+};
+
+window.openCompDashboard = (comp) => {
+    state.currentCompId = comp.id;
+    document.getElementById('compDashThumb').src = comp.thumbnail;
+    document.getElementById('compDashDuration').textContent = comp.duration || '0:00';
+    document.getElementById('compDashTitle').textContent = comp.title;
+    document.getElementById('compDashAvatar').innerHTML = comp.avatar ? `<img src="${comp.avatar}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-xs">📺</div>`;
+    document.getElementById('compDashAuthor').textContent = comp.author;
+    document.getElementById('compDashViews').textContent = comp.views;
+    document.getElementById('compDashLinkBtn').onclick = () => window.open(comp.link, '_blank');
+    
+    document.getElementById('compDashDeleteBtn').onclick = () => {
+        requirePin(`Eliminare l'analisi di "${comp.title}"?`, async () => {
+            state.competitorsAnalysis = state.competitorsAnalysis.filter(c => c.id !== comp.id);
+            closeModal('compDashboardModal');
+            if(window.renderCompetitors) window.renderCompetitors();
+            await autoSaveToCloud();
+        });
+    };
+
+    const an = comp.analysis || {};
+    document.getElementById('compInpVideoLength').value = an.videoLength || comp.duration || '';
+    document.getElementById('compInpScriptLen').value = an.scriptLength || '';
+    document.getElementById('compInpMusicMin').value = an.musicMin || '';
+    document.getElementById('compInpMusicPerc').value = an.musicPerc || '';
+    document.getElementById('compInpMusicChanges').value = an.musicChanges || '';
+    document.getElementById('compInpAvgMusic').value = an.avgMusic || '';
+    document.getElementById('compInpHardCuts').value = an.hardCuts || 'No';
+    document.getElementById('compInpStill').value = an.stillImages || '';
+    document.getElementById('compInpEdited').value = an.editedImages || '';
+    
+    document.getElementById('compColorMusic').value = an.colorMusic || '';
+    document.getElementById('compColorImg').value = an.colorImg || '';
+    document.getElementById('compColorVid').value = an.colorVid || '';
+    document.getElementById('compColorFX').value = an.colorFX || '';
+    document.getElementById('compColorSFX').value = an.colorSFX || '';
+    
+    window.renderCompImages(an.images || []);
+
+    document.getElementById('compDashboardModal').classList.remove('hidden');
+    document.getElementById('compDashboardModal').classList.add('flex');
+};
+
+window.renderCompImages = (images) => {
+    const grid = document.getElementById('compImagesGrid');
+    grid.innerHTML = '';
+    if(images.length === 0) { grid.innerHTML = '<div class="text-xs text-gray-500 py-2">Nessuno screen aggiunto.</div>'; return; }
+    images.forEach((img, idx) => {
+        const div = document.createElement('div');
+        div.className = 'w-32 h-20 shrink-0 rounded-lg overflow-hidden border border-[#444] relative group';
+        div.innerHTML = `
+            <img src="${img}" class="w-full h-full object-cover">
+            <button class="absolute top-1 right-1 bg-red-600 hover:bg-red-500 text-white w-5 h-5 flex items-center justify-center rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">✖</button>
+        `;
+        div.querySelector('button').onclick = async () => {
+            const comp = state.competitorsAnalysis.find(c => c.id === state.currentCompId);
+            if(comp) { comp.analysis.images.splice(idx, 1); window.renderCompImages(comp.analysis.images); await autoSaveToCloud(); }
+        };
+        grid.appendChild(div);
+    });
+};
