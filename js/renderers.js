@@ -197,10 +197,11 @@ export function getFilteredIdeas() {
 export function renderVideos(videosToRender) {
     const grid = document.getElementById('videoGrid'); 
     const noRes = document.getElementById('noResults');
+    if (!grid) return;
     grid.innerHTML = '';
     
-    if (videosToRender.length === 0) { noRes.classList.remove('hidden'); grid.classList.add('hidden'); return; }
-    noRes.classList.add('hidden'); grid.classList.remove('hidden');
+    if (!videosToRender || videosToRender.length === 0) { if(noRes) noRes.classList.remove('hidden'); grid.classList.add('hidden'); return; }
+    if(noRes) noRes.classList.add('hidden'); grid.classList.remove('hidden');
 
     videosToRender.forEach(video => {
         const ch = state.channels.find(c => c.id === video.channelId);
@@ -281,6 +282,7 @@ export async function checkAllChannelFolders() {
 
 export function renderChannelList() {
     const channelListEl = document.getElementById('channelList');
+    if (!channelListEl) return;
     channelListEl.innerHTML = ''; 
     document.getElementById('inputChannel').innerHTML = '<option value="">— Nessun canale —</option>';
     

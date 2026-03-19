@@ -80,7 +80,8 @@ export function switchView(view) {
         const el = document.getElementById(id);
         if (el) el.classList.remove('active');
     });
-    document.getElementById('navEarnings').classList.remove('bg-green-900/40');
+    const navEarn = document.getElementById('navEarnings');
+    if (navEarn) navEarn.classList.remove('bg-green-900/40');
     ['viewIdeeWrapper', 'viewInspirationsWrapper', 'viewStrumentiWrapper', 'viewFormazioneWrapper', 'viewEditorsHubWrapper', 'viewScriptWrapper', 'viewStatsWrapper', 'viewDatabaseWrapper', 'viewEarningsWrapper', 'viewBrainstormingWrapper', 'viewCompetitorsWrapper'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('hidden');
@@ -93,87 +94,91 @@ export function switchView(view) {
     const mainActionBtn = document.getElementById('mainActionBtn');
     const mainActionText = document.getElementById('mainActionText');
 
+    const safeSetText = (el, text) => { if(el) el.textContent = text; };
+    const safeShowBtn = (text, action) => { if(mainActionBtn) { mainActionBtn.classList.remove('hidden'); mainActionBtn.onclick = action; } if(mainActionText) mainActionText.textContent = text; };
+    const safeHideBtn = () => { if(mainActionBtn) mainActionBtn.classList.add('hidden'); };
+    const safeActive = (navId, viewId) => { 
+        const n = document.getElementById(navId); if(n) n.classList.add('active'); 
+        const v = document.getElementById(viewId); if(v) v.classList.remove('hidden'); 
+    };
+
     if (view === 'idee') {
-        document.getElementById('navIdee').classList.add('active'); document.getElementById('viewIdeeWrapper').classList.remove('hidden');
-        pageTitle.textContent = 'Le tue Idee Video'; pageSubtitle.textContent = 'Sviluppa e traccia i tuoi prossimi contenuti.';
-        mainActionBtn.classList.remove('hidden'); mainActionText.textContent = 'Crea Idea';
-        mainActionBtn.onclick = () => { document.getElementById('addModal').classList.remove('hidden'); document.getElementById('addModal').classList.add('flex'); };
+        safeActive('navIdee', 'viewIdeeWrapper');
+        safeSetText(pageTitle, 'Le tue Idee Video'); safeSetText(pageSubtitle, 'Sviluppa e traccia i tuoi prossimi contenuti.');
+        safeShowBtn('Crea Idea', () => { document.getElementById('addModal')?.classList.remove('hidden'); document.getElementById('addModal')?.classList.add('flex'); });
         renderVideos(getFilteredIdeas());
     } else if (view === 'inspirations') {
-        document.getElementById('navInspirations').classList.add('active'); document.getElementById('viewInspirationsWrapper').classList.remove('hidden');
-        pageTitle.textContent = 'Inspirations'; pageSubtitle.textContent = 'Studia e analizza i canali dei competitor per prendere spunto.';
+        safeActive('navInspirations', 'viewInspirationsWrapper');
+        safeSetText(pageTitle, 'Inspirations'); safeSetText(pageSubtitle, 'Studia e analizza i canali dei competitor per prendere spunto.');
         window.switchInspTab(state.currentInspTab);
     } else if (view === 'strumenti') {
-        document.getElementById('navStrumenti').classList.add('active'); document.getElementById('viewStrumentiWrapper').classList.remove('hidden');
-        pageTitle.textContent = 'Strumenti & Risorse'; pageSubtitle.textContent = 'Tutti i tool utili al tuo flusso di lavoro.';
-        mainActionBtn.classList.remove('hidden'); mainActionText.textContent = 'Aggiungi Strumento';
-        mainActionBtn.onclick = () => { 
-            document.getElementById('toolModalTitle').textContent = 'Aggiungi Strumento/Risorsa'; document.getElementById('inputToolId').value = '';
-            document.getElementById('toolForm').reset(); document.getElementById('toolPreview').classList.add('hidden'); document.getElementById('toolDropHint').classList.remove('hidden');
-            document.getElementById('btnSubmitTool').textContent = 'Salva Strumento';
-            document.getElementById('addToolModal').classList.remove('hidden'); document.getElementById('addToolModal').classList.add('flex'); 
-        };
+        safeActive('navStrumenti', 'viewStrumentiWrapper');
+        safeSetText(pageTitle, 'Strumenti & Risorse'); safeSetText(pageSubtitle, 'Tutti i tool utili al tuo flusso di lavoro.');
+        safeShowBtn('Aggiungi Strumento', () => { 
+            const t = document.getElementById('toolModalTitle'); if(t) t.textContent = 'Aggiungi Strumento/Risorsa'; 
+            const id = document.getElementById('inputToolId'); if(id) id.value = '';
+            document.getElementById('toolForm')?.reset(); document.getElementById('toolPreview')?.classList.add('hidden'); document.getElementById('toolDropHint')?.classList.remove('hidden');
+            const b = document.getElementById('btnSubmitTool'); if(b) b.textContent = 'Salva Strumento';
+            document.getElementById('addToolModal')?.classList.remove('hidden'); document.getElementById('addToolModal')?.classList.add('flex'); 
+        });
         renderTools();
     } else if (view === 'formazione') {
-        document.getElementById('navFormazione').classList.add('active'); document.getElementById('viewFormazioneWrapper').classList.remove('hidden');
-        pageTitle.textContent = 'Video Formazione'; pageSubtitle.textContent = 'Lezioni e tutorial da studiare.';
-        mainActionBtn.classList.remove('hidden'); mainActionText.textContent = 'Aggiungi Risorsa';
-        mainActionBtn.onclick = () => { 
-            document.getElementById('trainingModalTitle').textContent = 'Aggiungi Video Formazione'; document.getElementById('inputTrainingId').value = '';
-            document.getElementById('trainingForm').reset(); document.querySelector('input[name="trainingType"][value="youtube"]').checked = true; window.toggleTrainingType();
-            document.getElementById('btnSubmitTraining').textContent = 'Salva Risorsa';
-            document.getElementById('addTrainingModal').classList.remove('hidden'); document.getElementById('addTrainingModal').classList.add('flex'); 
-        };
+        safeActive('navFormazione', 'viewFormazioneWrapper');
+        safeSetText(pageTitle, 'Video Formazione'); safeSetText(pageSubtitle, 'Lezioni e tutorial da studiare.');
+        safeShowBtn('Aggiungi Risorsa', () => { 
+            const t = document.getElementById('trainingModalTitle'); if(t) t.textContent = 'Aggiungi Video Formazione'; 
+            const id = document.getElementById('inputTrainingId'); if(id) id.value = '';
+            document.getElementById('trainingForm')?.reset(); 
+            const r = document.querySelector('input[name="trainingType"][value="youtube"]'); if(r) r.checked = true; 
+            window.toggleTrainingType();
+            const b = document.getElementById('btnSubmitTraining'); if(b) b.textContent = 'Salva Risorsa';
+            document.getElementById('addTrainingModal')?.classList.remove('hidden'); document.getElementById('addTrainingModal')?.classList.add('flex'); 
+        });
         renderTraining();
     } else if (view === 'editorshub') {
-        document.getElementById('navEditorsHub').classList.add('active'); document.getElementById('viewEditorsHubWrapper').classList.remove('hidden');
-        pageTitle.textContent = 'Editors Hub'; pageSubtitle.textContent = 'Libreria centralizzata per Effetti Sonori, Musica e Immagini.';
-        mainActionBtn.classList.remove('hidden'); mainActionText.textContent = 'Aggiungi File';
-        mainActionBtn.onclick = () => { 
-            document.getElementById('addEHModal').classList.remove('hidden'); document.getElementById('addEHModal').classList.add('flex'); 
-            document.getElementById('ehIconPreview').classList.add('hidden'); document.getElementById('ehIconPreview').src = ''; document.getElementById('ehDropHint').classList.remove('hidden');
-        };
+        safeActive('navEditorsHub', 'viewEditorsHubWrapper');
+        safeSetText(pageTitle, 'Editors Hub'); safeSetText(pageSubtitle, 'Libreria centralizzata per Effetti Sonori, Musica e Immagini.');
+        safeShowBtn('Aggiungi File', () => { 
+            document.getElementById('addEHModal')?.classList.remove('hidden'); document.getElementById('addEHModal')?.classList.add('flex'); 
+            document.getElementById('ehIconPreview')?.classList.add('hidden'); const ic = document.getElementById('ehIconPreview'); if(ic) ic.src = ''; 
+            document.getElementById('ehDropHint')?.classList.remove('hidden');
+        });
         renderEditorsHub();
     } else if (view === 'script') {
-        document.getElementById('navScript').classList.add('active'); document.getElementById('viewScriptWrapper').classList.remove('hidden');
-        pageTitle.textContent = 'Analisi Script Video'; pageSubtitle.textContent = 'Scrivi o incolla il tuo script per ottenere stime sui tempi.';
-        mainActionBtn.classList.remove('hidden'); mainActionText.textContent = 'Svuota Testo';
-        mainActionBtn.onclick = () => { const t = document.getElementById('scriptInput'); t.value = ''; t.dispatchEvent(new Event('input')); };
+        safeActive('navScript', 'viewScriptWrapper');
+        safeSetText(pageTitle, 'Analisi Script Video'); safeSetText(pageSubtitle, 'Scrivi o incolla il tuo script per ottenere stime sui tempi.');
+        safeShowBtn('Svuota Testo', () => { const t = document.getElementById('scriptInput'); if(t) { t.value = ''; t.dispatchEvent(new Event('input')); } });
     } else if (view === 'stats') {
-        document.getElementById('navStats').classList.add('active'); document.getElementById('viewStatsWrapper').classList.remove('hidden');
-        pageTitle.textContent = 'Dashboard & Statistiche'; pageSubtitle.textContent = 'Analisi delle performance e andamento del canale.';
-        mainActionBtn.classList.remove('hidden'); mainActionText.textContent = 'Crea Idea'; 
-        mainActionBtn.onclick = () => { document.getElementById('addModal').classList.remove('hidden'); document.getElementById('addModal').classList.add('flex'); };
+        safeActive('navStats', 'viewStatsWrapper');
+        safeSetText(pageTitle, 'Dashboard & Statistiche'); safeSetText(pageSubtitle, 'Analisi delle performance e andamento del canale.');
+        safeShowBtn('Crea Idea', () => { document.getElementById('addModal')?.classList.remove('hidden'); document.getElementById('addModal')?.classList.add('flex'); });
         renderStats();
     } else if (view === 'database') {
-        document.getElementById('navDatabase').classList.add('active'); document.getElementById('viewDatabaseWrapper').classList.remove('hidden');
-        pageTitle.textContent = 'Analisi Database'; pageSubtitle.textContent = 'Monitora e pulisci il database.';
-        mainActionBtn.classList.remove('hidden'); mainActionText.textContent = 'Pulisci Sistema'; 
-        mainActionBtn.onclick = () => { alert("Consiglio: elimina manualmente gli elementi pesanti listati qui sotto."); };
+        safeActive('navDatabase', 'viewDatabaseWrapper');
+        safeSetText(pageTitle, 'Analisi Database'); safeSetText(pageSubtitle, 'Monitora e pulisci il database.');
+        safeShowBtn('Pulisci Sistema', () => { alert("Consiglio: elimina manualmente gli elementi pesanti listati qui sotto."); });
         renderDatabaseStats();
     } else if (view === 'earnings') {
-        document.getElementById('navEarnings').classList.add('bg-green-900/40'); document.getElementById('viewEarningsWrapper').classList.remove('hidden');
-        pageTitle.textContent = 'Earnings & Finance'; pageSubtitle.textContent = 'Dati finanziari privati del network.';
-        mainActionBtn.classList.add('hidden');
+        if(navEarn) navEarn.classList.add('bg-green-900/40'); 
+        const vE = document.getElementById('viewEarningsWrapper'); if(vE) vE.classList.remove('hidden');
+        safeSetText(pageTitle, 'Earnings & Finance'); safeSetText(pageSubtitle, 'Dati finanziari privati del network.');
+        safeHideBtn();
         
         if (!sessionStorage.getItem('tmslab_wip_earnings_seen')) {
-            document.getElementById('wipEarningsModal').classList.remove('hidden'); document.getElementById('wipEarningsModal').classList.add('flex');
+            document.getElementById('wipEarningsModal')?.classList.remove('hidden'); document.getElementById('wipEarningsModal')?.classList.add('flex');
             sessionStorage.setItem('tmslab_wip_earnings_seen', 'true');
         }
         renderFinanceDashboard();
     } else if (view === 'brainstorming') {
-        const nav = document.getElementById('navBrainstorming'); if (nav) nav.classList.add('active');
-        const viewEl = document.getElementById('viewBrainstormingWrapper'); if (viewEl) viewEl.classList.remove('hidden');
-        pageTitle.textContent = 'Brainstorming & Idee'; pageSubtitle.textContent = 'Prendi spunto dai format virali e butta giù le tue intuizioni.';
-        mainActionBtn.classList.add('hidden');
+        safeActive('navBrainstorming', 'viewBrainstormingWrapper');
+        safeSetText(pageTitle, 'Brainstorming & Idee'); safeSetText(pageSubtitle, 'Prendi spunto dai format virali e butta giù le tue intuizioni.');
+        safeHideBtn();
         const bsInput = document.getElementById('brainstormingInput');
         if (bsInput) bsInput.value = state.brainstormingText || '';
     } else if (view === 'competitors') {
-        const nav = document.getElementById('navCompetitors'); if (nav) nav.classList.add('active');
-        const viewEl = document.getElementById('viewCompetitorsWrapper'); if (viewEl) viewEl.classList.remove('hidden');
-        pageTitle.textContent = 'Competitors Analysis'; pageSubtitle.textContent = 'Analisi dettagliata della struttura e montaggio dei video per prendere spunto.';
-        mainActionBtn.classList.remove('hidden'); mainActionText.textContent = 'Aggiungi Video';
-        mainActionBtn.onclick = () => { document.getElementById('addCompetitorModal').classList.remove('hidden'); document.getElementById('addCompetitorModal').classList.add('flex'); };
+        safeActive('navCompetitors', 'viewCompetitorsWrapper');
+        safeSetText(pageTitle, 'Competitors Analysis'); safeSetText(pageSubtitle, 'Analisi dettagliata della struttura e montaggio dei video per prendere spunto.');
+        safeShowBtn('Aggiungi Video', () => { document.getElementById('addCompetitorModal')?.classList.remove('hidden'); document.getElementById('addCompetitorModal')?.classList.add('flex'); });
         if(window.renderCompetitors) window.renderCompetitors();
     }
 }

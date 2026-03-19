@@ -24,20 +24,20 @@ window.switchEHTab = switchEHTab;
 
 window.setLabContext = (labId) => {
     state.activeLab = labId;
-    const dbRef = state.db[labId];
+    const dbRef = state.db[labId] || {};
     
-    state.videoIdeas = dbRef.videoIdeas;
-    state.channels = dbRef.channels;
-    state.toolsData = dbRef.toolsData;
-    state.trainingData = dbRef.trainingData;
-    state.editorsHubData = dbRef.editorsHubData;
-    state.inspChannels = dbRef.inspChannels;
-    state.tmsPicks = dbRef.tmsPicks;
-    state.finance = dbRef.finance;
+    state.videoIdeas = dbRef.videoIdeas || [];
+    state.channels = dbRef.channels || [];
+    state.toolsData = dbRef.toolsData || [];
+    state.trainingData = dbRef.trainingData || [];
+    state.editorsHubData = dbRef.editorsHubData || [];
+    state.inspChannels = dbRef.inspChannels || [];
+    state.tmsPicks = dbRef.tmsPicks || [];
+    state.finance = dbRef.finance || { revenues: [], editorCosts: [], subscriptions: [] };
     if(!state.finance.revenues) state.finance.revenues = [];
     if(!state.finance.editorCosts) state.finance.editorCosts = [];
     if(!state.finance.subscriptions) state.finance.subscriptions = [];
-    state.devTodoList = dbRef.devTodoList;
+    state.devTodoList = dbRef.devTodoList || [];
     state.brainstormingText = dbRef.brainstormingText || "";
     state.competitorsAnalysis = dbRef.competitorsAnalysis || [];
 
