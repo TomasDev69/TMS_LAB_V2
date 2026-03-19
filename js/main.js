@@ -302,13 +302,13 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <span class="font-bold text-white group-hover:text-orange-400 transition-colors">... made simple</span>
                                 <span class="block text-[11px] text-gray-500 mt-1 italic">Es: Machine learning made simple</span>
                             </li>
-                            <li class="p-3 bg-[#222] rounded-xl border border-[#444] hover:border-teal-500 hover:bg-[#2a2a2a] transition-all cursor-pointer group" onclick="document.getElementById('brainstormingInput').value += '\\n\\n- ... explained like you\\'re 5 '">
-                                <span class="font-bold text-white group-hover:text-teal-400 transition-colors">... explained like you're 5</span>
-                                <span class="block text-[11px] text-gray-500 mt-1 italic">Es: The stock market explained like you're 5</span>
+                            <li class="p-3 bg-[#222] rounded-xl border border-[#444] hover:border-teal-500 hover:bg-[#2a2a2a] transition-all cursor-pointer group" onclick="document.getElementById('brainstormingInput').value += '\\n\\n- ... explained like you are 5 '">
+                                <span class="font-bold text-white group-hover:text-teal-400 transition-colors">... explained like you are 5</span>
+                                <span class="block text-[11px] text-gray-500 mt-1 italic">Es: The stock market explained like you are 5</span>
                             </li>
-                            <li class="p-3 bg-[#222] rounded-xl border border-[#444] hover:border-pink-500 hover:bg-[#2a2a2a] transition-all cursor-pointer group" onclick="document.getElementById('brainstormingInput').value += '\\n\\n- What it\\'s like to be... '">
-                                <span class="font-bold text-white group-hover:text-pink-400 transition-colors">What it's like to be...</span>
-                                <span class="block text-[11px] text-gray-500 mt-1 italic">Es: What it's like to be an astronaut</span>
+                            <li class="p-3 bg-[#222] rounded-xl border border-[#444] hover:border-pink-500 hover:bg-[#2a2a2a] transition-all cursor-pointer group" onclick="document.getElementById('brainstormingInput').value += '\\n\\n- What it is like to be... '">
+                                <span class="font-bold text-white group-hover:text-pink-400 transition-colors">What it is like to be...</span>
+                                <span class="block text-[11px] text-gray-500 mt-1 italic">Es: What it is like to be an astronaut</span>
                             </li>
                             <li class="p-3 bg-[#222] rounded-xl border border-[#444] hover:border-indigo-500 hover:bg-[#2a2a2a] transition-all cursor-pointer group" onclick="document.getElementById('brainstormingInput').value += '\\n\\n- Your life as a... '">
                                 <span class="font-bold text-white group-hover:text-indigo-400 transition-colors">Your life as a...</span>
@@ -587,7 +587,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const file = e.target.files[0]; if(!file) return;
                 const comp = state.competitorsAnalysis.find(c => c.id === state.currentCompId); if(!comp) return;
                 const compressed = await compressImage(file, 800, 0.8, 'image/webp');
-                if(compressed.sizeKB > 1500) { alert('L\\'immagine è troppo pesante.'); return; }
+                if(compressed.sizeKB > 1500) { alert("L'immagine è troppo pesante."); return; }
                 if(!comp.analysis.images) comp.analysis.images = [];
                 comp.analysis.images.push(compressed.dataUrl);
                 window.renderCompImages(comp.analysis.images); await autoSaveToCloud(); e.target.value = '';
@@ -874,7 +874,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('ideaForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const submitBtn = e.target.querySelector('button[type=submit]');
-        if (!state.files.addThumb) { alert('Carica un\'immagine.'); return; }
+        if (!state.files.addThumb) { alert("Carica un'immagine."); return; }
         submitBtn.disabled = true;
 
         const title = document.getElementById('inputTitle').value.trim();
@@ -1094,7 +1094,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const description = document.getElementById('inputToolDesc').value.trim();
         const link = document.getElementById('inputToolLink').value.trim();
 
-        if (!id && !state.files.tool) { alert('Carica un logo o un\'immagine per lo strumento.'); return; }
+        if (!id && !state.files.tool) { alert("Carica un logo o un'immagine per lo strumento."); return; }
         
         submitBtn.disabled = true; submitBtn.textContent = '🔄 Salvataggio...';
         let finalImageUrl = "";
