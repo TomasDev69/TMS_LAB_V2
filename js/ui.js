@@ -27,51 +27,47 @@ export function updateStatus(text, type) {
 }
 
 export function closeModal(modalId, formId) {
-    document.getElementById(modalId).classList.add('hidden');
-    document.getElementById(modalId).classList.remove('flex');
-    if(formId) document.getElementById(formId).reset();
-    if(modalId === 'addModal') { document.getElementById('thumbPreview').classList.add('hidden'); document.getElementById('thumbDropHint').classList.remove('hidden'); }
-    if(modalId === 'addToolModal') { document.getElementById('toolPreview').classList.add('hidden'); document.getElementById('toolDropHint').classList.remove('hidden'); }
-    if(modalId === 'addTrainingModal') { document.getElementById('trainingPreview').classList.add('hidden'); document.getElementById('trainingDropHint').classList.remove('hidden'); }
-    if(modalId === 'editChannelModal') { document.getElementById('editChannelAvatarPreview').innerHTML = '📺'; document.getElementById('editChannelAvatarName').classList.add('hidden'); }
-    if(modalId === 'addEHModal') { document.getElementById('ehFileName').classList.add('hidden'); document.getElementById('ehDropHint').classList.remove('hidden'); document.getElementById('ehIconPreview').classList.add('hidden'); state.files.eh = null; }
-    if(modalId === 'editIdeaModal') { document.getElementById('editIdeaThumbPreview').src = ''; document.getElementById('editIdeaThumbFileName').classList.add('hidden'); state.files.editIdeaThumb = null; }
-    if(modalId === 'devTodoModal') { document.getElementById('devTodoModal').classList.add('hidden'); document.getElementById('devTodoModal').classList.remove('flex'); }
-    if(modalId === 'pickDashboardModal') { document.getElementById('pickDashboardModal').classList.add('hidden'); document.getElementById('pickDashboardModal').classList.remove('flex'); }
-    if(modalId === 'wipEarningsModal') { document.getElementById('wipEarningsModal').classList.add('hidden'); document.getElementById('wipEarningsModal').classList.remove('flex'); }
-    if(modalId === 'addRevenueModal') { document.getElementById('addRevenueModal').classList.add('hidden'); document.getElementById('addRevenueModal').classList.remove('flex'); }
-    if(modalId === 'addSubModal') { document.getElementById('addSubModal').classList.add('hidden'); document.getElementById('addSubModal').classList.remove('flex'); }
-    if(modalId === 'addEditorCostModal') { document.getElementById('addEditorCostModal').classList.add('hidden'); document.getElementById('addEditorCostModal').classList.remove('flex'); }
-    if(modalId === 'compDashboardModal') { document.getElementById('compDashboardModal').classList.add('hidden'); document.getElementById('compDashboardModal').classList.remove('flex'); }
+    const m = document.getElementById(modalId);
+    if(m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+    if(formId) { const f = document.getElementById(formId); if(f) f.reset(); }
+    
+    if(modalId === 'addModal') { document.getElementById('thumbPreview')?.classList.add('hidden'); document.getElementById('thumbDropHint')?.classList.remove('hidden'); }
+    if(modalId === 'addToolModal') { document.getElementById('toolPreview')?.classList.add('hidden'); document.getElementById('toolDropHint')?.classList.remove('hidden'); }
+    if(modalId === 'addTrainingModal') { document.getElementById('trainingPreview')?.classList.add('hidden'); document.getElementById('trainingDropHint')?.classList.remove('hidden'); }
+    if(modalId === 'editChannelModal') { const eCA = document.getElementById('editChannelAvatarPreview'); if(eCA) eCA.innerHTML = '📺'; document.getElementById('editChannelAvatarName')?.classList.add('hidden'); }
+    if(modalId === 'addEHModal') { document.getElementById('ehFileName')?.classList.add('hidden'); document.getElementById('ehDropHint')?.classList.remove('hidden'); document.getElementById('ehIconPreview')?.classList.add('hidden'); state.files.eh = null; }
+    if(modalId === 'editIdeaModal') { const eIT = document.getElementById('editIdeaThumbPreview'); if(eIT) eIT.src = ''; document.getElementById('editIdeaThumbFileName')?.classList.add('hidden'); state.files.editIdeaThumb = null; }
 }
 
 export function closePinModal() {
-    document.getElementById('pinModal').classList.add('hidden');
-    document.getElementById('pinModal').classList.remove('flex');
+    document.getElementById('pinModal')?.classList.add('hidden');
+    document.getElementById('pinModal')?.classList.remove('flex');
 }
 
 export function requirePin(actionMessage, callback) {
-    document.getElementById('pinActionMsg').textContent = actionMessage;
-    document.getElementById('pinInput').value = '';
-    document.getElementById('pinError').classList.add('hidden');
-    document.getElementById('pinModal').classList.remove('hidden');
-    document.getElementById('pinModal').classList.add('flex');
-    setTimeout(() => document.getElementById('pinInput').focus(), 100);
+    const msg = document.getElementById('pinActionMsg'); if(msg) msg.textContent = actionMessage;
+    const inp = document.getElementById('pinInput'); if(inp) inp.value = '';
+    const err = document.getElementById('pinError'); if(err) err.classList.add('hidden');
+    const mod = document.getElementById('pinModal'); if(mod) { mod.classList.remove('hidden'); mod.classList.add('flex'); }
+    setTimeout(() => { if(inp) inp.focus(); }, 100);
     
     const confirmBtn = document.getElementById('pinConfirmBtn');
-    const newBtn = confirmBtn.cloneNode(true);
-    confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
-    
-    const handleConfirm = () => {
-        if (document.getElementById('pinInput').value === '18456') {
-            closePinModal(); callback();
-        } else {
-            document.getElementById('pinError').classList.remove('hidden');
-            document.getElementById('pinInput').value = ''; document.getElementById('pinInput').focus();
-        }
-    };
-    newBtn.addEventListener('click', handleConfirm);
-    document.getElementById('pinInput').onkeydown = (e) => { if(e.key === 'Enter') handleConfirm(); };
+    if (confirmBtn) {
+        const newBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+        
+        const handleConfirm = () => {
+            const v = document.getElementById('pinInput')?.value;
+            if (v === '18456') {
+                closePinModal(); callback();
+            } else {
+                const e2 = document.getElementById('pinError'); if(e2) e2.classList.remove('hidden');
+                const i2 = document.getElementById('pinInput'); if(i2) { i2.value = ''; i2.focus(); }
+            }
+        };
+        newBtn.addEventListener('click', handleConfirm);
+        const pi = document.getElementById('pinInput'); if(pi) pi.onkeydown = (e) => { if(e.key === 'Enter') handleConfirm(); };
+    }
 }
 
 export function switchView(view) {

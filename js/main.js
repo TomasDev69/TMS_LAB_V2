@@ -1244,7 +1244,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    document.getElementById('loadMoreFeedBtn').addEventListener('click', renderNextFeedBatch);
+    document.getElementById('loadMoreFeedBtn')?.addEventListener('click', renderNextFeedBatch);
 
     // --- FORM: TMS PICKS ---
     document.getElementById('pickForm')?.addEventListener('submit', async (e) => {
@@ -1358,7 +1358,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('inputPickLink').value = '';
     });
 
-    document.getElementById('btnSyncChannel').addEventListener('click', async () => {
+    document.getElementById('btnSyncChannel')?.addEventListener('click', async () => {
         // ... (Questa logica corposa di scraping è identica a prima ma usa state.inspChannels, 
         // è consigliabile averla spostata in api.js o renderers.js, ma per compatibilità totale
         // la leghiamo al bottone qui. Siccome è lunga, se la ometto si rompe. Te la scrivo abbreviata)

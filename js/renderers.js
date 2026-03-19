@@ -33,20 +33,23 @@ export function renderFinanceDashboard() {
     const totalCosts = totalEditorCosts + totalSubCosts;
     const netProfit = totalRev - totalCosts;
 
-    document.getElementById('finTotalRevenue').textContent = `€ ${totalRev.toFixed(2)}`;
-    document.getElementById('finTotalCosts').textContent = `€ ${totalCosts.toFixed(2)}`;
-    document.getElementById('finNetProfit').textContent = `€ ${netProfit.toFixed(2)}`;
-    document.getElementById('finMonthlyBurn').textContent = `Burn Rate: € ${monthlyBurn.toFixed(2)}/mese`;
+    const el1 = document.getElementById('finTotalRevenue'); if(el1) el1.textContent = `€ ${totalRev.toFixed(2)}`;
+    const el2 = document.getElementById('finTotalCosts'); if(el2) el2.textContent = `€ ${totalCosts.toFixed(2)}`;
+    const el3 = document.getElementById('finNetProfit'); if(el3) el3.textContent = `€ ${netProfit.toFixed(2)}`;
+    const el4 = document.getElementById('finMonthlyBurn'); if(el4) el4.textContent = `Burn Rate: € ${monthlyBurn.toFixed(2)}/mese`;
 
     const profitBg = document.getElementById('finProfitBg');
-    if (netProfit >= 0) { profitBg.className = 'absolute inset-0 opacity-10 pointer-events-none bg-green-500'; } 
-    else { profitBg.className = 'absolute inset-0 opacity-10 pointer-events-none bg-red-500'; }
+    if (profitBg) {
+        if (netProfit >= 0) { profitBg.className = 'absolute inset-0 opacity-10 pointer-events-none bg-green-500'; } 
+        else { profitBg.className = 'absolute inset-0 opacity-10 pointer-events-none bg-red-500'; }
+    }
 
     // 2. Rendering Liste
     const subList = document.getElementById('finSubList');
-    subList.innerHTML = '';
-    if(state.finance.subscriptions.length === 0) subList.innerHTML = '<li class="p-6 text-center text-gray-500 text-sm">Nessun abbonamento registrato.</li>';
-    state.finance.subscriptions.forEach(sub => {
+    if (subList) {
+        subList.innerHTML = '';
+        if(state.finance.subscriptions.length === 0) subList.innerHTML = '<li class="p-6 text-center text-gray-500 text-sm">Nessun abbonamento registrato.</li>';
+        state.finance.subscriptions.forEach(sub => {
         const li = document.createElement('li'); li.className = 'p-4 hover:bg-[#272727] flex justify-between items-center transition-colors group relative';
         const dateStr = new Date(sub.nextRenewal).toLocaleDateString('it-IT');
         const isNear = (new Date(sub.nextRenewal) - new Date()) < (7 * 86400000); // Meno di 7 giorni
@@ -54,21 +57,25 @@ export function renderFinanceDashboard() {
         li.querySelector('.del-sub-btn').onclick = () => { requirePin(`Eliminare l'abbonamento ${sub.name}?`, async () => { state.finance.subscriptions = state.finance.subscriptions.filter(s => s.id !== sub.id); renderFinanceDashboard(); await autoSaveToCloud(); }); };
         subList.appendChild(li);
     });
+    }
 
     const revList = document.getElementById('finRevenueList');
-    revList.innerHTML = '';
-    if(state.finance.revenues.length === 0) revList.innerHTML = '<li class="p-6 text-center text-gray-500 text-sm">Nessuna entrata registrata.</li>';
-    [...state.finance.revenues].sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(rev => {
+    if (revList) {
+        revList.innerHTML = '';
+        if(state.finance.revenues.length === 0) revList.innerHTML = '<li class="p-6 text-center text-gray-500 text-sm">Nessuna entrata registrata.</li>';
+        [...state.finance.revenues].sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(rev => {
         const li = document.createElement('li'); li.className = 'p-4 hover:bg-[#272727] flex justify-between items-center transition-colors group relative';
         li.innerHTML = `<div class="flex flex-col pr-4"><span class="font-bold text-gray-200 text-sm line-clamp-1">${rev.source}</span><span class="text-xs text-gray-500 mt-1">${new Date(rev.date).toLocaleDateString('it-IT')}</span></div><div class="flex items-center gap-4 shrink-0"><div class="font-bold text-green-400">+ € ${parseFloat(rev.amount).toFixed(2)}</div><button class="del-rev-btn opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-400 transition-opacity">🗑️</button></div>`;
         li.querySelector('.del-rev-btn').onclick = () => { requirePin(`Eliminare questa entrata?`, async () => { state.finance.revenues = state.finance.revenues.filter(r => r.id !== rev.id); renderFinanceDashboard(); await autoSaveToCloud(); }); };
         revList.appendChild(li);
     });
+    }
 
     const edList = document.getElementById('finEditorCostList');
-    edList.innerHTML = '';
-    if(state.finance.editorCosts.length === 0) edList.innerHTML = '<li class="p-6 text-center text-gray-500 text-sm">Nessun pagamento registrato.</li>';
-    [...state.finance.editorCosts].sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(cost => {
+    if (edList) {
+        edList.innerHTML = '';
+        if(state.finance.editorCosts.length === 0) edList.innerHTML = '<li class="p-6 text-center text-gray-500 text-sm">Nessun pagamento registrato.</li>';
+        [...state.finance.editorCosts].sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(cost => {
         const li = document.createElement('li'); li.className = 'p-4 hover:bg-[#272727] flex justify-between items-center transition-colors group relative';
         const idea = state.videoIdeas.find(v => v.id === cost.ideaId);
         const title = idea ? idea.title : 'Idea Eliminata';
@@ -76,6 +83,7 @@ export function renderFinanceDashboard() {
         li.querySelector('.del-ed-btn').onclick = () => { requirePin(`Annullare il pagamento di ${cost.editor}?`, async () => { state.finance.editorCosts = state.finance.editorCosts.filter(c => c.id !== cost.id); renderFinanceDashboard(); await autoSaveToCloud(); }); };
         edList.appendChild(li);
     });
+    }
 
     // 3. Rendering Grafico Cashflow
     const ctx = document.getElementById('financeChart');
@@ -284,10 +292,11 @@ export function renderChannelList() {
     const channelListEl = document.getElementById('channelList');
     if (!channelListEl) return;
     channelListEl.innerHTML = ''; 
-    document.getElementById('inputChannel').innerHTML = '<option value="">— Nessun canale —</option>';
+    const inpCh = document.getElementById('inputChannel');
+    if (inpCh) inpCh.innerHTML = '<option value="">— Nessun canale —</option>';
     
     state.channels.forEach(ch => {
-        document.getElementById('inputChannel').innerHTML += `<option value="${ch.id}">${ch.name}</option>`;
+        if (inpCh) inpCh.innerHTML += `<option value="${ch.id}">${ch.name}</option>`;
         const count = state.videoIdeas.filter(v => v.channelId === ch.id).length;
         
         let avatarHTML = ch.profilePicUrl 
@@ -637,56 +646,63 @@ export function renderStats() {
         if (stat === 'completed') c++;
     });
 
-    document.getElementById('statTotalIdeas').textContent = total;
-    document.getElementById('statNewIdeas').textContent = n;
-    document.getElementById('statProgressIdeas').textContent = p;
-    document.getElementById('statCompletedIdeas').textContent = c;
+    const tEl = document.getElementById('statTotalIdeas'); if(tEl) tEl.textContent = total;
+    const nEl = document.getElementById('statNewIdeas'); if(nEl) nEl.textContent = n;
+    const pEl = document.getElementById('statProgressIdeas'); if(pEl) pEl.textContent = p;
+    const cEl = document.getElementById('statCompletedIdeas'); if(cEl) cEl.textContent = c;
 
     const insightsList = document.getElementById('statsInsightsList');
-    insightsList.innerHTML = '';
-    
-    if (n > 0) insightsList.innerHTML += `<li><span class="text-blue-400 font-bold">💡 Nuove idee:</span> Hai ${n} idee in fase di valutazione.</li>`;
-    if (p > 0) insightsList.innerHTML += `<li><span class="text-purple-400 font-bold">🛠️ In lavorazione:</span> Il team sta attualmente lavorando su ${p} video.</li>`;
-    if (c > 0) insightsList.innerHTML += `<li><span class="text-green-400 font-bold">🚀 Ottimo lavoro:</span> Avete completato ${c} video finora.</li>`;
-    if (state.channels.length === 0) insightsList.innerHTML += `<li><span class="text-yellow-400 font-bold">⚠️ Nessun canale:</span> Non hai ancora aggiunto canali alla dashboard.</li>`;
-    
-    if (insightsList.innerHTML === '') insightsList.innerHTML = `<li><span class="text-gray-400">Inizia ad aggiungere idee per generare consigli.</span></li>`;
+    if(insightsList) {
+        insightsList.innerHTML = '';
+        
+        if (n > 0) insightsList.innerHTML += `<li><span class="text-blue-400 font-bold">💡 Nuove idee:</span> Hai ${n} idee in fase di valutazione.</li>`;
+        if (p > 0) insightsList.innerHTML += `<li><span class="text-purple-400 font-bold">🛠️ In lavorazione:</span> Il team sta attualmente lavorando su ${p} video.</li>`;
+        if (c > 0) insightsList.innerHTML += `<li><span class="text-green-400 font-bold">🚀 Ottimo lavoro:</span> Avete completato ${c} video finora.</li>`;
+        if (state.channels.length === 0) insightsList.innerHTML += `<li><span class="text-yellow-400 font-bold">⚠️ Nessun canale:</span> Non hai ancora aggiunto canali alla dashboard.</li>`;
+        
+        if (insightsList.innerHTML === '') insightsList.innerHTML = `<li><span class="text-gray-400">Inizia ad aggiungere idee per generare consigli.</span></li>`;
+    }
 
     const teamBody = document.getElementById('teamPerformanceBody');
-    teamBody.innerHTML = '';
-    let teamData = state.TEAM_MEMBERS.map(member => {
-        const assigned = state.videoIdeas.filter(v => {
-            if (!v.assignee) return false;
-            return v.assignee.split(',').map(s=>s.trim()).includes(member);
+    if(teamBody) {
+        teamBody.innerHTML = '';
+        let teamData = state.TEAM_MEMBERS.map(member => {
+            const assigned = state.videoIdeas.filter(v => {
+                if (!v.assignee) return false;
+                return v.assignee.split(',').map(s=>s.trim()).includes(member);
+            });
+            const completed = assigned.filter(v => getIdeaStatus(v) === 'completed').length;
+            return { name: member, completed, inProgress: assigned.length - completed, total: assigned.length };
         });
-        const completed = assigned.filter(v => getIdeaStatus(v) === 'completed').length;
-        return { name: member, completed, inProgress: assigned.length - completed, total: assigned.length };
-    });
 
-    const sortBy = document.getElementById('teamSortSelect').value;
-    teamData.sort((a, b) => {
-        if (sortBy === 'completed') return b.completed - a.completed;
-        if (sortBy === 'inProgress') return b.inProgress - a.inProgress;
-        return b.total - a.total;
-    });
+        const tSort = document.getElementById('teamSortSelect');
+        const sortBy = tSort ? tSort.value : 'total';
+        teamData.sort((a, b) => {
+            if (sortBy === 'completed') return b.completed - a.completed;
+            if (sortBy === 'inProgress') return b.inProgress - a.inProgress;
+            return b.total - a.total;
+        });
 
-    teamData.forEach(member => {
-        teamBody.innerHTML += `<tr><td class="px-4 py-3 font-semibold text-white">${member.name}</td><td class="px-4 py-3"><span class="bg-purple-900/30 text-purple-400 px-2 py-0.5 rounded text-xs border border-purple-500/30">${member.inProgress} in corso</span></td><td class="px-4 py-3"><span class="bg-green-900/30 text-green-400 px-2 py-0.5 rounded text-xs border border-green-500/30">${member.completed} finiti</span></td><td class="px-4 py-3 text-gray-400">${member.total} totali</td></tr>`;
-    });
+        teamData.forEach(member => {
+            teamBody.innerHTML += `<tr><td class="px-4 py-3 font-semibold text-white">${member.name}</td><td class="px-4 py-3"><span class="bg-purple-900/30 text-purple-400 px-2 py-0.5 rounded text-xs border border-purple-500/30">${member.inProgress} in corso</span></td><td class="px-4 py-3"><span class="bg-green-900/30 text-green-400 px-2 py-0.5 rounded text-xs border border-green-500/30">${member.completed} finiti</span></td><td class="px-4 py-3 text-gray-400">${member.total} totali</td></tr>`;
+        });
+    }
     
     // Timeline
     const timeline = document.getElementById('timelineContainer');
-    timeline.innerHTML = '';
-    const recent = [...state.videoIdeas].sort((a,b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 15);
-    if(recent.length === 0) timeline.innerHTML = '<p class="text-sm text-gray-500 mt-4 ml-4">Nessuna attività recente.</p>';
-    else recent.forEach(idea => {
-        const stat = getIdeaStatus(idea);
-        let color = 'bg-gray-500', text = `Creata: <strong>${idea.title}</strong>`, subText = timeSince(idea.createdAt || Date.now());
-        if(stat === 'completed') { color = 'bg-green-500'; text = `Completata: <strong>${idea.title}</strong>`; subText = `Da ${idea.assignee}`; }
-        else if (stat === 'progress') { color = 'bg-purple-500'; text = `In lavorazione: <strong>${idea.title}</strong>`; subText = `Da ${idea.assignee}`; }
-        else if (stat === 'new') { color = 'bg-blue-500'; text = `Nuova: <strong>${idea.title}</strong>`; }
-        timeline.innerHTML += `<div class="mb-6 ml-6 relative"><span class="absolute flex items-center justify-center w-3 h-3 ${color} rounded-full -left-[31px] top-1 ring-4 ring-[#1a1a1a]"></span><h3 class="text-sm font-semibold text-gray-200 leading-tight">${text}</h3><time class="block mb-1 text-xs font-normal text-gray-500 mt-0.5">${subText}</time></div>`;
-    });
+    if(timeline) {
+        timeline.innerHTML = '';
+        const recent = [...state.videoIdeas].sort((a,b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 15);
+        if(recent.length === 0) timeline.innerHTML = '<p class="text-sm text-gray-500 mt-4 ml-4">Nessuna attività recente.</p>';
+        else recent.forEach(idea => {
+            const stat = getIdeaStatus(idea);
+            let color = 'bg-gray-500', text = `Creata: <strong>${idea.title}</strong>`, subText = timeSince(idea.createdAt || Date.now());
+            if(stat === 'completed') { color = 'bg-green-500'; text = `Completata: <strong>${idea.title}</strong>`; subText = `Da ${idea.assignee}`; }
+            else if (stat === 'progress') { color = 'bg-purple-500'; text = `In lavorazione: <strong>${idea.title}</strong>`; subText = `Da ${idea.assignee}`; }
+            else if (stat === 'new') { color = 'bg-blue-500'; text = `Nuova: <strong>${idea.title}</strong>`; }
+            timeline.innerHTML += `<div class="mb-6 ml-6 relative"><span class="absolute flex items-center justify-center w-3 h-3 ${color} rounded-full -left-[31px] top-1 ring-4 ring-[#1a1a1a]"></span><h3 class="text-sm font-semibold text-gray-200 leading-tight">${text}</h3><time class="block mb-1 text-xs font-normal text-gray-500 mt-0.5">${subText}</time></div>`;
+        });
+    }
 }
 
 export function renderDatabaseStats() {
@@ -697,19 +713,23 @@ export function renderDatabaseStats() {
     
     const totalKB = sizeIdeas + sizeTools + sizeChannels + sizeOther;
     
-    if (totalKB > 1024) { document.getElementById('dbTotalSize').textContent = (totalKB/1024).toFixed(2); document.getElementById('dbTotalUnit').textContent = 'MB'; } 
-    else { document.getElementById('dbTotalSize').textContent = totalKB.toFixed(1); document.getElementById('dbTotalUnit').textContent = 'KB'; }
+    const dbTS = document.getElementById('dbTotalSize');
+    const dbTU = document.getElementById('dbTotalUnit');
+    if (dbTS && dbTU) {
+        if (totalKB > 1024) { dbTS.textContent = (totalKB/1024).toFixed(2); dbTU.textContent = 'MB'; } 
+        else { dbTS.textContent = totalKB.toFixed(1); dbTU.textContent = 'KB'; }
+    }
     
-    document.getElementById('dbSizeIdeas').textContent = sizeIdeas.toFixed(1) + ' KB';
-    document.getElementById('dbSizeTools').textContent = sizeTools.toFixed(1) + ' KB';
-    document.getElementById('dbSizeChannels').textContent = sizeChannels.toFixed(1) + ' KB';
-    document.getElementById('dbSizeOther').textContent = sizeOther.toFixed(1) + ' KB';
+    const dbSI = document.getElementById('dbSizeIdeas'); if(dbSI) dbSI.textContent = sizeIdeas.toFixed(1) + ' KB';
+    const dbST = document.getElementById('dbSizeTools'); if(dbST) dbST.textContent = sizeTools.toFixed(1) + ' KB';
+    const dbSC = document.getElementById('dbSizeChannels'); if(dbSC) dbSC.textContent = sizeChannels.toFixed(1) + ' KB';
+    const dbSO = document.getElementById('dbSizeOther'); if(dbSO) dbSO.textContent = sizeOther.toFixed(1) + ' KB';
 
     if (totalKB > 0) {
-        document.getElementById('dbBarIdeas').style.width = `${(sizeIdeas / totalKB) * 100}%`;
-        document.getElementById('dbBarTools').style.width = `${(sizeTools / totalKB) * 100}%`;
-        document.getElementById('dbBarChannels').style.width = `${(sizeChannels / totalKB) * 100}%`;
-        document.getElementById('dbBarOther').style.width = `${(sizeOther / totalKB) * 100}%`;
+        const barI = document.getElementById('dbBarIdeas'); if(barI) barI.style.width = `${(sizeIdeas / totalKB) * 100}%`;
+        const barT = document.getElementById('dbBarTools'); if(barT) barT.style.width = `${(sizeTools / totalKB) * 100}%`;
+        const barC = document.getElementById('dbBarChannels'); if(barC) barC.style.width = `${(sizeChannels / totalKB) * 100}%`;
+        const barO = document.getElementById('dbBarOther'); if(barO) barO.style.width = `${(sizeOther / totalKB) * 100}%`;
     }
 
     const heavyItems = [];
@@ -719,30 +739,33 @@ export function renderDatabaseStats() {
 
     heavyItems.sort((a, b) => parseFloat(b.size) - parseFloat(a.size));
     const tableBody = document.getElementById('dbHeavyItemsBody');
-    tableBody.innerHTML = '';
+    if(tableBody) {
+        tableBody.innerHTML = '';
 
-    if (heavyItems.length === 0) {
-        tableBody.parentElement.classList.add('hidden'); document.getElementById('dbNoHeavyItems').classList.remove('hidden');
-    } else {
-        tableBody.parentElement.classList.remove('hidden'); document.getElementById('dbNoHeavyItems').classList.add('hidden');
-        heavyItems.forEach(item => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td class="px-5 py-3"><span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-gray-500/30">${item.type}</span></td><td class="px-5 py-3 font-semibold text-white">${item.title}</td><td class="px-5 py-3 text-yellow-400 font-bold">${item.size} KB</td><td class="px-5 py-3 text-right"><button class="delete-heavy-btn text-xs bg-red-900/40 hover:bg-red-600 text-red-400 hover:text-white px-3 py-1.5 rounded transition-colors font-bold">Elimina Immagine</button></td>`;
-            tr.querySelector('.delete-heavy-btn').addEventListener('click', () => {
-                requirePin(`Vuoi eliminare l'immagine pesante di "${item.title}"? L'elemento in sé NON verrà cancellato e conserverà tutti i dati e le task.`, async () => {
-                    const obj = item.arrayRef.find(x => x.id === item.id);
-                    if (obj) { 
-                        obj[item.prop] = ''; 
-                        renderDatabaseStats(); 
-                        if(item.type === 'Idea') renderVideos(getFilteredIdeas());
-                        else if(item.type === 'Tool') renderTools();
-                        else if(item.type === 'Canale') renderChannelList();
-                        await autoSaveToCloud(); 
-                    }
+        const noItems = document.getElementById('dbNoHeavyItems');
+        if (heavyItems.length === 0) {
+            tableBody.parentElement.classList.add('hidden'); if(noItems) noItems.classList.remove('hidden');
+        } else {
+            tableBody.parentElement.classList.remove('hidden'); if(noItems) noItems.classList.add('hidden');
+            heavyItems.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td class="px-5 py-3"><span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-gray-500/30">${item.type}</span></td><td class="px-5 py-3 font-semibold text-white">${item.title}</td><td class="px-5 py-3 text-yellow-400 font-bold">${item.size} KB</td><td class="px-5 py-3 text-right"><button class="delete-heavy-btn text-xs bg-red-900/40 hover:bg-red-600 text-red-400 hover:text-white px-3 py-1.5 rounded transition-colors font-bold">Elimina Immagine</button></td>`;
+                tr.querySelector('.delete-heavy-btn').addEventListener('click', () => {
+                    requirePin(`Vuoi eliminare l'immagine pesante di "${item.title}"? L'elemento in sé NON verrà cancellato e conserverà tutti i dati e le task.`, async () => {
+                        const obj = item.arrayRef.find(x => x.id === item.id);
+                        if (obj) { 
+                            obj[item.prop] = ''; 
+                            renderDatabaseStats(); 
+                            if(item.type === 'Idea') renderVideos(getFilteredIdeas());
+                            else if(item.type === 'Tool') renderTools();
+                            else if(item.type === 'Canale') renderChannelList();
+                            await autoSaveToCloud(); 
+                        }
+                    });
                 });
+                tableBody.appendChild(tr);
             });
-            tableBody.appendChild(tr);
-        });
+        }
     }
 }
 
