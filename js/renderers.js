@@ -160,6 +160,7 @@ export function getIdeaStatus(idea) {
 }
 
 export function getFilteredIdeas() {
+    console.time('[PERF JS] getFilteredIdeas');
     let filtered = [...state.videoIdeas];
     if (state.activeChannelId !== null) filtered = filtered.filter(v => v.channelId === state.activeChannelId);
     
@@ -196,6 +197,7 @@ export function getFilteredIdeas() {
             if(iA === -1) iA = 999999; if(iB === -1) iB = 999999; return iA - iB;
         });
     }
+    console.timeEnd('[PERF JS] getFilteredIdeas');
     return filtered;
 }
 
@@ -203,6 +205,7 @@ export function getFilteredIdeas() {
 // RENDER VIDEO IDEE
 // ==========================================
 export function renderVideos(videosToRender) {
+    console.time('[PERF DOM] renderVideos');
     const grid = document.getElementById('videoGrid'); 
     const noRes = document.getElementById('noResults');
     if (!grid) return;
@@ -267,6 +270,8 @@ export function renderVideos(videosToRender) {
         card.appendChild(act); 
         grid.appendChild(card);
     });
+    console.timeEnd('[PERF DOM] renderVideos');
+    console.info(`%c[TMS STATS] Renderizzate ${videosToRender ? videosToRender.length : 0} idee a schermo.`, 'color:#4ade80;font-weight:bold');
 }
 
 // ==========================================
@@ -1078,6 +1083,32 @@ window.updateChecklistProgress = function(idea) {
         document.getElementById('dashAssignDateContainer').innerHTML = dateHtml;
     }
 
+    // Gestione visualizzazione Inspirations/Sources
+    const assignSecForAnchor = document.getElementById('dashAssignSection');
+    let sourcesSection = document.getElementById('dashSourcesList');
+    
+    if (!sourcesSection && assignSecForAnchor) {
+        sourcesSection = document.createElement('div');
+        sourcesSection.id = 'dashSourcesList';
+        sourcesSection.className = 'w-full mb-4 flex flex-col gap-2 border-b border-[#333] pb-4';
+        assignSecForAnchor.parentElement.insertBefore(sourcesSection, assignSecForAnchor);
+    }
+
+    if (sourcesSection) {
+        if (idea.sources && idea.sources.length > 0) {
+            sourcesSection.classList.remove('hidden');
+            let srcHtml = `<span class="text-[10px] text-gray-500 uppercase font-bold tracking-widest flex items-center gap-1"><span class="text-sm">🔗</span> Fonti / Inspirations</span><div class="flex flex-col gap-2 mt-1 max-h-32 overflow-y-auto custom-scrollbar pr-1">`;
+            idea.sources.forEach(link => {
+                let displayUrl = link; try { displayUrl = new URL(link).hostname.replace('www.',''); } catch(e){}
+                srcHtml += `<a href="${link}" target="_blank" title="${link}" class="bg-[#222] hover:bg-[#2a2a2a] border border-[#333] hover:border-blue-500 text-blue-400 text-xs px-3 py-2 rounded-lg transition-all flex items-center gap-2 truncate"><span class="truncate font-medium">${displayUrl}</span></a>`;
+            });
+            srcHtml += `</div>`;
+            sourcesSection.innerHTML = srcHtml;
+        } else {
+            sourcesSection.classList.add('hidden');
+        }
+    }
+
     const sb = document.getElementById('dashStatusBadge');
     if (perc === 100) { sb.textContent='Completata'; sb.className='bg-green-600/20 text-green-400 text-xs px-2 py-0.5 rounded border border-green-500/30'; } 
     else { sb.textContent='In Progress'; sb.className='bg-purple-600/20 text-purple-400 text-xs px-2 py-0.5 rounded border border-purple-500/30'; }
@@ -1102,32 +1133,6 @@ window.openIdeaDashboard = function(idea) {
     if(statusType==='completed') { sb.textContent='Completata'; sb.className='bg-green-600/20 text-green-400 text-xs px-2 py-0.5 rounded border border-green-500/30'; }
 
     document.getElementById('dashDriveBtn').onclick = () => { if(idea.driveLink) window.open(idea.driveLink, '_blank'); else alert('Nessun link Drive.'); };
-
-    const sourcesContainer = document.getElementById('dashSourcesContainer');
-    if (sourcesContainer) {
-        if (idea.sources && idea.sources.trim() !== '') {
-            const links = idea.sources.split('\n').filter(l => l.trim() !== '');
-            let html = '<h4 class="text-[10px] text-gray-500 uppercase font-bold mb-2 mt-4">Risorse / Inspirations</h4><ul class="flex flex-col gap-1.5">';
-            links.forEach(link => {
-                const cleanLink = link.trim();
-                const urlMatch = cleanLink.match(/https?:\/\/[^\s]+/);
-                if (urlMatch) {
-                    const url = urlMatch[0];
-                    let label = cleanLink.replace(url, '').trim() || url;
-                    if (label.length > 50) label = label.substring(0, 47) + '...';
-                    html += `<li><a href="${url}" target="_blank" class="text-xs text-blue-400 hover:text-blue-300 transition-colors break-all flex items-start gap-1 bg-[#222] px-2 py-1.5 rounded border border-[#333] w-full shadow-sm"><span class="shrink-0">🔗</span> <span class="line-clamp-2">${label}</span></a></li>`;
-                } else {
-                    html += `<li class="text-xs text-gray-300 flex items-start gap-1 bg-[#222] px-2 py-1.5 rounded border border-[#333]"><span class="shrink-0">📄</span> <span>${cleanLink}</span></li>`;
-                }
-            });
-            html += '</ul>';
-            sourcesContainer.innerHTML = html;
-            sourcesContainer.classList.remove('hidden');
-        } else {
-            sourcesContainer.innerHTML = '';
-            sourcesContainer.classList.add('hidden');
-        }
-    }
 
     const assignSec = document.getElementById('dashAssignSection');
     const progSec = document.getElementById('dashProgressSection');
@@ -1219,8 +1224,6 @@ window.openEditIdeaModal = function(idea) {
     document.getElementById('editIdeaId').value = idea.id;
     document.getElementById('editIdeaTitle').value = idea.title;
     document.getElementById('editIdeaDriveLink').value = idea.driveLink || '';
-    const sourcesEl = document.getElementById('editIdeaSources');
-    if (sourcesEl) sourcesEl.value = idea.sources || '';
     const assigneeSelect = document.getElementById('editIdeaAssignee');
     const assigneesArr = idea.assignee ? idea.assignee.split(',').map(s=>s.trim()) : [];
     
@@ -1241,6 +1244,12 @@ window.openEditIdeaModal = function(idea) {
     
     if (idea.thumbnail) { document.getElementById('editIdeaThumbPreview').src = idea.thumbnail; document.getElementById('editIdeaThumbPreview').classList.remove('hidden'); document.getElementById('editIdeaThumbDropHint').classList.add('hidden'); } 
     else { document.getElementById('editIdeaThumbPreview').src = ''; document.getElementById('editIdeaThumbPreview').classList.add('hidden'); document.getElementById('editIdeaThumbDropHint').classList.remove('hidden'); }
+    
+    const sourcesInp = document.getElementById('editIdeaSources');
+    if (sourcesInp) {
+        sourcesInp.value = idea.sources && Array.isArray(idea.sources) ? idea.sources.join('\n') : '';
+    }
+    
     document.getElementById('editIdeaThumbFileName').classList.add('hidden');
     state.files.editIdeaThumb = null;
     document.getElementById('editIdeaModal').classList.remove('hidden');

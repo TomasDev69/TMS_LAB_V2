@@ -5,7 +5,7 @@ import {
     renderVideos, getFilteredIdeas, renderChannelList, renderTools, 
     renderTraining, renderEditorsHub, renderStats, renderDatabaseStats, 
     renderInspChannels, loadInspFeed, switchEHTab, updateAudioUI, renderTMSPicks,
-    renderNextFeedBatch, renderFinanceDashboard, getIdeaStatus, renderDevTodo
+    renderNextFeedBatch, renderFinanceDashboard, getIdeaStatus, renderDevTodo, renderAdminChannelList
 } from './renderers.js';
 import { compressImage, shuffleArray, formatViewsCount } from './utils.js';
 
@@ -17,6 +17,7 @@ window.closeModal = closeModal;
 window.closePinModal = closePinModal;
 window.requirePin = requirePin;
 window.renderChannelList = renderChannelList;
+window.renderAdminChannelList = renderAdminChannelList;
 window.renderDatabaseStats = renderDatabaseStats;
 window.renderTMSPicks = renderTMSPicks;
 window.renderDevTodo = renderDevTodo;
@@ -178,7 +179,48 @@ window.toggleTrainingType = () => {
 // =============================================
 document.addEventListener('DOMContentLoaded', () => {
 
+    // --- SYSTEM DEBUG EVENT LISTENER ---
+    document.addEventListener('click', (e) => {
+        const t = e.target.closest('button, a, [onclick], .cursor-pointer');
+        if (t) {
+            const idStr = t.id ? `#${t.id}` : '';
+            console.debug(`%c[UI CLICK]%c Tag: ${t.tagName.toLowerCase()}${idStr}`, 'color:#a855f7;font-weight:bold', 'color:gray', t);
+        }
+    });
+
+    // --- INJECT SOURCES UI (Idee) ---
+    const ideaForm = document.getElementById('ideaForm');
+    if (ideaForm && !document.getElementById('inputSources')) {
+        const submitBtn = ideaForm.querySelector('button[type=submit]');
+        const sourcesContainer = document.createElement('div');
+        sourcesContainer.className = "flex flex-col gap-1 w-full mt-2";
+        sourcesContainer.innerHTML = `
+            <label class="text-[10px] text-gray-500 uppercase font-bold mb-1 flex items-center gap-1"><span class="text-sm">🔗</span> Link / Inspirations (1 per riga)</label>
+            <textarea id="inputSources" rows="2" class="w-full bg-[#111] text-white px-3 py-2 rounded-lg border border-[#444] outline-none focus:border-blue-500 text-sm custom-scrollbar" placeholder="Incolla qui i link utili (es. video YouTube, articoli...)"></textarea>
+        `;
+        if (submitBtn) {
+            const target = submitBtn.closest('.flex.justify-end') || submitBtn;
+            ideaForm.insertBefore(sourcesContainer, target);
+        }
+    }
+
+    const editIdeaForm = document.getElementById('editIdeaForm');
+    if (editIdeaForm && !document.getElementById('editIdeaSources')) {
+        const submitBtnEdit = editIdeaForm.querySelector('button[type=submit]') || document.getElementById('btnSubmitEditIdea');
+        const editSourcesContainer = document.createElement('div');
+        editSourcesContainer.className = "flex flex-col gap-1 w-full mt-2";
+        editSourcesContainer.innerHTML = `
+            <label class="text-[10px] text-gray-500 uppercase font-bold mb-1 flex items-center gap-1"><span class="text-sm">🔗</span> Link / Inspirations (1 per riga)</label>
+            <textarea id="editIdeaSources" rows="2" class="w-full bg-[#111] text-white px-3 py-2 rounded-lg border border-[#444] outline-none focus:border-blue-500 text-sm custom-scrollbar" placeholder="Incolla qui i link utili (es. video YouTube, articoli...)"></textarea>
+        `;
+        if (submitBtnEdit) {
+            const targetEdit = submitBtnEdit.closest('.flex.justify-end') || submitBtnEdit;
+            editIdeaForm.insertBefore(editSourcesContainer, targetEdit);
+        }
+    }
+
     window.initLabFlow = function(labId) {
+        devLog(`Avvio flusso Lab richiesto per: ${labId}`, "info", state);
         const splash = document.getElementById('tmsSplashScreen');
         if (splash) {
             splash.classList.add('opacity-0');
@@ -852,7 +894,7 @@ document.addEventListener('DOMContentLoaded', () => {
         requirePin("Accesso al Pannello di Amministrazione di TMS Lab", () => {
             document.getElementById('adminModal').classList.remove('hidden'); 
             document.getElementById('adminModal').classList.add('flex');
-            // Nota: renderAdminChannelList andrebbe spostato in renderers.js o gestito qui
+            renderAdminChannelList();
         });
     });
 
@@ -880,8 +922,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const title = document.getElementById('inputTitle').value.trim();
         const channelId = document.getElementById('inputChannel').value || '';
         const ch = state.channels.find(c => c.id === channelId);
-        const sourcesEl = document.getElementById('inputIdeaSources');
-        const sourcesText = sourcesEl ? sourcesEl.value.trim() : '';
+        
+        const sourcesText = document.getElementById('inputSources')?.value || '';
+        const sourcesArr = sourcesText.split('\n').map(l => l.trim()).filter(l => l !== '');
 
         let ideaFolderId = ''; let ideaFolderLink = ''; let thumbnailUrl = '';
         devLog(`[IDEA] Avvio creazione nuova idea: "${title}"...`, "info");
@@ -933,10 +976,11 @@ document.addEventListener('DOMContentLoaded', () => {
             createdAt: Date.now(), 
             title, thumbnail: thumbnailUrl, driveLink: ideaFolderLink, ideaFolderId, channelId, author: "Tu", timeAgo: new Date().toLocaleDateString('it-IT'),
             assignee: null, assignedAt: null, completedAt: null,
-            checklist: { script: false, audio: false, video: false, music: false, sfx: false, final: false },
-            sources: sourcesText
+            sources: sourcesArr,
+            checklist: { script: false, audio: false, video: false, music: false, sfx: false, final: false }
         };
 
+        devLog(`[IDEA] Nuova idea salvata in stato locale`, 'success', newIdea);
         state.videoIdeas.unshift(newIdea);
         renderChannelList(); 
         renderVideos(getFilteredIdeas()); 
@@ -970,13 +1014,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const title = document.getElementById('editIdeaTitle').value.trim();
         const driveLink = document.getElementById('editIdeaDriveLink').value.trim();
         const assigneeEl = document.getElementById('editIdeaAssignee');
-        const sourcesEl = document.getElementById('editIdeaSources');
+        
+        const sourcesText = document.getElementById('editIdeaSources')?.value || '';
+        const sourcesArr = sourcesText.split('\n').map(l => l.trim()).filter(l => l !== '');
 
         const idea = state.videoIdeas.find(v => v.id === id);
         if (idea) {
             idea.title = title;
             idea.driveLink = driveLink;
-            if (sourcesEl) idea.sources = sourcesEl.value.trim();
+            idea.sources = sourcesArr;
             if (assigneeEl && !assigneeEl.parentElement.classList.contains('hidden')) {
                 const newAssignee = assigneeEl.value || null;
                 if (idea.assignee && !newAssignee) {
@@ -1478,6 +1524,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('closeEditChannelBtn')?.addEventListener('click', () => closeModal('editChannelModal'));
     document.getElementById('cancelEditChannelBtn')?.addEventListener('click', () => closeModal('editChannelModal'));
+
+    const handleEditChannelSave = async (e) => {
+        if (e) e.preventDefault();
+        const id = document.getElementById('editChannelId')?.value;
+        const name = document.getElementById('editChannelName')?.value.trim();
+        if (!name || !id) return;
+        
+        const btn = document.getElementById('saveEditChannelBtn') || document.querySelector('#editChannelForm button[type="submit"]');
+        if (btn) { btn.disabled = true; btn.textContent = '🔄...'; }
+
+        const ch = state.channels.find(c => c.id === id);
+        if (ch) {
+            ch.name = name;
+            if (state.files.editChannelAvatar) {
+                try {
+                    const compressedImg = await compressImage(state.files.editChannelAvatar, 400, 0.7, 'image/jpeg');
+                    if (state.SCRIPT_URL && ch.driveFolderId) {
+                        if (btn) btn.textContent = '🚀...';
+                        const resI = await callScriptAction({ action: 'uploadProfilePicture', folderId: ch.driveFolderId, base64: compressedImg.base64, mimeType: compressedImg.mimeType, ext: compressedImg.ext });
+                        if(resI.fileId) ch.profilePicUrl = `https://drive.google.com/thumbnail?id=${resI.fileId}&sz=w400`;
+                        else ch.profilePicUrl = compressedImg.dataUrl;
+                    } else {
+                        ch.profilePicUrl = compressedImg.dataUrl;
+                    }
+                } catch(err) { devLog(`[ADMIN] Errore upload avatar: ${err.message}`, "error"); }
+            }
+        }
+
+        renderChannelList(); 
+        renderAdminChannelList();
+        if (state.currentView === 'idee') renderVideos(getFilteredIdeas());
+        closeModal('editChannelModal'); 
+        if (btn) { btn.disabled = false; btn.textContent = 'Salva Modifiche'; }
+        state.files.editChannelAvatar = null;
+        autoSaveToCloud();
+    };
+
+    document.getElementById('saveEditChannelBtn')?.addEventListener('click', handleEditChannelSave);
+    const editChannelForm = document.getElementById('editChannelForm');
+    if (editChannelForm) editChannelForm.addEventListener('submit', handleEditChannelSave);
 
     // --- FORM: FINANZA (EARNINGS) ---
     document.getElementById('finChartRange')?.addEventListener('change', () => { renderFinanceDashboard(); });

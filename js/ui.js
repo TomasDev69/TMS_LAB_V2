@@ -1,7 +1,15 @@
 import { state } from './state.js';
 import { renderVideos, renderInspChannels, renderTools, renderTraining, renderEditorsHub, renderStats, renderDatabaseStats, getFilteredIdeas, loadInspFeed, renderTMSPicks, renderFinanceDashboard } from './renderers.js';
 
-export function devLog(message, type = 'info') {
+export function devLog(message, type = 'info', extraData = null) {
+    // --- BROWSER DEV CONSOLE LOGGING ---
+    const plainMsg = message.replace(/<[^>]*>?/gm, '');
+    const css = { info: 'color:#3ea6ff;font-weight:bold', success: 'color:#4ade80;font-weight:bold', warning: 'color:#facc15;font-weight:bold', error: 'color:#f87171;font-weight:bold' }[type] || 'color:#ccc';
+    const clog = type === 'error' ? console.error : type === 'warning' ? console.warn : console.info;
+    if (extraData) clog(`%c[TMS DEBUG] ${plainMsg}`, css, extraData);
+    else clog(`%c[TMS DEBUG] ${plainMsg}`, css);
+    // -----------------------------------
+
     const consoleOutput = document.getElementById('consoleOutput');
     if (!consoleOutput) return; // Evita crash se la console non c'è
     const time = new Date().toLocaleTimeString('it-IT');
@@ -71,6 +79,8 @@ export function requirePin(actionMessage, callback) {
 }
 
 export function switchView(view) {
+    devLog(`Cambio vista in corso: -> ${view.toUpperCase()}`, 'info');
+    console.time(`[PERF RENDER] View: ${view}`);
     state.currentView = view;
     ['navIdee', 'navInspirations', 'navStrumenti', 'navFormazione', 'navEditorsHub', 'navScript', 'navStats', 'navDatabase', 'navBrainstorming', 'navCompetitors'].forEach(id => {
         const el = document.getElementById(id);
@@ -177,4 +187,5 @@ export function switchView(view) {
         safeShowBtn('Aggiungi Video', () => { document.getElementById('addCompetitorModal')?.classList.remove('hidden'); document.getElementById('addCompetitorModal')?.classList.add('flex'); });
         if(window.renderCompetitors) window.renderCompetitors();
     }
+    console.timeEnd(`[PERF RENDER] View: ${view}`);
 }

@@ -3,13 +3,13 @@ import { devLog, updateStatus } from './ui.js';
 
 export async function callScriptAction(bodyObj) {
     const reqSizeKB = (((JSON.stringify(bodyObj).length * 3) / 4) / 1024).toFixed(2);
-    devLog(`[API] 📡 Invio POST per azione: <span class="text-blue-400 font-bold">${bodyObj.action}</span> (Grandezza: ~${reqSizeKB} KB)`, "info");
+    devLog(`[API] 📡 Invio POST per azione: <span class="text-blue-400 font-bold">${bodyObj.action}</span> (Grandezza: ~${reqSizeKB} KB)`, "info", bodyObj);
     const startTime = performance.now();
     try {
         const res = await fetch(state.SCRIPT_URL, { method: 'POST', body: JSON.stringify(bodyObj), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
         const endTime = performance.now();
-        devLog(`[API] ✅ Server Google ha risposto in ${((endTime - startTime) / 1000).toFixed(2)}s`, "success");
         const data = await res.json();
+        devLog(`[API] ✅ Risposta da Google in ${((endTime - startTime) / 1000).toFixed(2)}s [${bodyObj.action}]`, "success", data);
         if(data.status === 'error') throw new Error(data.message);
         return data;
     } catch(e) { 
@@ -47,6 +47,7 @@ export async function fetchYTProxy(url) {
 export async function autoSaveToCloud() {
     if (!state.SCRIPT_URL) return;
     updateStatus("Salvataggio...", "warning");
+    console.time('[PERF API] autoSaveToCloud');
 
     state.db[state.activeLab] = {
         videoIdeas: state.videoIdeas,
@@ -76,6 +77,7 @@ export async function autoSaveToCloud() {
         callScriptAction({ action: 'saveDB', data: payload }).then(() => {
             updateStatus("💾 Salvato!", "success");
             setTimeout(() => updateStatus("🟢 Sincronizzato", "success"), 2000);
+            console.timeEnd('[PERF API] autoSaveToCloud');
         }).catch(e => { throw e; });
     } catch (error) { updateStatus("Errore Auto-Save", "error"); }
 }
@@ -143,7 +145,7 @@ export async function loadDataFromCloud() {
         }
 
         updateStatus("🟢 Sincronizzato", "success");
-        devLog("[API] Dati caricati dal cloud con successo.", "success");
+        devLog("[API] Dati caricati dal cloud con successo.", "success", data);
         
         if (window.renderChannelList) window.renderChannelList();
         if (window.switchView) window.switchView(state.currentView || 'idee');
