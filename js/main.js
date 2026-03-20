@@ -217,6 +217,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const targetEdit = submitBtnEdit.closest('.flex.justify-end') || submitBtnEdit;
             editIdeaForm.insertBefore(editSourcesContainer, targetEdit);
         }
+        
+        if (!document.getElementById('editIdeaChannelContainer')) {
+            const editChannelContainer = document.createElement('div');
+            editChannelContainer.id = 'editIdeaChannelContainer';
+            editChannelContainer.className = "flex flex-col gap-1 w-full mt-2";
+            editChannelContainer.innerHTML = `
+                <label class="text-[10px] text-gray-500 uppercase font-bold mb-1 flex items-center gap-1"><span class="text-sm">📺</span> Canale Appartenenza</label>
+                <select id="editIdeaChannel" class="w-full bg-[#111] text-white px-3 py-2 rounded-lg border border-[#444] outline-none focus:border-blue-500 text-sm appearance-none cursor-pointer"></select>
+            `;
+            const targetEdit2 = submitBtnEdit.closest('.flex.justify-end') || submitBtnEdit;
+            editIdeaForm.insertBefore(editChannelContainer, targetEdit2);
+        }
     }
 
     window.initLabFlow = function(labId) {
@@ -1023,6 +1035,8 @@ document.addEventListener('DOMContentLoaded', () => {
             idea.title = title;
             idea.driveLink = driveLink;
             idea.sources = sourcesArr;
+            const channelEl = document.getElementById('editIdeaChannel');
+            if (channelEl) idea.channelId = channelEl.value;
             if (assigneeEl && !assigneeEl.parentElement.classList.contains('hidden')) {
                 const newAssignee = assigneeEl.value || null;
                 if (idea.assignee && !newAssignee) {
@@ -1045,6 +1059,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        renderChannelList();
         renderVideos(getFilteredIdeas());
         closeModal('editIdeaModal', 'editIdeaForm');
         state.files.editIdeaThumb = null;
@@ -1112,7 +1127,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (selectContainer) {
                         selectContainer.querySelectorAll('.task-collab-btn').forEach(b => {
                             const isC = idea.taskAssignees[key].includes(b.dataset.name);
-                            b.className = `task-collab-btn px-2 py-0.5 rounded text-[10px] font-bold transition-colors border ${isC ? 'bg-blue-600/20 text-blue-400 border-blue-500/50' : 'bg-[#222] text-gray-500 border-[#333] hover:border-gray-400'}`;
+                            const btnClass = isC 
+                                ? 'bg-blue-600 text-white border-blue-400 ring-2 ring-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.4)]' 
+                                : 'bg-[#222] text-gray-500 border-[#333] hover:border-gray-400';
+                            b.className = `task-collab-btn px-3 py-1 rounded text-[11px] font-bold transition-all border ${btnClass}`;
+                            b.innerHTML = isC ? `✓ ${b.dataset.name}` : b.dataset.name;
                         });
                     }
                 }

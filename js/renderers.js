@@ -1176,7 +1176,10 @@ window.openIdeaDashboard = function(idea) {
                     assigneesArr.forEach(name => {
                         if (!idea.taskAssignees[key]) idea.taskAssignees[key] = [];
                         const isChecked = idea.taskAssignees[key] && idea.taskAssignees[key].includes(name);
-                        html += `<button class="task-collab-btn px-2 py-0.5 rounded text-[10px] font-bold transition-colors border ${isChecked ? 'bg-blue-600/20 text-blue-400 border-blue-500/50' : 'bg-[#222] text-gray-500 border-[#333] hover:border-gray-400'}" data-task="${key}" data-name="${name}">${name}</button>`;
+                        const btnClass = isChecked 
+                            ? 'bg-blue-600 text-white border-blue-400 ring-2 ring-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.4)]' 
+                            : 'bg-[#222] text-gray-500 border-[#333] hover:border-gray-400';
+                        html += `<button class="task-collab-btn px-3 py-1 rounded text-[11px] font-bold transition-all border ${btnClass}" data-task="${key}" data-name="${name}">${isChecked ? `✓ ${name}` : name}</button>`;
                     });
                     selectContainer.innerHTML = html;
                     selectContainer.classList.remove('hidden');
@@ -1195,7 +1198,11 @@ window.openIdeaDashboard = function(idea) {
                             
                             selectContainer.querySelectorAll('.task-collab-btn').forEach(b => {
                                 const isC = idea.taskAssignees[key].includes(b.dataset.name);
-                                b.className = `task-collab-btn px-2 py-0.5 rounded text-[10px] font-bold transition-colors border ${isC ? 'bg-blue-600/20 text-blue-400 border-blue-500/50' : 'bg-[#222] text-gray-500 border-[#333] hover:border-gray-400'}`;
+                                const btnClass = isC 
+                                    ? 'bg-blue-600 text-white border-blue-400 ring-2 ring-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.4)]' 
+                                    : 'bg-[#222] text-gray-500 border-[#333] hover:border-gray-400';
+                                b.className = `task-collab-btn px-3 py-1 rounded text-[11px] font-bold transition-all border ${btnClass}`;
+                                b.innerHTML = isC ? `✓ ${b.dataset.name}` : b.dataset.name;
                             });
                             await autoSaveToCloud();
                         };
@@ -1248,6 +1255,14 @@ window.openEditIdeaModal = function(idea) {
     const sourcesInp = document.getElementById('editIdeaSources');
     if (sourcesInp) {
         sourcesInp.value = idea.sources && Array.isArray(idea.sources) ? idea.sources.join('\n') : '';
+    }
+    
+    const editChannelInp = document.getElementById('editIdeaChannel');
+    if (editChannelInp) {
+        editChannelInp.innerHTML = '<option value="">Nessun Canale</option>';
+        state.channels.forEach(c => {
+            editChannelInp.innerHTML += `<option value="${c.id}" ${c.id === idea.channelId ? 'selected' : ''}>${c.name}</option>`;
+        });
     }
     
     document.getElementById('editIdeaThumbFileName').classList.add('hidden');
