@@ -1017,6 +1017,28 @@ window.removeCollaborator = async (ideaId, member) => {
     }
 };
 
+window.removeSourceLink = async (ideaId, idx) => {
+    const idea = state.videoIdeas.find(v => v.id === ideaId);
+    if (idea && idea.sources) {
+        idea.sources.splice(idx, 1);
+        await autoSaveToCloud();
+        if (window.updateChecklistProgress) window.updateChecklistProgress(idea);
+    }
+};
+
+window.addSourceLink = async (ideaId) => {
+    const idea = state.videoIdeas.find(v => v.id === ideaId);
+    const input = document.getElementById('dashNewSourceInput');
+    if (idea && input && input.value.trim() !== '') {
+        let val = input.value.trim();
+        if (!val.startsWith('http://') && !val.startsWith('https://')) val = 'https://' + val;
+        if (!idea.sources) idea.sources = [];
+        idea.sources.push(val);
+        await autoSaveToCloud();
+        if (window.updateChecklistProgress) window.updateChecklistProgress(idea);
+    }
+};
+
 window.updateChecklistProgress = function(idea) {
     let perc = 0;
     if (idea.checklist.script) perc += 20;
@@ -1095,15 +1117,36 @@ window.updateChecklistProgress = function(idea) {
     }
 
     if (sourcesSection) {
-        if (idea.sources && idea.sources.length > 0) {
+        if ((idea.sources && idea.sources.length > 0) || idea.assignee) {
             sourcesSection.classList.remove('hidden');
-            let srcHtml = `<span class="text-[10px] text-gray-500 uppercase font-bold tracking-widest flex items-center gap-1"><span class="text-sm">🔗</span> Fonti / Inspirations</span><div class="flex flex-col gap-2 mt-1 max-h-32 overflow-y-auto custom-scrollbar pr-1">`;
-            idea.sources.forEach(link => {
-                let displayUrl = link; try { displayUrl = new URL(link).hostname.replace('www.',''); } catch(e){}
-                srcHtml += `<a href="${link}" target="_blank" title="${link}" class="bg-[#222] hover:bg-[#2a2a2a] border border-[#333] hover:border-blue-500 text-blue-400 text-xs px-3 py-2 rounded-lg transition-all flex items-center gap-2 truncate"><span class="truncate font-medium">${displayUrl}</span></a>`;
-            });
+            let srcHtml = `<span class="text-[10px] text-gray-500 uppercase font-bold tracking-widest flex items-center gap-1 mb-1"><span class="text-sm">🔗</span> Fonti / Risorse Video</span>`;
+            
+            srcHtml += `<div class="flex flex-col gap-2 max-h-32 overflow-y-auto custom-scrollbar pr-1">`;
+            if (idea.sources && idea.sources.length > 0) {
+                idea.sources.forEach((link, idx) => {
+                    let displayUrl = link; try { displayUrl = new URL(link).hostname.replace('www.',''); } catch(e){}
+                    srcHtml += `
+                    <div class="flex items-center gap-2 group/src">
+                        <a href="${link}" target="_blank" title="${link}" class="flex-1 bg-[#222] hover:bg-[#2a2a2a] border border-[#333] hover:border-blue-500 text-blue-400 text-xs px-3 py-2 rounded-lg transition-all flex items-center gap-2 truncate"><span class="truncate font-medium">${displayUrl}</span></a>
+                        ${idea.assignee ? `<button class="w-8 h-8 shrink-0 bg-red-900/20 text-red-500 hover:bg-red-500 hover:text-white rounded-lg flex items-center justify-center transition-colors border border-red-900/30 opacity-0 group-hover/src:opacity-100" onclick="window.removeSourceLink('${idea.id}', ${idx})" title="Rimuovi Risorsa">✖</button>` : ''}
+                    </div>`;
+                });
+            } else if (!idea.assignee) {
+                srcHtml += `<span class="text-xs text-gray-500 italic">Nessuna risorsa presente.</span>`;
+            }
             srcHtml += `</div>`;
+
+            if (idea.assignee) {
+                srcHtml += `
+                <div class="flex gap-2 mt-2">
+                    <input type="url" id="dashNewSourceInput" placeholder="Incolla link..." class="flex-1 bg-[#111] text-white text-xs px-3 py-2 rounded-lg border border-[#444] outline-none focus:border-blue-500">
+                    <button class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors" onclick="window.addSourceLink('${idea.id}')">Aggiungi</button>
+                </div>`;
+            }
+
             sourcesSection.innerHTML = srcHtml;
+            
+            setTimeout(() => { const input = document.getElementById('dashNewSourceInput'); if (input) input.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); window.addSourceLink(idea.id); } }; }, 50);
         } else {
             sourcesSection.classList.add('hidden');
         }
