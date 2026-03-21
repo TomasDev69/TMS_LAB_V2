@@ -873,8 +873,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         let tags = [];
                         for (let [p, subs] of Object.entries(periods)) {
                             if (!subs || subs.length === 0) subs = ['Intero'];
-                            let pShort = p.substring(0,3); let sShort = subs.map(s => s.substring(0,3)).join('+');
-                            tags.push(`<span class="bg-green-500/20 text-green-400 text-[9px] px-1 py-0.5 rounded leading-tight font-bold border border-green-500/30 truncate block w-fit mb-0.5 shadow-sm" title="${p}: ${subs.join(', ')}">${pShort}: ${sShort}</span>`);
+                            let sFull = subs.join(' + ');
+                            tags.push(`<span class="bg-green-500/20 text-green-400 text-[9px] px-1 py-0.5 rounded leading-tight font-bold border border-green-500/30 block w-full break-words mb-0.5 shadow-sm" title="${p}: ${subs.join(', ')}">${p}: ${sFull}</span>`);
                         }
                         if(tags.length === 0) tags.push(`<span class="bg-green-500/20 text-green-400 text-[9px] px-1 py-0.5 rounded leading-tight font-bold border border-green-500/30 block w-fit mb-0.5">Disponibile</span>`);
                         contentHtml = `<div class="mt-1 flex flex-col gap-0.5">${tags.join('')}</div>`;
@@ -976,10 +976,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             let tags = [];
                             for (let [p, subs] of Object.entries(periods)) {
                                 if (!subs || subs.length === 0) subs = ['Intero'];
-                                let pShort = p.substring(0,3); let sShort = subs.map(s => s.substring(0,3)).join('+');
-                                tags.push(`<span class="bg-green-500/20 text-green-400 text-[9px] px-1 py-0.5 rounded leading-tight font-bold border border-green-500/30 truncate block mb-0.5 w-full max-w-[80px] mx-auto text-center" title="${p}: ${subs.join(', ')}">${pShort}:${sShort}</span>`);
+                                let sFull = subs.join(' + ');
+                                tags.push(`<span class="bg-green-500/20 text-green-400 text-[9px] px-1 py-1 rounded leading-tight font-bold border border-green-500/30 block mb-0.5 w-[95%] mx-auto text-center break-words" title="${p}: ${subs.join(', ')}">${p}: ${sFull}</span>`);
                             }
-                            if(tags.length === 0) tags.push(`<span class="bg-green-500/20 text-green-400 text-[9px] px-1 py-0.5 rounded leading-tight font-bold border border-green-500/30 block mb-0.5 w-fit mx-auto">Disp</span>`);
+                            if(tags.length === 0) tags.push(`<span class="bg-green-500/20 text-green-400 text-[9px] px-1 py-1 rounded leading-tight font-bold border border-green-500/30 block mb-0.5 w-fit mx-auto text-center">Disponibile</span>`);
                             cellHtml = `<div class="w-full h-full min-h-[60px] flex flex-col justify-center p-1">${tags.join('')}</div>`;
                         }
 
