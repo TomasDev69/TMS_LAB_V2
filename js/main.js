@@ -41,6 +41,7 @@ window.setLabContext = (labId) => {
     state.devTodoList = dbRef.devTodoList || [];
     state.brainstormingText = dbRef.brainstormingText || "";
     state.competitorsAnalysis = dbRef.competitorsAnalysis || [];
+    state.scheduleData = dbRef.scheduleData || { defaults: {}, overrides: {} };
 
     const bsInput = document.getElementById('brainstormingInput');
     if (bsInput) bsInput.value = state.brainstormingText;
@@ -652,6 +653,488 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('compAddImage')?.addEventListener('change', window.handleCompImageAdd);
 
             clearInterval(compInterval);
+        }
+    }, 1000);
+
+    // --- INJECT SCHEDULE VIEW & NAV (Dinamico) ---
+    const scheduleInterval = setInterval(() => {
+        const statsNav = document.getElementById('navStats') || document.getElementById('navDatabase') || document.getElementById('navIdee');
+        const mainContent = document.getElementById('viewIdeeWrapper')?.parentNode;
+        
+        if (statsNav && mainContent && !document.getElementById('navSchedule')) {
+            const schedNav = statsNav.cloneNode(true);
+            schedNav.id = 'navSchedule';
+            
+            const textWalker = document.createTreeWalker(schedNav, NodeFilter.SHOW_TEXT, null, false);
+            let node;
+            while ((node = textWalker.nextNode())) {
+                if (node.nodeValue.includes('Dashboard') || node.nodeValue.includes('Statistiche') || node.nodeValue.includes('Idee')) node.nodeValue = node.nodeValue.replace(/Dashboard & Statistiche|Dashboard|Statistiche|Idee Video|Idee/g, 'Tabella Orari');
+                if (node.nodeValue.includes('📊') || node.nodeValue.includes('💡') || node.nodeValue.includes('🗄️')) node.nodeValue = node.nodeValue.replace(/📊|💡|🗄️/g, '📅');
+            }
+            
+            statsNav.parentNode.insertBefore(schedNav, statsNav.nextSibling);
+            schedNav.classList.remove('active');
+            schedNav.addEventListener('click', (e) => { e.preventDefault(); window.switchView('schedule'); });
+
+            const schedView = document.createElement('div');
+            schedView.id = 'viewScheduleWrapper';
+            schedView.className = 'hidden flex flex-col h-[calc(100vh-140px)] gap-4 overflow-y-auto custom-scrollbar pr-2 pb-6';
+            schedView.innerHTML = `
+                <div class="flex flex-col sm:flex-row gap-4 mb-1">
+                    <div class="flex bg-[#222] p-1 rounded-xl border border-[#333] w-fit">
+                        <button id="btnTabPersonal" class="px-5 py-2 rounded-lg text-sm font-bold bg-[#333] text-white shadow">Calendario Singolo</button>
+                        <button id="btnTabOverview" class="px-5 py-2 rounded-lg text-sm font-bold text-gray-400 hover:text-white transition-colors">Panoramica Team</button>
+                    </div>
+                </div>
+
+                <div id="schedPersonalContainer" class="flex flex-col gap-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-center bg-[#1a1a1a] p-4 rounded-xl border border-[#333] shadow-md gap-4">
+                        <div class="flex items-center gap-3 w-full sm:w-auto">
+                            <span class="text-2xl">👥</span>
+                            <select id="schedMemberSelect" class="bg-[#222] text-white px-4 py-2 rounded-lg border border-[#444] outline-none focus:border-blue-500 flex-1 sm:w-48 text-sm font-bold shadow-sm cursor-pointer appearance-none">
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-4 bg-[#222] px-4 py-1.5 rounded-lg border border-[#333]">
+                            <button id="schedPrevMonth" class="text-gray-400 hover:text-white transition-colors p-2 text-lg">◀</button>
+                            <h2 id="schedMonthLabel" class="text-[15px] font-black text-white w-32 text-center uppercase tracking-widest">Mese Anno</h2>
+                            <button id="schedNextMonth" class="text-gray-400 hover:text-white transition-colors p-2 text-lg">▶</button>
+                        </div>
+                        <button id="btnSchedDefaults" class="w-full sm:w-auto px-5 py-2.5 bg-[#2a2a2a] hover:bg-[#333] border border-[#444] text-gray-200 rounded-lg font-bold text-sm transition-colors shadow flex items-center justify-center gap-2">
+                            <span>⚙️</span> Regole Predefinite
+                        </button>
+                    </div>
+
+                    <div class="bg-[#1a1a1a] rounded-xl border border-[#333] shadow-md overflow-hidden flex flex-col mt-2">
+                        <div class="grid grid-cols-7 bg-[#222] border-b border-[#333]">
+                            <div class="py-3 text-center text-[10px] font-black text-gray-500 uppercase tracking-widest">Lun</div>
+                            <div class="py-3 text-center text-[10px] font-black text-gray-500 uppercase tracking-widest">Mar</div>
+                            <div class="py-3 text-center text-[10px] font-black text-gray-500 uppercase tracking-widest">Mer</div>
+                            <div class="py-3 text-center text-[10px] font-black text-gray-500 uppercase tracking-widest">Gio</div>
+                            <div class="py-3 text-center text-[10px] font-black text-gray-500 uppercase tracking-widest">Ven</div>
+                            <div class="py-3 text-center text-[10px] font-black text-blue-400/70 uppercase tracking-widest">Sab</div>
+                            <div class="py-3 text-center text-[10px] font-black text-red-400/70 uppercase tracking-widest">Dom</div>
+                        </div>
+                        <div id="schedCalendarGrid" class="grid grid-cols-7 auto-rows-[minmax(100px,auto)] gap-[1px] bg-[#333]">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="schedOverviewContainer" class="hidden flex-col gap-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-center bg-[#1a1a1a] p-4 rounded-xl border border-[#333] shadow-md gap-4">
+                        <div class="flex items-center gap-4 bg-[#222] px-4 py-1.5 rounded-lg border border-[#333]">
+                            <button id="schedOverPrevWeek" class="text-gray-400 hover:text-white transition-colors p-2 text-lg">◀</button>
+                            <h2 id="schedWeekLabel" class="text-[15px] font-black text-white w-48 text-center uppercase tracking-widest">Settimana ...</h2>
+                            <button id="schedOverNextWeek" class="text-gray-400 hover:text-white transition-colors p-2 text-lg">▶</button>
+                        </div>
+                        <button id="schedOverCurrentWeek" class="px-4 py-2 bg-[#2a2a2a] hover:bg-[#333] text-gray-300 rounded font-bold transition-colors text-sm border border-[#444]">Torna a Oggi</button>
+                    </div>
+                    <div class="bg-[#1a1a1a] rounded-xl border border-[#333] shadow-md overflow-x-auto flex flex-col mt-2 flex-1 relative custom-scrollbar pb-2">
+                        <table class="w-full text-left border-collapse min-w-[800px]">
+                            <thead>
+                                <tr class="bg-[#222] border-b border-[#333]" id="schedOverviewHeader">
+                                </tr>
+                            </thead>
+                            <tbody id="schedOverviewBody" class="bg-[#1e1e1e]">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            mainContent.appendChild(schedView);
+
+            const schedModalsHtml = `
+                <div id="schedDefaultsModal" class="hidden fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center backdrop-blur-sm p-4">
+                    <div class="bg-[#1a1a1a] border border-[#333] rounded-2xl p-6 w-[90%] max-w-lg shadow-2xl flex flex-col relative">
+                        <button class="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors text-2xl z-20" onclick="closeModal('schedDefaultsModal')">✖</button>
+                        <h2 class="text-xl font-black text-white mb-2 flex items-center gap-2"><span>⚙️</span> Regole Predefinite</h2>
+                        <p class="text-sm text-gray-400 mb-6">Imposta la disponibilità standard di <span id="schedDefMemberName" class="text-white font-bold"></span> per ogni giorno della settimana.</p>
+                        
+                        <div id="schedDefDaysContainer" class="flex flex-col gap-3 mb-6 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
+                        </div>
+
+                        <div class="flex justify-end gap-3 mt-auto pt-4 border-t border-[#333]">
+                            <button class="px-4 py-2 bg-[#2a2a2a] hover:bg-[#333] text-gray-300 rounded font-bold transition-colors" onclick="closeModal('schedDefaultsModal')">Annulla</button>
+                            <button id="btnSaveSchedDefaults" class="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold transition-colors">Salva Regole</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="schedOverrideModal" class="hidden fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center backdrop-blur-sm p-4">
+                    <div class="bg-[#1a1a1a] border border-[#333] rounded-2xl p-6 w-[90%] max-w-sm shadow-2xl flex flex-col relative">
+                        <button class="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors text-2xl z-20" onclick="closeModal('schedOverrideModal')">✖</button>
+                        <h2 class="text-lg font-black text-white mb-1 flex items-center gap-2"><span>✏️</span> Modifica Giorno</h2>
+                        <p class="text-sm text-gray-400 mb-6">Giorno: <span id="schedOverrideDateLabel" class="text-white font-bold"></span></p>
+                        
+                        <div class="flex flex-col gap-4 mb-6">
+                            <label class="flex items-center gap-3 cursor-pointer bg-[#222] p-3 rounded-lg border border-[#444]">
+                                <input type="checkbox" id="schedOverAvailable" class="w-5 h-5 accent-blue-500 cursor-pointer">
+                                <span class="text-white font-bold text-sm">Disponibile</span>
+                            </label>
+                            
+                            <div id="schedOverDetails" class="flex flex-col gap-2 transition-opacity">
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center mt-auto pt-4 border-t border-[#333]">
+                            <button id="btnResetSchedOverride" class="text-xs text-red-400 hover:text-red-300 font-bold underline">Ripristina Default</button>
+                            <div class="flex gap-2">
+                                <button class="px-4 py-2 bg-[#2a2a2a] hover:bg-[#333] text-gray-300 rounded font-bold transition-colors text-sm" onclick="closeModal('schedOverrideModal')">Annulla</button>
+                                <button id="btnSaveSchedOverride" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold transition-colors text-sm shadow">Salva</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', schedModalsHtml);
+
+            let schedCurrentDate = new Date();
+            schedCurrentDate.setDate(1);
+
+            let schedOverviewDate = new Date();
+
+            document.getElementById('btnTabPersonal').addEventListener('click', (e) => {
+                e.target.classList.add('bg-[#333]', 'text-white', 'shadow');
+                e.target.classList.remove('text-gray-400');
+                const btnO = document.getElementById('btnTabOverview');
+                btnO.classList.remove('bg-[#333]', 'text-white', 'shadow');
+                btnO.classList.add('text-gray-400');
+                
+                document.getElementById('schedPersonalContainer').classList.remove('hidden');
+                document.getElementById('schedPersonalContainer').classList.add('flex');
+                document.getElementById('schedOverviewContainer').classList.add('hidden');
+                document.getElementById('schedOverviewContainer').classList.remove('flex');
+            });
+
+            document.getElementById('btnTabOverview').addEventListener('click', (e) => {
+                e.target.classList.add('bg-[#333]', 'text-white', 'shadow');
+                e.target.classList.remove('text-gray-400');
+                const btnP = document.getElementById('btnTabPersonal');
+                btnP.classList.remove('bg-[#333]', 'text-white', 'shadow');
+                btnP.classList.add('text-gray-400');
+                
+                document.getElementById('schedPersonalContainer').classList.add('hidden');
+                document.getElementById('schedPersonalContainer').classList.remove('flex');
+                document.getElementById('schedOverviewContainer').classList.remove('hidden');
+                document.getElementById('schedOverviewContainer').classList.add('flex');
+                window.renderScheduleOverview();
+            });
+
+            const getMember = () => document.getElementById('schedMemberSelect').value;
+
+            window.renderScheduleCalendar = () => {
+                const member = getMember();
+                if (!member) return;
+
+                if(!state.scheduleData) state.scheduleData = { defaults: {}, overrides: {} };
+                if(!state.scheduleData.defaults) state.scheduleData.defaults = {};
+                if(!state.scheduleData.overrides) state.scheduleData.overrides = {};
+
+                const year = schedCurrentDate.getFullYear();
+                const month = schedCurrentDate.getMonth();
+                const monthNames = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
+                document.getElementById('schedMonthLabel').textContent = `${monthNames[month]} ${year}`;
+
+                const grid = document.getElementById('schedCalendarGrid');
+                grid.innerHTML = '';
+
+                const firstDayIndex = (new Date(year, month, 1).getDay() + 6) % 7; 
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+                const memDefaults = state.scheduleData.defaults[member] || {};
+                const memOverrides = state.scheduleData.overrides[member] || {};
+
+                for (let i = 0; i < firstDayIndex; i++) {
+                    const dayNum = daysInPrevMonth - firstDayIndex + i + 1;
+                    grid.innerHTML += `<div class="bg-[#1a1a1a] p-2 opacity-40 border-r border-[#333] last:border-r-0"><span class="text-xs text-gray-600">${dayNum}</span></div>`;
+                }
+
+                for (let i = 1; i <= daysInMonth; i++) {
+                    const d = new Date(year, month, i);
+                    const dayOfWeek = (d.getDay() + 6) % 7;
+                    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+                    
+                    let isAvailable = false, periods = {}, isOverridden = false;
+                    const def = memDefaults[dayOfWeek];
+                    if (def) { 
+                        isAvailable = def.available; periods = def.periods || {}; 
+                        if (!def.periods && def.period) { let oldP = Array.isArray(def.period) ? def.period : [def.period]; let oldS = Array.isArray(def.subPeriod) ? def.subPeriod : [def.subPeriod || 'Intero']; if(oldP.includes('Tutto il giorno')) oldP = ['Mattina','Pomeriggio','Sera']; oldP.forEach(p => periods[p] = oldS); }
+                    }
+                    const over = memOverrides[dateStr];
+                    if (over) { 
+                        isAvailable = over.available; periods = over.periods || {}; 
+                        if (!over.periods && over.period) { let oldP = Array.isArray(over.period) ? over.period : [over.period]; let oldS = Array.isArray(over.subPeriod) ? over.subPeriod : [over.subPeriod || 'Intero']; if(oldP.includes('Tutto il giorno')) oldP = ['Mattina','Pomeriggio','Sera']; oldP.forEach(p => periods[p] = oldS); }
+                        isOverridden = true; 
+                    }
+
+                    const isToday = (new Date().toDateString() === d.toDateString());
+                    let contentHtml = `<div class="mt-1.5"><span class="text-[10px] text-red-500/70 font-semibold px-1 py-0.5 rounded leading-none bg-red-900/10 border border-red-900/30 w-fit block">Assente</span></div>`;
+                    if (isAvailable) {
+                        let tags = [];
+                        for (let [p, subs] of Object.entries(periods)) {
+                            if (!subs || subs.length === 0) subs = ['Intero'];
+                            let pShort = p.substring(0,3); let sShort = subs.map(s => s.substring(0,3)).join('+');
+                            tags.push(`<span class="bg-green-500/20 text-green-400 text-[9px] px-1 py-0.5 rounded leading-tight font-bold border border-green-500/30 truncate block w-fit mb-0.5 shadow-sm" title="${p}: ${subs.join(', ')}">${pShort}: ${sShort}</span>`);
+                        }
+                        if(tags.length === 0) tags.push(`<span class="bg-green-500/20 text-green-400 text-[9px] px-1 py-0.5 rounded leading-tight font-bold border border-green-500/30 block w-fit mb-0.5">Disponibile</span>`);
+                        contentHtml = `<div class="mt-1 flex flex-col gap-0.5">${tags.join('')}</div>`;
+                    }
+
+                    const todayClass = isToday ? 'ring-2 ring-inset ring-blue-500 bg-[#262626] z-10' : 'bg-[#1e1e1e] hover:bg-[#2a2a2a] border-r border-b border-[#333] last:border-r-0';
+                    const indicatorClass = isOverridden ? 'absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-yellow-500 rounded-full shadow-[0_0_5px_rgba(234,179,8,0.5)]' : '';
+
+                    const cell = document.createElement('div');
+                    cell.className = `p-2.5 flex flex-col cursor-pointer transition-colors relative group min-h-[100px] ${todayClass}`;
+                    cell.innerHTML = `<span class="text-xs font-bold ${isToday ? 'text-blue-400' : 'text-gray-300'} mb-1">${i}</span>${indicatorClass ? `<div class="${indicatorClass}" title="Regola modificata"></div>` : ''}${contentHtml}`;
+                    cell.onclick = () => window.openSchedOverrideModal(dateStr, dayOfWeek);
+                    grid.appendChild(cell);
+                }
+
+                const totalCells = firstDayIndex + daysInMonth;
+                const nextDays = (7 - (totalCells % 7)) % 7;
+                for (let i = 1; i <= nextDays; i++) {
+                    grid.innerHTML += `<div class="bg-[#1a1a1a] p-2 opacity-40 border-r border-[#333] last:border-r-0"><span class="text-xs text-gray-600">${i}</span></div>`;
+                }
+            };
+
+            const populateSchedMembers = () => {
+                const select = document.getElementById('schedMemberSelect');
+                if(!select) return;
+                const prevVal = select.value;
+                select.innerHTML = '';
+                if(state.TEAM_MEMBERS && state.TEAM_MEMBERS.length > 0) {
+                    state.TEAM_MEMBERS.forEach(m => { select.innerHTML += `<option value="${m}">${m}</option>`; });
+                    if(prevVal && state.TEAM_MEMBERS.includes(prevVal)) select.value = prevVal;
+                } else {
+                    select.innerHTML = '<option value="">Nessun Membro Team</option>';
+                }
+            };
+
+            document.getElementById('schedMemberSelect').addEventListener('change', window.renderScheduleCalendar);
+            document.getElementById('schedPrevMonth').addEventListener('click', () => { schedCurrentDate.setMonth(schedCurrentDate.getMonth() - 1); window.renderScheduleCalendar(); });
+            document.getElementById('schedNextMonth').addEventListener('click', () => { schedCurrentDate.setMonth(schedCurrentDate.getMonth() + 1); window.renderScheduleCalendar(); });
+            
+            const getStartOfWeek = (date) => {
+                const d = new Date(date);
+                const day = d.getDay();
+                const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+                return new Date(d.setDate(diff));
+            };
+
+            window.renderScheduleOverview = () => {
+                if(!state.scheduleData) state.scheduleData = { defaults: {}, overrides: {} };
+                
+                const startOfWeek = getStartOfWeek(schedOverviewDate);
+                const endOfWeek = new Date(startOfWeek);
+                endOfWeek.setDate(startOfWeek.getDate() + 6);
+                
+                const months = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+                document.getElementById('schedWeekLabel').textContent = `${startOfWeek.getDate()} ${months[startOfWeek.getMonth()]} - ${endOfWeek.getDate()} ${months[endOfWeek.getMonth()]} ${endOfWeek.getFullYear()}`;
+
+                const thead = document.getElementById('schedOverviewHeader');
+                let headHtml = `<th class="p-3 text-[10px] font-black text-gray-500 uppercase tracking-widest w-32 border-r border-[#333] bg-[#222] sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.2)]">Team</th>`;
+                
+                const dayNames = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+                const weekDates = [];
+                for(let i=0; i<7; i++) {
+                    const d = new Date(startOfWeek);
+                    d.setDate(startOfWeek.getDate() + i);
+                    weekDates.push(d);
+                    const isToday = d.toDateString() === new Date().toDateString();
+                    const colorClass = isToday ? 'text-blue-400' : (i >= 5 ? 'text-purple-400/70' : 'text-gray-500');
+                    headHtml += `<th class="p-3 text-center text-[10px] font-black ${colorClass} uppercase tracking-widest border-r border-[#333] last:border-r-0 w-[calc(100%/7)] min-w-[80px]"><div class="flex flex-col gap-1"><span>${dayNames[i]}</span><span class="text-xs ${isToday?'bg-blue-500/20 px-1.5 py-0.5 rounded text-blue-300 w-fit mx-auto':''}">${d.getDate()}</span></div></th>`;
+                }
+                thead.innerHTML = headHtml;
+
+                const tbody = document.getElementById('schedOverviewBody');
+                tbody.innerHTML = '';
+
+                if(!state.TEAM_MEMBERS || state.TEAM_MEMBERS.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-gray-500 text-sm">Nessun membro nel team.</td></tr>';
+                    return;
+                }
+
+                state.TEAM_MEMBERS.forEach(member => {
+                    const memDefaults = state.scheduleData.defaults[member] || {};
+                    const memOverrides = state.scheduleData.overrides[member] || {};
+
+                    let rowHtml = `<td class="p-3 border-r border-b border-[#333] bg-[#1e1e1e] sticky left-0 z-10 font-bold text-white shadow-[2px_0_5px_rgba(0,0,0,0.2)] text-sm">${member}</td>`;
+
+                    weekDates.forEach((d, idx) => {
+                        const dayOfWeek = (d.getDay() + 6) % 7;
+                        const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+                        let isAvailable = false, periods = {};
+                        const def = memDefaults[dayOfWeek];
+                        if (def) { isAvailable = def.available; periods = def.periods || {}; if (!def.periods && def.period) { let oldP = Array.isArray(def.period) ? def.period : [def.period]; let oldS = Array.isArray(def.subPeriod) ? def.subPeriod : [def.subPeriod || 'Intero']; if(oldP.includes('Tutto il giorno')) oldP = ['Mattina','Pomeriggio','Sera']; oldP.forEach(p => periods[p] = oldS); } }
+                        const over = memOverrides[dateStr];
+                        if (over) { isAvailable = over.available; periods = over.periods || {}; if (!over.periods && over.period) { let oldP = Array.isArray(over.period) ? over.period : [over.period]; let oldS = Array.isArray(over.subPeriod) ? over.subPeriod : [over.subPeriod || 'Intero']; if(oldP.includes('Tutto il giorno')) oldP = ['Mattina','Pomeriggio','Sera']; oldP.forEach(p => periods[p] = oldS); } }
+
+                        let cellHtml = `<div class="w-full h-full min-h-[60px] flex flex-col justify-center items-center text-center opacity-30"><span class="text-[10px] text-red-500 bg-red-900/10 px-1.5 py-0.5 rounded border border-red-900/30">Assente</span></div>`;
+                        
+                        if (isAvailable) {
+                            let tags = [];
+                            for (let [p, subs] of Object.entries(periods)) {
+                                if (!subs || subs.length === 0) subs = ['Intero'];
+                                let pShort = p.substring(0,3); let sShort = subs.map(s => s.substring(0,3)).join('+');
+                                tags.push(`<span class="bg-green-500/20 text-green-400 text-[9px] px-1 py-0.5 rounded leading-tight font-bold border border-green-500/30 truncate block mb-0.5 w-full max-w-[80px] mx-auto text-center" title="${p}: ${subs.join(', ')}">${pShort}:${sShort}</span>`);
+                            }
+                            if(tags.length === 0) tags.push(`<span class="bg-green-500/20 text-green-400 text-[9px] px-1 py-0.5 rounded leading-tight font-bold border border-green-500/30 block mb-0.5 w-fit mx-auto">Disp</span>`);
+                            cellHtml = `<div class="w-full h-full min-h-[60px] flex flex-col justify-center p-1">${tags.join('')}</div>`;
+                        }
+
+                        const isToday = d.toDateString() === new Date().toDateString();
+                        const bgClass = isToday ? 'bg-[#2a2a2a]' : 'hover:bg-[#222] transition-colors';
+
+                        rowHtml += `<td class="p-0 border-r border-b border-[#333] last:border-r-0 ${bgClass}">${cellHtml}</td>`;
+                    });
+                    tbody.innerHTML += `<tr>${rowHtml}</tr>`;
+                });
+            };
+
+            document.getElementById('schedOverPrevWeek').addEventListener('click', () => { schedOverviewDate.setDate(schedOverviewDate.getDate() - 7); window.renderScheduleOverview(); });
+            document.getElementById('schedOverNextWeek').addEventListener('click', () => { schedOverviewDate.setDate(schedOverviewDate.getDate() + 7); window.renderScheduleOverview(); });
+            document.getElementById('schedOverCurrentWeek').addEventListener('click', () => { schedOverviewDate = new Date(); window.renderScheduleOverview(); });
+
+            document.getElementById('btnSchedDefaults').addEventListener('click', () => {
+                const member = getMember();
+                if(!member) { alert("Seleziona un membro del team."); return; }
+                document.getElementById('schedDefMemberName').textContent = member;
+                
+                const container = document.getElementById('schedDefDaysContainer');
+                container.innerHTML = '';
+                
+                if(!state.scheduleData.defaults[member]) state.scheduleData.defaults[member] = {};
+                const memDef = state.scheduleData.defaults[member];
+                const days = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
+                
+                days.forEach((dayName, idx) => {
+                    const def = memDef[idx] || { available: false };
+                    let periodsObj = def.periods || {};
+                    if (!def.periods && def.period) { let oldP = Array.isArray(def.period) ? def.period : [def.period || 'Mattina']; let oldS = Array.isArray(def.subPeriod) ? def.subPeriod : [def.subPeriod || 'Intero']; if(oldP.includes('Tutto il giorno')) oldP = ['Mattina','Pomeriggio','Sera']; oldP.forEach(p => periodsObj[p] = oldS); }
+                    
+                    const genPHtml = (pName) => {
+                        const checked = !!periodsObj[pName];
+                        const subs = periodsObj[pName] || [];
+                        return `<div class="flex flex-col bg-[#111] p-2 rounded border border-[#555] gap-1.5 period-block" data-pname="${pName}"><label class="flex items-center gap-2 cursor-pointer text-[11px] font-bold text-gray-300 hover:text-white transition-colors uppercase tracking-widest"><input type="checkbox" class="period-main-chk accent-blue-500 w-3.5 h-3.5 cursor-pointer" value="${pName}" ${checked?'checked':''}> ${pName}</label><div class="flex flex-wrap gap-2 ml-5 subperiod-container transition-opacity ${checked?'':'opacity-30 pointer-events-none'}"><label class="cursor-pointer flex items-center gap-1 text-[10px] text-gray-400 hover:text-gray-300"><input type="checkbox" class="subperiod-chk accent-blue-500 w-3 h-3 cursor-pointer" value="Presto" ${subs.includes('Presto')?'checked':''}> Presto</label><label class="cursor-pointer flex items-center gap-1 text-[10px] text-gray-400 hover:text-gray-300"><input type="checkbox" class="subperiod-chk accent-blue-500 w-3 h-3 cursor-pointer" value="Tardi" ${subs.includes('Tardi')?'checked':''}> Tardi</label><label class="cursor-pointer flex items-center gap-1 text-[10px] text-gray-400 hover:text-gray-300"><input type="checkbox" class="subperiod-chk accent-blue-500 w-3 h-3 cursor-pointer" value="Intero" ${subs.includes('Intero')?'checked':''}> Intero</label></div></div>`;
+                    };
+
+                    const row = document.createElement('div');
+                    row.className = 'flex flex-col bg-[#222] p-3 rounded-xl border border-[#444] gap-2.5 transition-colors hover:border-[#555]';
+                    row.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="checkbox" class="w-4 h-4 accent-blue-500 day-avail-chk cursor-pointer" data-day="${idx}" ${def.available ? 'checked' : ''}>
+                                <span class="text-white font-bold text-sm w-20 group-hover:text-blue-400 transition-colors">${dayName}</span>
+                            </label>
+                        </div>
+                        <div class="flex flex-col gap-2 day-details mt-1 transition-opacity ${def.available ? '' : 'opacity-30 pointer-events-none'}" data-day="${idx}">
+                            ${genPHtml('Mattina')}${genPHtml('Pomeriggio')}${genPHtml('Sera')}
+                        </div>
+                    `;
+                    const chk = row.querySelector('.day-avail-chk');
+                    const details = row.querySelector('.day-details');
+                    chk.addEventListener('change', (e) => { e.target.checked ? details.classList.remove('opacity-30', 'pointer-events-none') : details.classList.add('opacity-30', 'pointer-events-none'); });
+                    details.querySelectorAll('.period-main-chk').forEach(c => c.addEventListener('change', (e) => { const subC = e.target.closest('.period-block').querySelector('.subperiod-container'); if(e.target.checked) subC.classList.remove('opacity-30', 'pointer-events-none'); else subC.classList.add('opacity-30', 'pointer-events-none'); }));
+                    container.appendChild(row);
+                });
+                document.getElementById('schedDefaultsModal').classList.remove('hidden'); document.getElementById('schedDefaultsModal').classList.add('flex');
+            });
+
+            document.getElementById('btnSaveSchedDefaults').addEventListener('click', async () => {
+                const member = getMember(); if(!member) return;
+                const container = document.getElementById('schedDefDaysContainer');
+                const newDefs = {};
+                for(let i=0; i<7; i++) {
+                    const chk = container.querySelector(`.day-avail-chk[data-day="${i}"]`);
+                    const details = container.querySelector(`.day-details[data-day="${i}"]`);
+                    if(chk && details) { 
+                        const periods = {};
+                        details.querySelectorAll('.period-block').forEach(pb => {
+                            const mainChk = pb.querySelector('.period-main-chk');
+                            if(mainChk.checked) { const subs = Array.from(pb.querySelectorAll('.subperiod-chk:checked')).map(cb => cb.value); periods[mainChk.value] = subs.length > 0 ? subs : ['Intero']; }
+                        });
+                        newDefs[i] = { 
+                            available: chk.checked, 
+                            periods
+                        }; 
+                    }
+                }
+                state.scheduleData.defaults[member] = newDefs;
+                window.closeModal('schedDefaultsModal'); window.renderScheduleCalendar(); await autoSaveToCloud();
+            });
+
+            let currentOverrideDate = null;
+            let currentOverrideDayOfWeek = null;
+
+            window.openSchedOverrideModal = (dateStr, dayOfWeek) => {
+                const member = getMember(); if(!member) return;
+                currentOverrideDate = dateStr; currentOverrideDayOfWeek = dayOfWeek;
+                const [y, m, d] = dateStr.split('-');
+                document.getElementById('schedOverrideDateLabel').textContent = `${d}/${m}/${y}`;
+                const over = (state.scheduleData.overrides[member] || {})[dateStr];
+                const chk = document.getElementById('schedOverAvailable');
+                const details = document.getElementById('schedOverDetails');
+                
+                let periodsObj = {};
+                if (over) { 
+                    chk.checked = over.available; 
+                    periodsObj = over.periods || {};
+                    if (!over.periods && over.period) { let oldP = Array.isArray(over.period) ? over.period : [over.period]; let oldS = Array.isArray(over.subPeriod) ? over.subPeriod : [over.subPeriod || 'Intero']; if(oldP.includes('Tutto il giorno')) oldP = ['Mattina','Pomeriggio','Sera']; oldP.forEach(p => periodsObj[p] = oldS); }
+                } else {
+                    const def = (state.scheduleData.defaults[member] || {})[dayOfWeek] || { available: false };
+                    chk.checked = def.available; 
+                    periodsObj = def.periods || {};
+                    if (!def.periods && def.period) { let oldP = Array.isArray(def.period) ? def.period : [def.period || 'Mattina']; let oldS = Array.isArray(def.subPeriod) ? def.subPeriod : [def.subPeriod || 'Intero']; if(oldP.includes('Tutto il giorno')) oldP = ['Mattina','Pomeriggio','Sera']; oldP.forEach(p => periodsObj[p] = oldS); }
+                }
+
+                const genPHtml = (pName) => {
+                    const checked = !!periodsObj[pName]; const subs = periodsObj[pName] || [];
+                    return `<div class="flex flex-col bg-[#111] p-3 rounded border border-[#444] gap-2 period-block" data-pname="${pName}"><label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-gray-200 hover:text-white transition-colors uppercase tracking-widest"><input type="checkbox" class="period-main-chk accent-blue-500 w-4 h-4 cursor-pointer" value="${pName}" ${checked?'checked':''}> ${pName}</label><div class="flex flex-wrap gap-3 ml-6 subperiod-container transition-opacity ${checked?'':'opacity-30 pointer-events-none'}"><label class="cursor-pointer flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-200"><input type="checkbox" class="subperiod-chk accent-blue-500 w-3.5 h-3.5 cursor-pointer" value="Presto" ${subs.includes('Presto')?'checked':''}> Presto</label><label class="cursor-pointer flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-200"><input type="checkbox" class="subperiod-chk accent-blue-500 w-3.5 h-3.5 cursor-pointer" value="Tardi" ${subs.includes('Tardi')?'checked':''}> Tardi</label><label class="cursor-pointer flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-200"><input type="checkbox" class="subperiod-chk accent-blue-500 w-3.5 h-3.5 cursor-pointer" value="Intero" ${subs.includes('Intero')?'checked':''}> Intero</label></div></div>`;
+                };
+                details.innerHTML = genPHtml('Mattina') + genPHtml('Pomeriggio') + genPHtml('Sera');
+
+                chk.checked ? details.classList.remove('opacity-30', 'pointer-events-none') : details.classList.add('opacity-30', 'pointer-events-none');
+                chk.onchange = (e) => { e.target.checked ? details.classList.remove('opacity-30', 'pointer-events-none') : details.classList.add('opacity-30', 'pointer-events-none'); };
+                details.querySelectorAll('.period-main-chk').forEach(c => c.addEventListener('change', (e) => { const subC = e.target.closest('.period-block').querySelector('.subperiod-container'); if(e.target.checked) subC.classList.remove('opacity-30', 'pointer-events-none'); else subC.classList.add('opacity-30', 'pointer-events-none'); }));
+                document.getElementById('schedOverrideModal').classList.remove('hidden'); document.getElementById('schedOverrideModal').classList.add('flex');
+            };
+
+            document.getElementById('btnSaveSchedOverride').addEventListener('click', async () => {
+                const member = getMember(); if(!member || !currentOverrideDate) return;
+                if(!state.scheduleData.overrides[member]) state.scheduleData.overrides[member] = {};
+                
+                const periods = {};
+                document.querySelectorAll('#schedOverDetails .period-block').forEach(pb => {
+                    const mainChk = pb.querySelector('.period-main-chk');
+                    if(mainChk.checked) { const subs = Array.from(pb.querySelectorAll('.subperiod-chk:checked')).map(cb => cb.value); periods[mainChk.value] = subs.length > 0 ? subs : ['Intero']; }
+                });
+
+                state.scheduleData.overrides[member][currentOverrideDate] = { 
+                    available: document.getElementById('schedOverAvailable').checked, 
+                    periods
+                };
+                window.closeModal('schedOverrideModal'); window.renderScheduleCalendar(); await autoSaveToCloud();
+            });
+
+            document.getElementById('btnResetSchedOverride').addEventListener('click', async () => {
+                const member = getMember(); if(!member || !currentOverrideDate) return;
+                if(state.scheduleData.overrides[member] && state.scheduleData.overrides[member][currentOverrideDate]) {
+                    delete state.scheduleData.overrides[member][currentOverrideDate];
+                    window.closeModal('schedOverrideModal'); window.renderScheduleCalendar(); await autoSaveToCloud();
+                } else { window.closeModal('schedOverrideModal'); }
+            });
+
+            const schedObserver = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'class' && !schedView.classList.contains('hidden')) {
+                        populateSchedMembers(); window.renderScheduleCalendar(); window.renderScheduleOverview();
+                    }
+                });
+            });
+            schedObserver.observe(schedView, { attributes: true });
+            
+            clearInterval(scheduleInterval);
         }
     }, 1000);
 

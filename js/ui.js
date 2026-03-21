@@ -82,13 +82,13 @@ export function switchView(view) {
     devLog(`Cambio vista in corso: -> ${view.toUpperCase()}`, 'info');
     console.time(`[PERF RENDER] View: ${view}`);
     state.currentView = view;
-    ['navIdee', 'navInspirations', 'navStrumenti', 'navFormazione', 'navEditorsHub', 'navScript', 'navStats', 'navDatabase', 'navBrainstorming', 'navCompetitors'].forEach(id => {
+    ['navIdee', 'navInspirations', 'navStrumenti', 'navFormazione', 'navEditorsHub', 'navScript', 'navStats', 'navDatabase', 'navBrainstorming', 'navCompetitors', 'navSchedule'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.remove('active');
     });
     const navEarn = document.getElementById('navEarnings');
     if (navEarn) navEarn.classList.remove('bg-green-900/40');
-    ['viewIdeeWrapper', 'viewInspirationsWrapper', 'viewStrumentiWrapper', 'viewFormazioneWrapper', 'viewEditorsHubWrapper', 'viewScriptWrapper', 'viewStatsWrapper', 'viewDatabaseWrapper', 'viewEarningsWrapper', 'viewBrainstormingWrapper', 'viewCompetitorsWrapper'].forEach(id => {
+    ['viewIdeeWrapper', 'viewInspirationsWrapper', 'viewStrumentiWrapper', 'viewFormazioneWrapper', 'viewEditorsHubWrapper', 'viewScriptWrapper', 'viewStatsWrapper', 'viewDatabaseWrapper', 'viewEarningsWrapper', 'viewBrainstormingWrapper', 'viewCompetitorsWrapper', 'viewScheduleWrapper'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('hidden');
     });
@@ -186,6 +186,11 @@ export function switchView(view) {
         safeSetText(pageTitle, 'Competitors Analysis'); safeSetText(pageSubtitle, 'Analisi dettagliata della struttura e montaggio dei video per prendere spunto.');
         safeShowBtn('Aggiungi Video', () => { document.getElementById('addCompetitorModal')?.classList.remove('hidden'); document.getElementById('addCompetitorModal')?.classList.add('flex'); });
         if(window.renderCompetitors) window.renderCompetitors();
+    } else if (view === 'schedule') {
+        safeActive('navSchedule', 'viewScheduleWrapper');
+        safeSetText(pageTitle, 'Tabella Orari'); safeSetText(pageSubtitle, 'Gestisci la disponibilità e gli orari del team.');
+        safeHideBtn();
+        if(window.renderScheduleCalendar) window.renderScheduleCalendar();
     }
     console.timeEnd(`[PERF RENDER] View: ${view}`);
 }

@@ -60,7 +60,8 @@ export async function autoSaveToCloud() {
         finance: state.finance,
         devTodoList: state.devTodoList,
         brainstormingText: state.brainstormingText,
-        competitorsAnalysis: state.competitorsAnalysis
+        competitorsAnalysis: state.competitorsAnalysis,
+        scheduleData: state.scheduleData
     };
 
     const payload = { 
@@ -71,7 +72,8 @@ export async function autoSaveToCloud() {
         finance: state.db.yt.finance,
         devTodoList: state.db.yt.devTodoList,
         brainstormingText: state.db.yt.brainstormingText,
-        competitorsAnalysis: state.db.yt.competitorsAnalysis
+        competitorsAnalysis: state.db.yt.competitorsAnalysis,
+        scheduleData: state.db.yt.scheduleData
     };
     try {
         callScriptAction({ action: 'saveDB', data: payload }).then(() => {
@@ -126,6 +128,7 @@ export async function loadDataFromCloud() {
                 }
                 if (data.brainstormingText !== undefined) state.db.yt.brainstormingText = data.brainstormingText;
                 if (data.competitorsAnalysis) state.db.yt.competitorsAnalysis = data.competitorsAnalysis;
+                if (data.scheduleData) state.db.yt.scheduleData = data.scheduleData;
             }
         }
 
@@ -139,6 +142,8 @@ export async function loadDataFromCloud() {
         if(typeof state.db.yt.brainstormingText === 'undefined') state.db.yt.brainstormingText = "";
         if(!state.db['3d'].competitorsAnalysis) state.db['3d'].competitorsAnalysis = [];
         if(!state.db.yt.competitorsAnalysis) state.db.yt.competitorsAnalysis = [];
+        if(!state.db['3d'].scheduleData) state.db['3d'].scheduleData = { defaults: {}, overrides: {} };
+        if(!state.db.yt.scheduleData) state.db.yt.scheduleData = { defaults: {}, overrides: {} };
 
         if (window.setLabContext) {
             window.setLabContext(state.activeLab || 'yt');
