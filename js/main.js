@@ -874,9 +874,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         for (let [p, subs] of Object.entries(periods)) {
                             if (!subs || subs.length === 0) subs = ['Intero'];
                             let sFull = subs.join(' + ');
-                            tags.push(`<span class="bg-green-500/20 text-green-400 text-[9px] px-1 py-0.5 rounded leading-tight font-bold border border-green-500/30 block w-full break-words mb-0.5 shadow-sm" title="${p}: ${subs.join(', ')}">${p}: ${sFull}</span>`);
+                            tags.push(`<span class="bg-green-500/20 text-green-400 text-[10px] px-1.5 py-1 rounded leading-tight font-bold border border-green-500/30 block w-full whitespace-normal break-words mb-1 shadow-sm" title="${p}: ${subs.join(', ')}">${p}: ${sFull}</span>`);
                         }
-                        if(tags.length === 0) tags.push(`<span class="bg-green-500/20 text-green-400 text-[9px] px-1 py-0.5 rounded leading-tight font-bold border border-green-500/30 block w-fit mb-0.5">Disponibile</span>`);
+                        if(tags.length === 0) tags.push(`<span class="bg-green-500/20 text-green-400 text-[10px] px-1.5 py-1 rounded leading-tight font-bold border border-green-500/30 block w-fit mb-1 shadow-sm">✔️ Disponibile</span>`);
                         contentHtml = `<div class="mt-1 flex flex-col gap-0.5">${tags.join('')}</div>`;
                     }
 
@@ -977,9 +977,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             for (let [p, subs] of Object.entries(periods)) {
                                 if (!subs || subs.length === 0) subs = ['Intero'];
                                 let sFull = subs.join(' + ');
-                                tags.push(`<span class="bg-green-500/20 text-green-400 text-[9px] px-1 py-1 rounded leading-tight font-bold border border-green-500/30 block mb-0.5 w-[95%] mx-auto text-center break-words" title="${p}: ${subs.join(', ')}">${p}: ${sFull}</span>`);
+                                tags.push(`<span class="bg-green-500/20 text-green-400 text-[10px] px-1.5 py-1 rounded leading-tight font-bold border border-green-500/30 block mb-1 w-full mx-auto text-center whitespace-normal break-words shadow-sm" title="${p}: ${subs.join(', ')}">${p}: ${sFull}</span>`);
                             }
-                            if(tags.length === 0) tags.push(`<span class="bg-green-500/20 text-green-400 text-[9px] px-1 py-1 rounded leading-tight font-bold border border-green-500/30 block mb-0.5 w-fit mx-auto text-center">Disponibile</span>`);
+                            if(tags.length === 0) tags.push(`<span class="bg-green-500/20 text-green-400 text-[10px] px-1.5 py-1 rounded leading-tight font-bold border border-green-500/30 block mb-1 w-fit mx-auto text-center shadow-sm">✔️ Disponibile</span>`);
                             cellHtml = `<div class="w-full h-full min-h-[60px] flex flex-col justify-center p-1">${tags.join('')}</div>`;
                         }
 
