@@ -47,7 +47,12 @@ export async function fetchYTProxy(url) {
 export async function autoSaveToCloud() {
     if (!state.SCRIPT_URL) return;
     updateStatus("Salvataggio...", "warning");
+    devLog(`[API] Avvio processo autoSaveToCloud...`, "debug", state.db[state.activeLab]);
     console.time('[PERF API] autoSaveToCloud');
+
+    state.isSyncing = true;
+    state.syncError = false;
+    if(window.updateSyncIndicators) window.updateSyncIndicators();
 
     state.db[state.activeLab] = {
         videoIdeas: state.videoIdeas,
@@ -79,16 +84,34 @@ export async function autoSaveToCloud() {
         callScriptAction({ action: 'saveDB', data: payload }).then(() => {
             updateStatus("💾 Salvato!", "success");
             setTimeout(() => updateStatus("🟢 Sincronizzato", "success"), 2000);
+            state.isSyncing = false;
+            state.syncError = false;
+            if(window.updateSyncIndicators) window.updateSyncIndicators();
             console.timeEnd('[PERF API] autoSaveToCloud');
-        }).catch(e => { throw e; });
-    } catch (error) { updateStatus("Errore Auto-Save", "error"); }
+        }).catch(e => { 
+            state.isSyncing = false;
+            state.syncError = true;
+            if(window.updateSyncIndicators) window.updateSyncIndicators();
+            throw e; 
+        });
+    } catch (error) { 
+        updateStatus("Errore Auto-Save", "error"); 
+        state.isSyncing = false;
+        state.syncError = true;
+        if(window.updateSyncIndicators) window.updateSyncIndicators();
+    }
 }
 
 export async function loadDataFromCloud() {
     if (!state.SCRIPT_URL) return;
     
     updateStatus("Caricamento DB...", "warning");
+    devLog(`[API] Inizio loadDataFromCloud... URL: ${state.SCRIPT_URL}`, "debug");
     
+    state.isSyncing = true;
+    state.syncError = false;
+    if(window.updateSyncIndicators) window.updateSyncIndicators();
+
     try {
         const res = await fetch(state.SCRIPT_URL, { cache: 'no-store' });
         const rawText = await res.text();
@@ -149,14 +172,20 @@ export async function loadDataFromCloud() {
             window.setLabContext(state.activeLab || 'yt');
         }
 
+        state.isSyncing = false;
+        state.syncError = false;
         updateStatus("🟢 Sincronizzato", "success");
         devLog("[API] Dati caricati dal cloud con successo.", "success", data);
         
         if (window.renderChannelList) window.renderChannelList();
         if (window.switchView) window.switchView(state.currentView || 'idee');
+        if (window.updateSyncIndicators) window.updateSyncIndicators();
 
     } catch (error) {
         updateStatus("Errore Caricamento", "error");
+        state.isSyncing = false;
+        state.syncError = true;
+        if(window.updateSyncIndicators) window.updateSyncIndicators();
         devLog(`[API ERROR] Caricamento fallito: ${error.message}`, "error");
     }
 }

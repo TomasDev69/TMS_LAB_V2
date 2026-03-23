@@ -23,6 +23,22 @@ window.renderTMSPicks = renderTMSPicks;
 window.renderDevTodo = renderDevTodo;
 window.switchEHTab = switchEHTab;
 
+window.updateSyncIndicators = function() {
+    if (!state.SCRIPT_URL) return;
+    const indicators = document.querySelectorAll('.item-sync-indicator');
+    let html = '';
+    if (state.syncError) {
+        html = '<span title="Errore di Sincronizzazione" class="text-red-500 text-[9px] bg-red-900/30 w-4 h-4 rounded-full border border-red-500/30 shadow-sm inline-flex items-center justify-center shrink-0 ml-1.5 cursor-help">❌</span>';
+    } else if (state.isSyncing) {
+        html = '<span title="Salvataggio nel Cloud in corso..." class="text-yellow-400 text-[9px] animate-pulse bg-yellow-900/30 w-4 h-4 rounded-full border border-yellow-500/30 shadow-sm inline-flex items-center justify-center shrink-0 ml-1.5 cursor-help">⏳</span>';
+    } else {
+        html = '<span title="Sincronizzato nel Cloud correttamente" class="text-green-400 text-[9px] bg-green-900/30 w-4 h-4 rounded-full border border-green-500/30 shadow-sm inline-flex items-center justify-center shrink-0 ml-1.5 cursor-help">✔️</span>';
+    }
+    indicators.forEach(el => {
+        if(el.innerHTML !== html) el.innerHTML = html;
+    });
+};
+
 window.setLabContext = (labId) => {
     state.activeLab = labId;
     const dbRef = state.db[labId] || {};

@@ -244,7 +244,7 @@ export function renderVideos(videosToRender) {
                 ${avatarHtml}
                 <div class="flex flex-col">
                     <h3 class="text-[16px] font-semibold text-[#f1f1f1] line-clamp-2 leading-tight group-hover:text-[#3ea6ff] transition-colors" title="${video.title}">${video.title}</h3>
-                    <div class="text-[12px] text-[#aaaaaa] mt-1 flex flex-col"><span>${channelName} &bull; ${timeAgoStr}</span><span class="mt-0.5">Resp: ${video.assignee ? `<span class="text-white font-semibold">${video.assignee}</span>` : `<span class="italic">Nessuno</span>`}</span></div>
+                    <div class="text-[12px] text-[#aaaaaa] mt-1 flex flex-col"><span class="flex items-center">${channelName} &bull; ${timeAgoStr} <span class="item-sync-indicator"></span></span><span class="mt-0.5">Resp: ${video.assignee ? `<span class="text-white font-semibold">${video.assignee}</span>` : `<span class="italic">Nessuno</span>`}</span></div>
                 </div>
             </div>
         `;
@@ -272,6 +272,7 @@ export function renderVideos(videosToRender) {
     });
     console.timeEnd('[PERF DOM] renderVideos');
     console.info(`%c[TMS STATS] Renderizzate ${videosToRender ? videosToRender.length : 0} idee a schermo.`, 'color:#4ade80;font-weight:bold');
+    if(window.updateSyncIndicators) window.updateSyncIndicators();
 }
 
 // ==========================================
@@ -459,9 +460,10 @@ export function renderTools() {
             });
         };
 
-        card.innerHTML = `<img src="${tool.image}" class="w-full h-32 object-cover bg-[#111] pointer-events-none"><div class="p-4 flex-1 flex flex-col"><h3 class="font-bold text-white text-lg">${tool.title}</h3><p class="text-sm text-gray-400 mt-1 line-clamp-3 flex-1">${tool.description}</p><button onclick="window.open('${tool.link}', '_blank')" class="mt-4 w-full py-2.5 bg-[#303030] hover:bg-[#404040] text-white rounded text-sm font-semibold transition-colors flex justify-center items-center gap-2">Apri Strumento ↗</button></div>`;
+        card.innerHTML = `<img src="${tool.image}" class="w-full h-32 object-cover bg-[#111] pointer-events-none"><div class="p-4 flex-1 flex flex-col"><h3 class="font-bold text-white text-lg flex items-center">${tool.title} <span class="item-sync-indicator"></span></h3><p class="text-sm text-gray-400 mt-1 line-clamp-3 flex-1">${tool.description}</p><button onclick="window.open('${tool.link}', '_blank')" class="mt-4 w-full py-2.5 bg-[#303030] hover:bg-[#404040] text-white rounded text-sm font-semibold transition-colors flex justify-center items-center gap-2">Apri Strumento ↗</button></div>`;
         card.appendChild(act); toolsGrid.appendChild(card);
     });
+    if(window.updateSyncIndicators) window.updateSyncIndicators();
 }
 
 export function renderTraining() {
@@ -531,9 +533,10 @@ export function renderTraining() {
 
         let thumbSrc = training.ytId ? `https://img.youtube.com/vi/${training.ytId}/maxresdefault.jpg` : training.thumbnail;
 
-        card.innerHTML = `<div class="relative aspect-video bg-[#111]" onclick="window.open('${training.link}', '_blank')"><img src="${thumbSrc}" onerror="this.src='${training.thumbnail || ''}'; if(this.src==='') this.src='https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop'" class="w-full h-full object-cover pointer-events-none"><div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"><span class="text-5xl drop-shadow-lg">▶️</span></div>${!training.ytId ? '<div class="absolute top-2 left-2 bg-purple-600 px-2 py-0.5 rounded text-[10px] font-bold uppercase shadow">Link Esterno</div>' : ''}</div><div class="p-4 flex-1 flex flex-col justify-center"><h3 class="font-bold text-white text-sm line-clamp-2 leading-tight group-hover:text-purple-400 transition-colors">${training.title}</h3></div>`;
+        card.innerHTML = `<div class="relative aspect-video bg-[#111]" onclick="window.open('${training.link}', '_blank')"><img src="${thumbSrc}" onerror="this.src='${training.thumbnail || ''}'; if(this.src==='') this.src='https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop'" class="w-full h-full object-cover pointer-events-none"><div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"><span class="text-5xl drop-shadow-lg">▶️</span></div>${!training.ytId ? '<div class="absolute top-2 left-2 bg-purple-600 px-2 py-0.5 rounded text-[10px] font-bold uppercase shadow">Link Esterno</div>' : ''}</div><div class="p-4 flex-1 flex flex-col justify-center"><h3 class="font-bold text-white text-sm line-clamp-2 leading-tight group-hover:text-purple-400 transition-colors inline-flex items-center flex-wrap gap-1">${training.title} <span class="item-sync-indicator shrink-0"></span></h3></div>`;
         card.appendChild(act); trainingGrid.appendChild(card);
     });
+    if(window.updateSyncIndicators) window.updateSyncIndicators();
 }
 
 // ==========================================
@@ -599,13 +602,13 @@ export function renderEditorsHub() {
         };
 
         if (isIcon) {
-            card.innerHTML = `<div class="w-full h-32 mb-3 bg-[#111] rounded-lg overflow-hidden flex items-center justify-center border border-[#333]"><img src="${item.link}" class="max-w-full max-h-full object-contain"></div><div class="flex flex-col pr-6 mb-3"><h3 class="font-bold text-white text-sm leading-tight line-clamp-1" title="${item.title}">${item.title}</h3><span class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Immagine / Icona</span></div><div class="mt-auto flex w-full"><button class="w-full py-2 bg-[#3ea6ff] hover:bg-[#65b8ff] text-black rounded text-sm font-bold transition-colors flex justify-center items-center gap-2 download-eh-btn">⬇️ Scarica File</button></div>`;
+            card.innerHTML = `<div class="w-full h-32 mb-3 bg-[#111] rounded-lg overflow-hidden flex items-center justify-center border border-[#333]"><img src="${item.link}" class="max-w-full max-h-full object-contain"></div><div class="flex flex-col pr-6 mb-3"><h3 class="font-bold text-white text-sm leading-tight line-clamp-1 inline-flex items-center gap-1" title="${item.title}">${item.title} <span class="item-sync-indicator shrink-0"></span></h3><span class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Immagine / Icona</span></div><div class="mt-auto flex w-full"><button class="w-full py-2 bg-[#3ea6ff] hover:bg-[#65b8ff] text-black rounded text-sm font-bold transition-colors flex justify-center items-center gap-2 download-eh-btn">⬇️ Scarica File</button></div>`;
         } else {
             const isPlaying = state.currentlyPlayingEHId === item.id && !state.globalAudioPlayer.paused;
             const mainIconClass = isPlaying ? 'hidden' : 'group-hover/audio:hidden';
             const playIconClass = isPlaying ? 'block' : 'hidden group-hover/audio:block';
             
-            card.innerHTML = `<div class="flex items-start gap-3 mb-4"><div class="relative w-10 h-10 rounded-lg bg-[#272727] flex items-center justify-center text-xl shrink-0 border border-[#404040] group/audio cursor-pointer eh-play-trigger" data-id="${item.id}" title="Clicca per ascoltare"><span class="eh-icon-main ${mainIconClass}">${icon}</span><span class="eh-play-icon ${playIconClass} text-[#3ea6ff] text-sm">${isPlaying ? '⏸️' : '▶️'}</span></div><div class="flex flex-col pr-6 flex-1"><h3 class="font-bold text-white text-sm leading-tight line-clamp-2" title="${item.title}">${item.title}</h3><span class="text-[10px] text-gray-500 mt-1 uppercase tracking-widest">${item.category === 'sfx' ? 'Sound Effect' : 'Audio Track'}</span></div></div><div class="mt-auto pt-2 flex w-full"><button class="w-full py-2 bg-[#3ea6ff] hover:bg-[#65b8ff] text-black rounded text-sm font-bold transition-colors flex justify-center items-center gap-2 download-eh-btn">⬇️ Scarica File</button></div>`;
+            card.innerHTML = `<div class="flex items-start gap-3 mb-4"><div class="relative w-10 h-10 rounded-lg bg-[#272727] flex items-center justify-center text-xl shrink-0 border border-[#404040] group/audio cursor-pointer eh-play-trigger" data-id="${item.id}" title="Clicca per ascoltare"><span class="eh-icon-main ${mainIconClass}">${icon}</span><span class="eh-play-icon ${playIconClass} text-[#3ea6ff] text-sm">${isPlaying ? '⏸️' : '▶️'}</span></div><div class="flex flex-col pr-6 flex-1"><h3 class="font-bold text-white text-sm leading-tight line-clamp-2 inline-flex items-center flex-wrap gap-1" title="${item.title}">${item.title} <span class="item-sync-indicator shrink-0"></span></h3><span class="text-[10px] text-gray-500 mt-1 uppercase tracking-widest">${item.category === 'sfx' ? 'Sound Effect' : 'Audio Track'}</span></div></div><div class="mt-auto pt-2 flex w-full"><button class="w-full py-2 bg-[#3ea6ff] hover:bg-[#65b8ff] text-black rounded text-sm font-bold transition-colors flex justify-center items-center gap-2 download-eh-btn">⬇️ Scarica File</button></div>`;
             
             setTimeout(() => {
                 const trigger = card.querySelector('.eh-play-trigger');
@@ -633,6 +636,7 @@ export function renderEditorsHub() {
         }, 0);
         ehGrid.appendChild(card);
     });
+    if(window.updateSyncIndicators) window.updateSyncIndicators();
 }
 
 // ==========================================
@@ -854,7 +858,7 @@ export async function renderTMSPicks() {
                     ${avatarHtml}
                 </div>
                 <div class="flex flex-col">
-                    <h3 class="text-[14px] font-semibold text-[#f1f1f1] line-clamp-2 leading-tight group-hover:text-blue-400 transition-colors" title="${pick.title}">${pick.title}</h3>
+                    <h3 class="text-[14px] font-semibold text-[#f1f1f1] line-clamp-2 leading-tight group-hover:text-blue-400 transition-colors inline-flex items-center gap-1" title="${pick.title}">${pick.title} <span class="item-sync-indicator shrink-0"></span></h3>
                     <div class="text-[12px] text-[#aaaaaa] mt-1 font-medium flex items-center gap-1">
                         ${pick.author || 'Sconosciuto'}
                     </div>
@@ -863,6 +867,7 @@ export async function renderTMSPicks() {
         `;
         grid.appendChild(card);
     });
+    if(window.updateSyncIndicators) window.updateSyncIndicators();
 }
 
 // ==========================================
@@ -1350,7 +1355,7 @@ window.renderCompetitors = function() {
             <div class="flex gap-3 px-1 pb-1">
                 <div class="w-8 h-8 rounded-full bg-[#111] flex items-center justify-center text-xs font-bold border border-[#404040] shrink-0 overflow-hidden">${avatarHtml}</div>
                 <div class="flex flex-col flex-1">
-                    <h3 class="text-sm font-bold text-[#f1f1f1] line-clamp-2 leading-tight group-hover:text-blue-400 transition-colors" title="${comp.title}">${comp.title}</h3>
+                    <h3 class="text-sm font-bold text-[#f1f1f1] line-clamp-2 leading-tight group-hover:text-blue-400 transition-colors inline-flex items-center gap-1" title="${comp.title}">${comp.title} <span class="item-sync-indicator shrink-0"></span></h3>
                     <div class="text-[11px] text-[#aaaaaa] mt-1.5 font-medium flex items-center justify-between">
                         <span class="truncate pr-2">${comp.author || 'Sconosciuto'}</span>
                         <span class="shrink-0 text-white bg-black/30 px-1.5 py-0.5 rounded border border-[#333]">${comp.views || ''}</span>
@@ -1360,6 +1365,7 @@ window.renderCompetitors = function() {
         `;
         grid.appendChild(card);
     });
+    if(window.updateSyncIndicators) window.updateSyncIndicators();
 };
 
 window.openCompDashboard = (comp) => {
