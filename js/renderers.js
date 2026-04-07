@@ -1201,7 +1201,9 @@ window.openIdeaDashboard = function(idea) {
         const assigneesArr = idea.assignee.split(',').map(s=>s.trim());
         if (!idea.taskAssignees && assigneesArr.length > 0) {
             idea.taskAssignees = { script: [], audio: [], video: [], music: [], sfx: [], final: [] };
-            ['script', 'audio', 'video', 'music', 'sfx', 'final'].forEach(k => { if (idea.checklist[k]) idea.taskAssignees[k].push(assigneesArr[0]); });
+            ['script', 'audio', 'video', 'music', 'sfx', 'final'].forEach(k => { 
+                if (idea.checklist[k]) idea.taskAssignees[k] = [...assigneesArr]; 
+            });
         } else if (!idea.taskAssignees) {
             idea.taskAssignees = { script: [], audio: [], video: [], music: [], sfx: [], final: [] };
         }
@@ -1212,7 +1214,7 @@ window.openIdeaDashboard = function(idea) {
                 chk.checked = idea.checklist[key];
                 
                 let selectContainer = document.getElementById(`collab_select_${key}`);
-                if (assigneesArr.length > 1) {
+                if (assigneesArr.length > 0) {
                     if (!selectContainer) {
                         selectContainer = document.createElement('div');
                         selectContainer.id = `collab_select_${key}`;
@@ -1242,7 +1244,8 @@ window.openIdeaDashboard = function(idea) {
                             
                             idea.checklist[key] = idea.taskAssignees[key].length > 0; 
                             chk.checked = idea.checklist[key];
-                            window.updateChecklistProgress(idea); window.renderVideos(window.getFilteredIdeas()); 
+                            window.updateChecklistProgress(idea); 
+                            renderVideos(getFilteredIdeas()); 
                             
                             selectContainer.querySelectorAll('.task-collab-btn').forEach(b => {
                                 const isC = idea.taskAssignees[key].includes(b.dataset.name);

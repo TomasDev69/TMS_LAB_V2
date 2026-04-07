@@ -1608,12 +1608,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 idea.checklist[key] = e.target.checked;
                 
                 const assigneesArr = idea.assignee ? idea.assignee.split(',').map(s=>s.trim()) : [];
-                if (assigneesArr.length > 1) {
+                if (assigneesArr.length > 0) {
                     if (!idea.taskAssignees) {
                         idea.taskAssignees = { script: [], audio: [], video: [], music: [], sfx: [], final: [] };
                         if (assigneesArr.length > 0) {
                             ['script', 'audio', 'video', 'music', 'sfx', 'final'].forEach(k => {
-                                if (k !== key && idea.checklist[k]) idea.taskAssignees[k].push(assigneesArr[0]);
+                                if (k !== key && idea.checklist[k]) idea.taskAssignees[k] = [...assigneesArr];
                             });
                         }
                     }
