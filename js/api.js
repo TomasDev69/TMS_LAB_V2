@@ -66,7 +66,8 @@ export async function autoSaveToCloud() {
         devTodoList: state.devTodoList,
         brainstormingText: state.brainstormingText,
         competitorsAnalysis: state.competitorsAnalysis,
-        scheduleData: state.scheduleData
+        scheduleData: state.scheduleData,
+        fastIdeas: state.fastIdeas
     };
 
     const payload = { 
@@ -78,7 +79,8 @@ export async function autoSaveToCloud() {
         devTodoList: state.db.yt.devTodoList,
         brainstormingText: state.db.yt.brainstormingText,
         competitorsAnalysis: state.db.yt.competitorsAnalysis,
-        scheduleData: state.db.yt.scheduleData
+        scheduleData: state.db.yt.scheduleData,
+        fastIdeas: state.db.yt.fastIdeas
     };
     try {
         callScriptAction({ action: 'saveDB', data: payload }).then(() => {
@@ -152,11 +154,12 @@ export async function loadDataFromCloud() {
                 if (data.brainstormingText !== undefined) state.db.yt.brainstormingText = data.brainstormingText;
                 if (data.competitorsAnalysis) state.db.yt.competitorsAnalysis = data.competitorsAnalysis;
                 if (data.scheduleData) state.db.yt.scheduleData = data.scheduleData;
+                if (data.fastIdeas) state.db.yt.fastIdeas = data.fastIdeas;
             }
         }
 
-        if(!state.db['3d']) state.db['3d'] = { videoIdeas: [], channels: [], toolsData: [], trainingData: [], editorsHubData: [], inspChannels: [], tmsPicks: [], devTodoList: [] };
-        if(!state.db.yt) state.db.yt = { videoIdeas: [], channels: [], toolsData: [], trainingData: [], editorsHubData: [], inspChannels: [], tmsPicks: [], devTodoList: [] };
+        if(!state.db['3d']) state.db['3d'] = { videoIdeas: [], channels: [], toolsData: [], trainingData: [], editorsHubData: [], inspChannels: [], tmsPicks: [], devTodoList: [], fastIdeas: [] };
+        if(!state.db.yt) state.db.yt = { videoIdeas: [], channels: [], toolsData: [], trainingData: [], editorsHubData: [], inspChannels: [], tmsPicks: [], devTodoList: [], fastIdeas: [] };
         
         if(!state.db['3d'].finance) state.db['3d'].finance = { revenues: [], editorCosts: [], subscriptions: [] };
         if(!state.db.yt.finance) state.db.yt.finance = { revenues: [], editorCosts: [], subscriptions: [] };
@@ -167,6 +170,8 @@ export async function loadDataFromCloud() {
         if(!state.db.yt.competitorsAnalysis) state.db.yt.competitorsAnalysis = [];
         if(!state.db['3d'].scheduleData) state.db['3d'].scheduleData = { defaults: {}, overrides: {} };
         if(!state.db.yt.scheduleData) state.db.yt.scheduleData = { defaults: {}, overrides: {} };
+        if(!state.db['3d'].fastIdeas) state.db['3d'].fastIdeas = [];
+        if(!state.db.yt.fastIdeas) state.db.yt.fastIdeas = [];
 
         if (window.setLabContext) {
             window.setLabContext(state.activeLab || 'yt');

@@ -1431,3 +1431,86 @@ window.renderCompImages = (images) => {
         grid.appendChild(div);
     });
 };
+
+// ==========================================
+// FAST IDEAS
+// ==========================================
+window.renderFastIdeas = function() {
+    const grid = document.getElementById('fastIdeasGrid');
+    const noRes = document.getElementById('noFastIdeas');
+    if (!grid) return;
+    
+    grid.innerHTML = '';
+    
+    if (!state.fastIdeas || state.fastIdeas.length === 0) {
+        if(noRes) { noRes.classList.remove('hidden'); noRes.classList.add('flex'); }
+        grid.classList.add('hidden');
+        return;
+    }
+    
+    if(noRes) { noRes.classList.add('hidden'); noRes.classList.remove('flex'); }
+    grid.classList.remove('hidden');
+
+    [...state.fastIdeas].reverse().forEach(idea => {
+        const card = document.createElement('div');
+        card.className = 'bg-[#222] border border-[#333] hover:border-blue-500 rounded-xl p-4 flex flex-col gap-3 group transition-colors relative';
+        
+        const hasDesc = idea.description && idea.description.trim() !== '';
+
+        card.innerHTML = `
+            <div class="flex justify-between items-start gap-2">
+                <h3 class="font-bold text-white text-lg leading-tight break-words">${idea.title}</h3>
+                <button class="info-fast-idea text-xl transition-colors p-1 shrink-0 ${hasDesc ? 'text-blue-400 opacity-100' : 'grayscale opacity-50 hover:opacity-100 hover:grayscale-0'}" title="Aggiungi/Modifica Info">ℹ️</button>
+            </div>
+            ${hasDesc ? `<div class="text-xs text-gray-400 line-clamp-3 bg-[#111] p-2 rounded border border-[#333] whitespace-pre-wrap">${idea.description.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>` : ''}
+            <div class="text-xs text-gray-500 mt-auto pt-2 border-t border-[#333] flex justify-between items-center">
+                <span>${new Date(idea.createdAt).toLocaleDateString('it-IT')}</span>
+                <div class="flex gap-2">
+                    <button class="promote-fast-idea text-blue-400 hover:text-blue-300 font-bold px-2 py-1 bg-blue-900/20 hover:bg-blue-900/40 rounded transition-colors" title="Promuovi a Idea Video">🚀 Promuovi</button>
+                    <button class="delete-fast-idea text-red-500 hover:text-red-400 font-bold px-2 py-1 bg-red-900/20 hover:bg-red-900/40 rounded transition-colors" title="Elimina">🗑️</button>
+                </div>
+            </div>
+        `;
+
+        card.querySelector('.info-fast-idea').addEventListener('click', () => {
+            const modal = document.getElementById('fastIdeaInfoModal');
+            if (modal) {
+                document.getElementById('fastIdeaInfoId').value = idea.id;
+                document.getElementById('fastIdeaInfoTitle').value = idea.title;
+                document.getElementById('fastIdeaInfoDesc').value = idea.description || '';
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        });
+
+        card.querySelector('.delete-fast-idea').addEventListener('click', async () => {
+            if(confirm('Eliminare questa idea veloce?')) {
+                state.fastIdeas = state.fastIdeas.filter(f => f.id !== idea.id);
+                window.renderFastIdeas();
+                await autoSaveToCloud();
+            }
+        });
+
+        card.querySelector('.promote-fast-idea').addEventListener('click', async () => {
+            const titleInput = document.getElementById('inputTitle');
+            if (titleInput) titleInput.value = idea.title;
+            
+            if (hasDesc) {
+                const sourcesInput = document.getElementById('inputSources');
+                if (sourcesInput) {
+                    sourcesInput.value = idea.description + (sourcesInput.value ? '\n\n' + sourcesInput.value : '');
+                }
+            }
+            
+            const modal = document.getElementById('addModal');
+            if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+            if(confirm('Titolo copiato nel form di creazione! Vuoi eliminare questa idea veloce dalla lista?')) {
+                state.fastIdeas = state.fastIdeas.filter(f => f.id !== idea.id);
+                window.renderFastIdeas();
+                await autoSaveToCloud();
+            }
+        });
+
+        grid.appendChild(card);
+    });
+};

@@ -2,14 +2,15 @@ export const state = {
     activeLab: 'yt',
     db: {
         yt: {
-            videoIdeas: [], channels: [], toolsData: [], trainingData: [], editorsHubData: [], inspChannels: [], tmsPicks: [], finance: { revenues: [], editorCosts: [], subscriptions: [] }, devTodoList: [], brainstormingText: "", competitorsAnalysis: []
+            videoIdeas: [], channels: [], toolsData: [], trainingData: [], editorsHubData: [], inspChannels: [], tmsPicks: [], finance: { revenues: [], editorCosts: [], subscriptions: [] }, devTodoList: [], brainstormingText: "", competitorsAnalysis: [], fastIdeas: []
         },
         '3d': {
-            videoIdeas: [], channels: [], toolsData: [], trainingData: [], editorsHubData: [], inspChannels: [], tmsPicks: [], finance: { revenues: [], editorCosts: [], subscriptions: [] }, devTodoList: [], brainstormingText: "", competitorsAnalysis: []
+            videoIdeas: [], channels: [], toolsData: [], trainingData: [], editorsHubData: [], inspChannels: [], tmsPicks: [], finance: { revenues: [], editorCosts: [], subscriptions: [] }, devTodoList: [], brainstormingText: "", competitorsAnalysis: [], fastIdeas: []
         }
     },
     SCRIPT_URL: localStorage.getItem('creatorhub_script_url') || "",
     videoIdeas: [],
+    fastIdeas: [],
     channels: [],
     toolsData: [],
     trainingData: [],

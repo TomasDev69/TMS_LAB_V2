@@ -82,13 +82,13 @@ export function switchView(view) {
     devLog(`Cambio vista in corso: -> ${view.toUpperCase()}`, 'info');
     console.time(`[PERF RENDER] View: ${view}`);
     state.currentView = view;
-    ['navIdee', 'navInspirations', 'navStrumenti', 'navFormazione', 'navEditorsHub', 'navScript', 'navStats', 'navDatabase', 'navBrainstorming', 'navCompetitors', 'navSchedule'].forEach(id => {
+    ['navIdee', 'navFastIdeas', 'navInspirations', 'navStrumenti', 'navFormazione', 'navEditorsHub', 'navScript', 'navStats', 'navDatabase', 'navBrainstorming', 'navCompetitors', 'navSchedule'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.remove('active');
     });
     const navEarn = document.getElementById('navEarnings');
     if (navEarn) navEarn.classList.remove('bg-green-900/40');
-    ['viewIdeeWrapper', 'viewInspirationsWrapper', 'viewStrumentiWrapper', 'viewFormazioneWrapper', 'viewEditorsHubWrapper', 'viewScriptWrapper', 'viewStatsWrapper', 'viewDatabaseWrapper', 'viewEarningsWrapper', 'viewBrainstormingWrapper', 'viewCompetitorsWrapper', 'viewScheduleWrapper'].forEach(id => {
+    ['viewIdeeWrapper', 'viewFastIdeasWrapper', 'viewInspirationsWrapper', 'viewStrumentiWrapper', 'viewFormazioneWrapper', 'viewEditorsHubWrapper', 'viewScriptWrapper', 'viewStatsWrapper', 'viewDatabaseWrapper', 'viewEarningsWrapper', 'viewBrainstormingWrapper', 'viewCompetitorsWrapper', 'viewScheduleWrapper'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('hidden');
     });
@@ -113,6 +113,11 @@ export function switchView(view) {
         safeSetText(pageTitle, 'Le tue Idee Video'); safeSetText(pageSubtitle, 'Sviluppa e traccia i tuoi prossimi contenuti.');
         safeShowBtn('Crea Idea', () => { document.getElementById('addModal')?.classList.remove('hidden'); document.getElementById('addModal')?.classList.add('flex'); });
         renderVideos(getFilteredIdeas());
+    } else if (view === 'fastideas') {
+        safeActive('navFastIdeas', 'viewFastIdeasWrapper');
+        safeSetText(pageTitle, 'Idee Veloci'); safeSetText(pageSubtitle, 'Appunta i titoli delle tue prossime idee senza bisogno di copertine.');
+        safeHideBtn();
+        if(window.renderFastIdeas) window.renderFastIdeas();
     } else if (view === 'inspirations') {
         safeActive('navInspirations', 'viewInspirationsWrapper');
         safeSetText(pageTitle, 'Inspirations'); safeSetText(pageSubtitle, 'Studia e analizza i canali dei competitor per prendere spunto.');

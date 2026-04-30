@@ -55,6 +55,7 @@ window.setLabContext = (labId) => {
     if(!state.finance.editorCosts) state.finance.editorCosts = [];
     if(!state.finance.subscriptions) state.finance.subscriptions = [];
     state.devTodoList = dbRef.devTodoList || [];
+    state.fastIdeas = dbRef.fastIdeas || [];
     state.brainstormingText = dbRef.brainstormingText || "";
     state.competitorsAnalysis = dbRef.competitorsAnalysis || [];
     state.scheduleData = dbRef.scheduleData || { defaults: {}, overrides: {} };
@@ -319,6 +320,101 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }, 1500); // Controlla ogni 1.5 secondi per agganciare i tasti in modo indistruttibile
+
+    // --- INJECT FAST IDEAS VIEW & NAV (Dinamico) ---
+    const fastIdeasInterval = setInterval(() => {
+        const ideeNav = document.getElementById('navIdee');
+        const mainContent = document.getElementById('viewIdeeWrapper')?.parentNode;
+        
+        if (ideeNav && mainContent && !document.getElementById('navFastIdeas')) {
+            const fastNav = ideeNav.cloneNode(true);
+            fastNav.id = 'navFastIdeas';
+            
+            const textWalker = document.createTreeWalker(fastNav, NodeFilter.SHOW_TEXT, null, false);
+            let node;
+            while ((node = textWalker.nextNode())) {
+                if (node.nodeValue.includes('Idee')) node.nodeValue = node.nodeValue.replace(/Idee Video|Idee/g, 'Idee Veloci');
+                if (node.nodeValue.includes('💡')) node.nodeValue = node.nodeValue.replace('💡', '⚡');
+            }
+            
+            ideeNav.parentNode.insertBefore(fastNav, ideeNav.nextSibling);
+            fastNav.classList.remove('active');
+            fastNav.addEventListener('click', (e) => { e.preventDefault(); window.switchView('fastideas'); });
+
+            const fastView = document.createElement('div');
+            fastView.id = 'viewFastIdeasWrapper';
+            fastView.className = 'hidden flex flex-col h-[calc(100vh-140px)] gap-6 overflow-y-auto custom-scrollbar pr-2 pb-6';
+            fastView.innerHTML = `
+                <div class="bg-[#1a1a1a] rounded-2xl border border-[#333] p-6 shadow-md flex flex-col gap-4 shrink-0">
+                    <h2 class="text-xl font-black text-white flex items-center gap-2"><span>⚡</span> Idee Veloci</h2>
+                    <p class="text-sm text-gray-400">Salva rapidamente i titoli per le tue idee. Quando avrai la copertina pronta, potrai promuoverle a "Idea Video" completa.</p>
+                    
+                    <form id="fastIdeaForm" class="flex flex-col sm:flex-row gap-3 mt-2">
+                        <input type="text" id="inputFastIdea" placeholder="Scrivi un'idea veloce..." required class="flex-1 bg-[#111] text-white px-4 py-3 rounded-xl border border-[#444] outline-none focus:border-blue-500 text-sm">
+                        <button type="submit" class="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-colors shadow">Salva Idea</button>
+                    </form>
+                </div>
+                
+                <div id="fastIdeasGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                </div>
+                <div id="noFastIdeas" class="hidden flex-col items-center justify-center py-20 text-gray-500">
+                    <span class="text-5xl mb-4">✍️</span>
+                    <p class="text-lg font-semibold text-gray-300">Nessuna idea veloce salvata.</p>
+                </div>
+            `;
+            mainContent.appendChild(fastView);
+
+            const fastModalHtml = `
+                <div id="fastIdeaInfoModal" class="hidden fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center backdrop-blur-sm p-4">
+                    <div class="bg-[#1a1a1a] border border-[#333] rounded-2xl p-6 w-[90%] max-w-md shadow-2xl flex flex-col relative">
+                        <button class="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors text-2xl z-20" onclick="closeModal('fastIdeaInfoModal')">✖</button>
+                        <h2 class="text-xl font-black text-white mb-4 flex items-center gap-2"><span>ℹ️</span> Info Idea Veloce</h2>
+                        <input type="hidden" id="fastIdeaInfoId">
+                        <div class="flex flex-col gap-2 mb-4">
+                            <label class="text-[10px] text-gray-500 uppercase font-bold">Titolo</label>
+                            <input type="text" id="fastIdeaInfoTitle" class="bg-[#111] text-white px-3 py-2 rounded-lg border border-[#444] outline-none text-sm" readonly>
+                        </div>
+                        <div class="flex flex-col gap-2 mb-6">
+                            <label class="text-[10px] text-gray-500 uppercase font-bold">Descrizione</label>
+                            <textarea id="fastIdeaInfoDesc" rows="4" class="bg-[#111] text-white px-3 py-2 rounded-lg border border-[#444] outline-none focus:border-blue-500 text-sm custom-scrollbar" placeholder="Aggiungi dettagli, spunti, link..."></textarea>
+                        </div>
+                        <div class="flex justify-end gap-3 mt-auto pt-4 border-t border-[#333]">
+                            <button class="px-4 py-2 bg-[#2a2a2a] hover:bg-[#333] text-gray-300 rounded font-bold transition-colors" onclick="closeModal('fastIdeaInfoModal')">Annulla</button>
+                            <button id="btnSaveFastIdeaInfo" class="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold transition-colors">Salva</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', fastModalHtml);
+
+            document.getElementById('btnSaveFastIdeaInfo')?.addEventListener('click', async () => {
+                const id = document.getElementById('fastIdeaInfoId').value;
+                const desc = document.getElementById('fastIdeaInfoDesc').value;
+                const idea = state.fastIdeas.find(f => f.id === id);
+                if(idea) {
+                    idea.description = desc;
+                    if(window.renderFastIdeas) window.renderFastIdeas();
+                    closeModal('fastIdeaInfoModal');
+                    await autoSaveToCloud();
+                }
+            });
+
+            document.getElementById('fastIdeaForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const input = document.getElementById('inputFastIdea');
+                const title = input.value.trim();
+                if (!title) return;
+                
+                if (!state.fastIdeas) state.fastIdeas = [];
+                state.fastIdeas.push({ id: Date.now().toString(), title, createdAt: Date.now() });
+                input.value = '';
+                if(window.renderFastIdeas) window.renderFastIdeas();
+                await autoSaveToCloud();
+            });
+            
+            clearInterval(fastIdeasInterval);
+        }
+    }, 1000);
 
     // --- INJECT BRAINSTORMING VIEW & NAV (Dinamico) ---
     const bsInterval = setInterval(() => {
