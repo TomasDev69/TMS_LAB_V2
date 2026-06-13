@@ -4,6 +4,9 @@ export const state = {
         yt: {
             videoIdeas: [], channels: [], toolsData: [], trainingData: [], editorsHubData: [], inspChannels: [], tmsPicks: [], finance: { revenues: [], editorCosts: [], subscriptions: [] }, devTodoList: [], brainstormingText: "", competitorsAnalysis: [], fastIdeas: []
         },
+        uf: {
+            videoIdeas: [], channels: [], toolsData: [], trainingData: [], editorsHubData: [], inspChannels: [], tmsPicks: [], finance: { revenues: [], editorCosts: [], subscriptions: [] }, devTodoList: [], brainstormingText: "", competitorsAnalysis: [], fastIdeas: []
+        },
         '3d': {
             videoIdeas: [], channels: [], toolsData: [], trainingData: [], editorsHubData: [], inspChannels: [], tmsPicks: [], finance: { revenues: [], editorCosts: [], subscriptions: [] }, devTodoList: [], brainstormingText: "", competitorsAnalysis: [], fastIdeas: []
         }

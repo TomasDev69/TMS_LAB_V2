@@ -63,12 +63,65 @@ window.setLabContext = (labId) => {
     const bsInput = document.getElementById('brainstormingInput');
     if (bsInput) bsInput.value = state.brainstormingText;
 
-    devLog(`[SYSTEM] Contesto impostato su: ${labId === '3d' ? 'TMS 3D Lab' : 'TMS YT Lab'}`, "info");
+    devLog(`[SYSTEM] Contesto impostato su: ${labId === '3d' ? 'TMS 3D Lab' : labId === 'uf' ? 'TMS UF Lab' : 'TMS YT Lab'}`, "info");
     
     // Aggiorna visivamente il testo nel logo della sidebar
     document.querySelectorAll('.lab-switch-target').forEach(el => {
-        el.innerHTML = `${labId === '3d' ? 'TMS 3D Lab' : 'TMS YT Lab'} <span class="text-[10px] opacity-50 ml-1 relative -top-0.5">▼</span>`;
+        el.innerHTML = `${labId === '3d' ? 'TMS 3D Lab' : labId === 'uf' ? 'TMS UF Lab' : 'TMS YT Lab'} <span class="text-[10px] opacity-50 ml-1 relative -top-0.5">▼</span>`;
     });
+    
+    // Toggle nav elements for UF Lab
+    const isUF = labId === 'uf';
+    const nDB = document.getElementById('navDatabase'); if(nDB) nDB.style.display = ''; // Sempre visibile (Isolato)
+    const nDev = document.getElementById('openDevTodoBtn'); if(nDev) nDev.style.display = isUF ? 'none' : '';
+    const nCons = document.getElementById('openConsoleBtn'); if(nCons) nCons.style.display = isUF ? 'none' : '';
+    const navIdeeText = document.querySelector('#navIdee span.sidebar-label'); if(navIdeeText) navIdeeText.textContent = isUF ? 'Designs' : 'Idee Video';
+    
+    // Toggle nav Collezioni
+    const nCol = document.getElementById('navCollezioni'); if(nCol) nCol.style.display = isUF ? '' : 'none';
+    
+    // Nascondi sidebar canali in UF Lab
+    const sidebarChannelList = document.getElementById('channelList');
+    if (sidebarChannelList) {
+        const container = sidebarChannelList.closest('.flex-col') || sidebarChannelList.parentElement;
+        if (container) container.style.display = isUF ? 'none' : '';
+    }
+    const chHeader = document.getElementById('channelListHeader') || Array.from(document.querySelectorAll('.sidebar-label')).find(el => el.textContent.includes('CANALI') || el.textContent.includes('COLLEZIONI'));
+    if (chHeader) chHeader.style.display = isUF ? 'none' : '';
+    const addChBtn = document.getElementById('addChannelBtn');
+    if (addChBtn) addChBtn.style.display = isUF ? 'none' : '';
+
+    // Hide unused items and morph them
+    if (isUF) {
+        const insp = document.getElementById('navInspirations'); if(insp) insp.style.display = 'none';
+        const eh = document.getElementById('navEditorsHub'); if(eh) eh.style.display = 'none';
+        const sc = document.getElementById('navScript'); if(sc) sc.style.display = 'none';
+        const bs = document.getElementById('navBrainstorming'); if(bs) bs.style.display = 'none';
+        const st = document.getElementById('navStats'); if(st) st.style.display = 'none';
+        const sched = document.getElementById('navSchedule'); if(sched) sched.style.display = 'none';
+        const tools = document.getElementById('navStrumenti'); if(tools) { tools.querySelector('.sidebar-label').textContent = 'Fornitore'; tools.style.display = ''; }
+        
+        ['countNew', 'countAvailable', 'countProgress', 'countCompleted'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { const btn = el.closest('button') || el.parentElement; if (btn) btn.style.display = 'none'; }
+        });
+        const fiDesc = document.getElementById('fastIdeasDesc'); if (fiDesc) fiDesc.textContent = 'Appunta velocemente bozze e spunti per i tuoi prossimi design.';
+    } else {
+        const insp = document.getElementById('navInspirations'); if(insp) insp.style.display = '';
+        const tr = document.getElementById('navFormazione'); if(tr) tr.style.display = '';
+        const eh = document.getElementById('navEditorsHub'); if(eh) eh.style.display = '';
+        const sc = document.getElementById('navScript'); if(sc) sc.style.display = '';
+        const bs = document.getElementById('navBrainstorming'); if(bs) bs.style.display = '';
+        const st = document.getElementById('navStats'); if(st) st.style.display = '';
+        const sched = document.getElementById('navSchedule'); if(sched) sched.style.display = '';
+        const tools = document.getElementById('navStrumenti'); if(tools) { tools.querySelector('.sidebar-label').textContent = 'Strumenti'; tools.style.display = ''; }
+        
+        ['countNew', 'countAvailable', 'countProgress', 'countCompleted'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { const btn = el.closest('button') || el.parentElement; if (btn) btn.style.display = ''; }
+        });
+        const fiDesc = document.getElementById('fastIdeasDesc'); if (fiDesc) fiDesc.textContent = 'Appunta i titoli delle tue prossime idee senza bisogno di copertine.';
+    }
 
     if (window.renderChannelList) window.renderChannelList();
     if (window.switchView) window.switchView(state.currentView || 'idee');
@@ -124,8 +177,8 @@ window.setActiveFilter = (channelId) => {
         state.randomIdeaOrder = shuffleArray([...state.videoIdeas]).map(v => v.id);
     } else {
         const ch = state.channels.find(c => c.id === channelId);
-        pageTitle.textContent = ch ? ch.name : 'Canale'; 
-        pageSubtitle.textContent = `Idee del canale "${ch ? ch.name : ''}"`;
+            pageTitle.textContent = ch ? ch.name : (state.activeLab === 'uf' ? 'Collezione' : 'Canale'); 
+            pageSubtitle.textContent = state.activeLab === 'uf' ? `Design nella collezione "${ch ? ch.name : ''}"` : `Idee del canale "${ch ? ch.name : ''}"`;
     }
     renderVideos(getFilteredIdeas());
 };
@@ -347,7 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fastView.innerHTML = `
                 <div class="bg-[#1a1a1a] rounded-2xl border border-[#333] p-6 shadow-md flex flex-col gap-4 shrink-0">
                     <h2 class="text-xl font-black text-white flex items-center gap-2"><span>⚡</span> Idee Veloci</h2>
-                    <p class="text-sm text-gray-400">Salva rapidamente i titoli per le tue idee. Quando avrai la copertina pronta, potrai promuoverle a "Idea Video" completa.</p>
+                    <p id="fastIdeasDesc" class="text-sm text-gray-400">Appunta i titoli delle tue prossime idee senza bisogno di copertine.</p>
                     
                     <form id="fastIdeaForm" class="flex flex-col sm:flex-row gap-3 mt-2">
                         <input type="text" id="inputFastIdea" placeholder="Scrivi un'idea veloce..." required class="flex-1 bg-[#111] text-white px-4 py-3 rounded-xl border border-[#444] outline-none focus:border-blue-500 text-sm">
@@ -413,6 +466,136 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             clearInterval(fastIdeasInterval);
+        }
+    }, 1000);
+
+    // --- INJECT COLLEZIONI VIEW & NAV (Dinamico per UF LAB) ---
+    const colInterval = setInterval(() => {
+        const ideeNav = document.getElementById('navIdee');
+        const mainContent = document.getElementById('viewIdeeWrapper')?.parentNode;
+        
+        if (ideeNav && mainContent && !document.getElementById('navCollezioni')) {
+            const colNav = ideeNav.cloneNode(true);
+            colNav.id = 'navCollezioni';
+            
+            const textWalker = document.createTreeWalker(colNav, NodeFilter.SHOW_TEXT, null, false);
+            let node;
+            while ((node = textWalker.nextNode())) {
+                if (node.nodeValue.includes('Idee') || node.nodeValue.includes('Designs')) node.nodeValue = 'Collezioni';
+                if (node.nodeValue.includes('💡') || node.nodeValue.includes('🎨') || node.nodeValue.includes('🎥')) node.nodeValue = '📁';
+            }
+            
+            ideeNav.parentNode.insertBefore(colNav, ideeNav.nextSibling);
+            colNav.classList.remove('active');
+            colNav.style.display = state.activeLab === 'uf' ? '' : 'none';
+            colNav.addEventListener('click', (e) => { e.preventDefault(); window.switchView('collezioni'); });
+
+            const colView = document.createElement('div');
+            colView.id = 'viewCollezioniWrapper';
+            colView.className = 'hidden flex flex-col h-[calc(100vh-140px)] gap-6 overflow-y-auto custom-scrollbar pr-2 pb-6';
+            colView.innerHTML = `
+                <div id="collezioniGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+            `;
+            mainContent.appendChild(colView);
+
+            const colModals = `
+                <div id="addCollectionModal" class="hidden fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center backdrop-blur-sm p-4">
+                    <div class="bg-[#1a1a1a] border border-[#333] rounded-2xl p-6 w-[90%] max-w-sm shadow-2xl flex flex-col relative">
+                        <button class="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors text-2xl z-20" onclick="closeModal('addCollectionModal', 'collectionForm')">✖</button>
+                        <h2 class="text-xl font-black text-white mb-4 flex items-center gap-2"><span class="text-red-500">📁</span> Aggiungi Collezione</h2>
+                        <form id="collectionForm" class="flex flex-col gap-4">
+                            <div class="flex flex-col gap-1">
+                                <label class="text-[10px] text-gray-500 uppercase font-bold">Nome Collezione</label>
+                                <input type="text" id="inputCollectionName" required class="w-full bg-[#111] text-white px-3 py-2 rounded-lg border border-[#444] outline-none focus:border-red-500 text-sm">
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <label class="text-[10px] text-gray-500 uppercase font-bold">Immagine Copertina (Opzionale)</label>
+                                <div class="flex items-center gap-3">
+                                    <div id="collectionAvatarPreview" class="w-12 h-12 rounded-full bg-[#111] border border-[#444] flex items-center justify-center overflow-hidden shrink-0 text-2xl">📁</div>
+                                    <input type="file" id="inputCollectionAvatar" accept="image/*" class="w-full text-xs text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-red-900/30 file:text-red-400 hover:file:bg-red-900/50 cursor-pointer">
+                                </div>
+                            </div>
+                            <div class="flex justify-end gap-3 mt-4 pt-4 border-t border-[#333]">
+                                <button type="button" class="px-4 py-2 bg-[#2a2a2a] hover:bg-[#333] text-gray-300 rounded font-bold transition-colors" onclick="closeModal('addCollectionModal', 'collectionForm')">Annulla</button>
+                                <button type="submit" id="btnSubmitCollection" class="px-6 py-2 bg-red-600 hover:bg-red-500 text-white rounded font-bold transition-colors shadow">Salva</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="editCollectionModal" class="hidden fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center backdrop-blur-sm p-4">
+                    <div class="bg-[#1a1a1a] border border-[#333] rounded-2xl p-6 w-[90%] max-w-sm shadow-2xl flex flex-col relative">
+                        <button class="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors text-2xl z-20" onclick="closeModal('editCollectionModal', 'editCollectionForm')">✖</button>
+                        <h2 class="text-xl font-black text-white mb-4 flex items-center gap-2"><span class="text-red-500">✏️</span> Modifica Collezione</h2>
+                        <form id="editCollectionForm" class="flex flex-col gap-4">
+                            <input type="hidden" id="editCollectionId">
+                            <div class="flex flex-col gap-1">
+                                <label class="text-[10px] text-gray-500 uppercase font-bold">Nome Collezione</label>
+                                <input type="text" id="editCollectionName" required class="w-full bg-[#111] text-white px-3 py-2 rounded-lg border border-[#444] outline-none focus:border-red-500 text-sm">
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <label class="text-[10px] text-gray-500 uppercase font-bold">Nuova Immagine (Opzionale)</label>
+                                <div class="flex items-center gap-3">
+                                    <div id="editCollectionAvatarPreview" class="w-12 h-12 rounded-full bg-[#111] border border-[#444] flex items-center justify-center overflow-hidden shrink-0 text-2xl">📁</div>
+                                    <input type="file" id="editCollectionAvatar" accept="image/*" class="w-full text-xs text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-red-900/30 file:text-red-400 hover:file:bg-red-900/50 cursor-pointer">
+                                </div>
+                            </div>
+                            <div class="flex justify-end gap-3 mt-4 pt-4 border-t border-[#333]">
+                                <button type="button" class="px-4 py-2 bg-[#2a2a2a] hover:bg-[#333] text-gray-300 rounded font-bold transition-colors" onclick="closeModal('editCollectionModal', 'editCollectionForm')">Annulla</button>
+                                <button type="submit" id="btnSubmitEditCollection" class="px-6 py-2 bg-red-600 hover:bg-red-500 text-white rounded font-bold transition-colors shadow">Salva Modifiche</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', colModals);
+
+            document.getElementById('inputCollectionAvatar').addEventListener('change', (e) => {
+                state.files.colAvatar = e.target.files[0];
+                if(state.files.colAvatar) {
+                    const r = new FileReader(); r.onload = ev => document.getElementById('collectionAvatarPreview').innerHTML = `<img src="${ev.target.result}" class="w-full h-full object-cover rounded-full">`; 
+                    r.readAsDataURL(state.files.colAvatar);
+                }
+            });
+
+            document.getElementById('editCollectionAvatar').addEventListener('change', (e) => {
+                state.files.editColAvatar = e.target.files[0];
+                if(state.files.editColAvatar) {
+                    const r = new FileReader(); r.onload = ev => document.getElementById('editCollectionAvatarPreview').innerHTML = `<img src="${ev.target.result}" class="w-full h-full object-cover rounded-full">`; 
+                    r.readAsDataURL(state.files.editColAvatar);
+                }
+            });
+
+            document.getElementById('collectionForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('inputCollectionName').value.trim();
+                const btn = document.getElementById('btnSubmitCollection'); btn.disabled = true; btn.textContent = '🔄...';
+                let profilePicUrl = '';
+                if(state.files.colAvatar) {
+                    try { const comp = await compressImage(state.files.colAvatar, 400, 0.8, 'image/webp'); profilePicUrl = comp.dataUrl; } catch(err){}
+                }
+                state.channels.push({ id: Date.now().toString(), name, color: state.CHANNEL_COLORS[state.channels.length % state.CHANNEL_COLORS.length], profilePicUrl });
+                state.files.colAvatar = null; closeModal('addCollectionModal', 'collectionForm'); btn.disabled = false; btn.textContent = 'Salva Collezione';
+                if(window.renderCollezioni) window.renderCollezioni(); await autoSaveToCloud();
+            });
+
+            document.getElementById('editCollectionForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('editCollectionId').value;
+                const name = document.getElementById('editCollectionName').value.trim();
+                const btn = document.getElementById('btnSubmitEditCollection'); btn.disabled = true; btn.textContent = '🔄...';
+                const col = state.channels.find(c => c.id === id);
+                if(col) {
+                    col.name = name;
+                    if(state.files.editColAvatar) {
+                        try { const comp = await compressImage(state.files.editColAvatar, 400, 0.8, 'image/webp'); col.profilePicUrl = comp.dataUrl; } catch(err){}
+                    }
+                }
+                state.files.editColAvatar = null; closeModal('editCollectionModal', 'editCollectionForm'); btn.disabled = false; btn.textContent = 'Salva Modifiche';
+                if(window.renderCollezioni) window.renderCollezioni(); await autoSaveToCloud();
+            });
+            
+            clearInterval(colInterval);
         }
     }, 1000);
 
@@ -1259,6 +1442,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <button id="btnSwitchYTLab" class="w-full px-6 py-4 bg-gradient-to-br from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white rounded-xl font-black text-lg transition-all shadow-lg hover:scale-[1.02] border border-blue-400/30 flex items-center gap-3 justify-center">
                     <span class="text-2xl">🎥</span> TMS YT Lab
                 </button>
+                <button id="btnSwitchUFLab" class="w-full px-6 py-4 bg-gradient-to-br from-red-600 to-red-800 hover:from-red-500 hover:to-red-700 text-white rounded-xl font-black text-lg transition-all shadow-lg hover:scale-[1.02] border border-red-400/30 flex items-center gap-3 justify-center">
+                    <span class="text-2xl">🎨</span> TMS UF Lab
+                </button>
                 <button id="btnSwitch3DLab" class="w-full px-6 py-4 bg-gradient-to-br from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white rounded-xl font-black text-lg transition-all shadow-lg hover:scale-[1.02] border border-purple-400/30 flex flex-col items-center gap-1 justify-center relative">
                     <div class="flex items-center gap-3">
                         <span class="text-2xl">🧊</span> TMS 3D Lab
@@ -1288,6 +1474,362 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnSwitchYTLab').addEventListener('click', () => {
         window.setLabContext('yt');
         document.getElementById('closeLabSwitchBtn').click();
+    });
+    
+    document.getElementById('btnSwitchUFLab').addEventListener('click', () => {
+        window.setLabContext('uf');
+        document.getElementById('closeLabSwitchBtn').click();
+    });
+
+    // --- UF LAB DOM INJECTION & LOGIC ---
+    const ufModalsHtml = `
+        <div id="addUFDesignModal" class="hidden fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center backdrop-blur-sm p-4 overflow-y-auto">
+            <div class="bg-[#1a1a1a] border border-[#333] rounded-2xl p-6 w-[90%] max-w-2xl shadow-2xl flex flex-col relative my-auto">
+                <button class="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors text-2xl z-20" onclick="closeModal('addUFDesignModal', 'ufDesignForm')">✖</button>
+                <h2 class="text-xl font-black text-white mb-4 flex items-center gap-2"><span class="text-red-500">🎨</span> Aggiungi Design</h2>
+                <form id="ufDesignForm" class="flex flex-col gap-4">
+                    <input type="hidden" id="ufDesignId">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] text-gray-500 uppercase font-bold">Nome Design</label>
+                            <input type="text" id="ufDesignName" required class="w-full bg-[#111] text-white px-3 py-2 rounded-lg border border-[#444] outline-none focus:border-red-500 text-sm">
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] text-gray-500 uppercase font-bold">Collezione/i</label>
+                            <select id="ufDesignCollections" multiple class="w-full bg-[#111] text-white px-3 py-2 rounded-lg border border-[#444] outline-none focus:border-red-500 text-sm custom-scrollbar h-20"></select>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] text-gray-500 uppercase font-bold">Copertina (Immagine)</label>
+                            <input type="file" id="ufDesignCover" accept="image/*" required class="w-full bg-[#111] text-gray-300 px-3 py-1.5 rounded-lg border border-[#444] text-sm">
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] text-gray-500 uppercase font-bold">Asset IA (opzionale)</label>
+                            <input type="file" id="ufDesignAIAssets" multiple class="w-full bg-[#111] text-gray-300 px-3 py-1.5 rounded-lg border border-[#444] text-sm">
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] text-gray-500 uppercase font-bold">Sorgente Vettoriale (.svg/.ai)</label>
+                            <input type="file" id="ufDesignSVG" accept=".svg,.ai,.eps,.pdf" class="w-full bg-[#111] text-gray-300 px-3 py-1.5 rounded-lg border border-[#444] text-sm">
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] text-gray-500 uppercase font-bold">Link Shopify</label>
+                            <input type="url" id="ufDesignShopify" placeholder="https://..." class="w-full bg-[#111] text-white px-3 py-2 rounded-lg border border-[#444] outline-none focus:border-red-500 text-sm">
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] text-gray-500 uppercase font-bold">Link Etsy</label>
+                            <input type="url" id="ufDesignEtsy" placeholder="https://..." class="w-full bg-[#111] text-white px-3 py-2 rounded-lg border border-[#444] outline-none focus:border-red-500 text-sm">
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] text-gray-500 uppercase font-bold">Link Opzionali / Fonti (1 per riga)</label>
+                        <textarea id="ufDesignLinks" rows="2" class="w-full bg-[#111] text-white px-3 py-2 rounded-lg border border-[#444] outline-none focus:border-red-500 text-sm custom-scrollbar"></textarea>
+                    </div>
+                    <div class="flex justify-end gap-3 mt-4 pt-4 border-t border-[#333]">
+                        <button type="button" class="px-4 py-2 bg-[#2a2a2a] hover:bg-[#333] text-gray-300 rounded font-bold transition-colors" onclick="closeModal('addUFDesignModal', 'ufDesignForm')">Annulla</button>
+                        <button type="submit" id="btnSubmitUFDesign" class="px-6 py-2 bg-red-600 hover:bg-red-500 text-white rounded font-bold transition-colors shadow">Salva Design</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div id="ufDashboardModal" class="hidden fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center backdrop-blur-sm p-4 overflow-y-auto">
+            <div class="bg-[#1a1a1a] border border-[#333] rounded-2xl w-full max-w-[1000px] max-h-full flex flex-col shadow-2xl overflow-hidden relative">
+                <button class="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors text-2xl z-20 bg-black/50 w-8 h-8 rounded-full flex items-center justify-center" onclick="closeModal('ufDashboardModal')">✖</button>
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-6">
+                    <div class="flex flex-col lg:flex-row gap-6">
+                        <div class="w-full lg:w-1/3 shrink-0 flex flex-col gap-4">
+                            <img id="ufDashThumb" class="w-full aspect-square object-cover rounded-xl border border-[#333] bg-[#111]">
+                            <h2 id="ufDashTitle" class="text-xl font-bold text-white leading-tight"></h2>
+                            <div id="ufDashCollections" class="text-sm text-gray-400 mt-1"></div>
+                            <button id="ufDashDriveBtn" class="w-full py-2 bg-[#2a2a2a] hover:bg-[#333] border border-[#444] text-white rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2">Apri Cartella Drive 📁</button>
+                            <button id="ufDashDeleteBtn" class="w-full py-2 mt-auto bg-red-900/30 hover:bg-red-900/60 border border-red-500/30 text-red-400 rounded-lg text-sm font-bold transition-colors">Elimina Design</button>
+                        </div>
+                        <div class="w-full lg:w-2/3 flex flex-col gap-6">
+                            <div class="bg-[#222] p-4 rounded-xl border border-[#333] flex flex-col gap-2">
+                                <label class="text-[10px] text-gray-500 uppercase font-bold">Link Shopify</label>
+                                <div class="flex gap-2">
+                                    <input type="url" id="ufDashShopify" class="flex-1 bg-[#111] text-white px-3 py-2 rounded-lg border border-[#444] outline-none focus:border-red-500 text-sm">
+                                    <button id="btnSaveUFShopify" class="px-4 py-2 bg-[#333] hover:bg-[#444] text-white rounded-lg font-bold text-sm transition-colors border border-[#555]">Salva</button>
+                                </div>
+                                <label class="text-[10px] text-gray-500 uppercase font-bold mt-2">Link Etsy</label>
+                                <div class="flex gap-2">
+                                    <input type="url" id="ufDashEtsy" class="flex-1 bg-[#111] text-white px-3 py-2 rounded-lg border border-[#444] outline-none focus:border-red-500 text-sm">
+                                    <button id="btnSaveUFEtsy" class="px-4 py-2 bg-[#333] hover:bg-[#444] text-white rounded-lg font-bold text-sm transition-colors border border-[#555]">Salva</button>
+                                </div>
+                            </div>
+                            <div class="bg-[#222] p-4 rounded-xl border border-[#333] flex flex-col gap-4">
+                                <h3 class="text-sm font-bold text-white flex items-center gap-2"><span>📝</span> Log di Creazione</h3>
+                                <div class="flex flex-col gap-1">
+                                    <label class="text-[10px] text-gray-500 uppercase font-bold">Software Utilizzati per l'Assemblaggio</label>
+                                    <textarea id="ufLogSoftware" rows="1" class="w-full bg-[#111] text-white px-3 py-2 rounded-lg border border-[#444] outline-none text-sm">- Inkscape / Canva</textarea>
+                                </div>
+                                <div class="flex flex-col gap-1">
+                                    <label class="text-[10px] text-gray-500 uppercase font-bold">Elementi di Terze Parti</label>
+                                    <textarea id="ufLogTerze" rows="2" class="w-full bg-[#111] text-white px-3 py-2 rounded-lg border border-[#444] outline-none text-sm">- Nessuno specificato</textarea>
+                                </div>
+                                <div class="flex flex-col gap-1">
+                                    <label class="text-[10px] text-gray-500 uppercase font-bold">Uso di Intelligenza Artificiale</label>
+                                    <textarea id="ufLogAI" rows="2" class="w-full bg-[#111] text-white px-3 py-2 rounded-lg border border-[#444] outline-none text-sm">- Nessuno specificato</textarea>
+                                </div>
+                                <div class="flex flex-col gap-1">
+                                    <label class="text-[10px] text-gray-500 uppercase font-bold">Appunti di Pubblicazione</label>
+                                    <textarea id="ufLogAppunti" rows="2" class="w-full bg-[#111] text-white px-3 py-2 rounded-lg border border-[#444] outline-none text-sm">- Nessun appunto</textarea>
+                                </div>
+                                <button id="btnSaveUFLog" class="mt-2 w-full py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm font-bold transition-colors shadow">Salva e Genera Log.txt</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="addUFFornitoreModal" class="hidden fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center backdrop-blur-sm p-4 overflow-y-auto">
+            <div class="bg-[#1a1a1a] border border-[#333] rounded-2xl p-6 w-[90%] max-w-2xl shadow-2xl flex flex-col relative my-auto">
+                <button class="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors text-2xl z-20" onclick="closeModal('addUFFornitoreModal', 'ufFornitoreForm')">✖</button>
+                <h2 class="text-xl font-black text-white mb-4 flex items-center gap-2"><span class="text-red-500">🛒</span> Aggiungi Prodotto</h2>
+                <form id="ufFornitoreForm" class="flex flex-col gap-4">
+                    <input type="hidden" id="ufFornitoreId">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] text-gray-500 uppercase font-bold">Nome Prodotto / Fornitore</label>
+                            <input type="text" id="ufFornitoreName" required class="w-full bg-[#111] text-white px-3 py-2 rounded-lg border border-[#444] outline-none focus:border-red-500 text-sm">
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] text-gray-500 uppercase font-bold">Codice Prodotto (Opzionale)</label>
+                            <input type="text" id="ufFornitoreCodice" class="w-full bg-[#111] text-white px-3 py-2 rounded-lg border border-[#444] outline-none focus:border-red-500 text-sm">
+                        </div>
+                        <div class="flex flex-col gap-1 md:col-span-2">
+                            <label class="text-[10px] text-gray-500 uppercase font-bold">Prezzi (es. &gt;30 pz: 3€, &lt;30 pz: 4€)</label>
+                            <textarea id="ufFornitorePrezzi" rows="2" class="w-full bg-[#111] text-white px-3 py-2 rounded-lg border border-[#444] outline-none focus:border-red-500 text-sm custom-scrollbar"></textarea>
+                        </div>
+                        <div class="flex flex-col gap-1 md:col-span-2">
+                            <label class="text-[10px] text-gray-500 uppercase font-bold">Composizione (Materiali %)</label>
+                            <textarea id="ufFornitoreComp" rows="2" class="w-full bg-[#111] text-white px-3 py-2 rounded-lg border border-[#444] outline-none focus:border-red-500 text-sm custom-scrollbar" placeholder="es. 80% Cotone, 20% Poliestere"></textarea>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] text-gray-500 uppercase font-bold">Immagine Copertina</label>
+                            <input type="file" id="ufFornitoreImage" accept="image/*" class="w-full bg-[#111] text-gray-300 px-3 py-1.5 rounded-lg border border-[#444] text-sm">
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] text-gray-500 uppercase font-bold">Link (Opzionale)</label>
+                            <input type="url" id="ufFornitoreLink" class="w-full bg-[#111] text-white px-3 py-2 rounded-lg border border-[#444] outline-none focus:border-red-500 text-sm">
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-3 mt-4 pt-4 border-t border-[#333]">
+                        <button type="button" class="px-4 py-2 bg-[#2a2a2a] hover:bg-[#333] text-gray-300 rounded font-bold transition-colors" onclick="closeModal('addUFFornitoreModal', 'ufFornitoreForm')">Annulla</button>
+                        <button type="submit" id="btnSubmitUFFornitore" class="px-6 py-2 bg-red-600 hover:bg-red-500 text-white rounded font-bold transition-colors shadow">Salva Prodotto</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div id="addUFCompetitorModal" class="hidden fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center backdrop-blur-sm p-4">
+            <div class="bg-[#1a1a1a] border border-[#333] rounded-2xl p-6 w-[90%] max-w-md shadow-2xl flex flex-col relative">
+                <button class="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors text-2xl z-20" onclick="closeModal('addUFCompetitorModal', 'ufCompetitorForm')">✖</button>
+                <h2 class="text-xl font-black text-white mb-4 flex items-center gap-2"><span class="text-red-500">🕵️‍♂️</span> Aggiungi Competitor</h2>
+                <form id="ufCompetitorForm" class="flex flex-col gap-4">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] text-gray-500 uppercase font-bold">Link Profilo Instagram o Username</label>
+                        <input type="text" id="ufCompLink" placeholder="es. @brand o https://instagram.com/brand" required class="w-full bg-[#111] text-white px-4 py-3 rounded-lg border border-[#444] outline-none focus:border-red-500 text-sm">
+                    </div>
+                    <div class="flex justify-end gap-3 mt-2">
+                        <button type="button" class="px-4 py-2 bg-[#2a2a2a] hover:bg-[#333] text-gray-300 rounded font-bold transition-colors" onclick="closeModal('addUFCompetitorModal', 'ufCompetitorForm')">Annulla</button>
+                        <button type="submit" id="btnSubmitUFComp" class="px-6 py-2 bg-red-600 hover:bg-red-500 text-white rounded font-bold transition-colors">Analizza IG</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', ufModalsHtml);
+
+    document.getElementById('ufDesignForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = document.getElementById('btnSubmitUFDesign');
+        submitBtn.disabled = true; submitBtn.textContent = '🔄 Creazione...';
+
+        const title = document.getElementById('ufDesignName').value.trim();
+        const colSelect = document.getElementById('ufDesignCollections');
+        const collections = Array.from(colSelect.selectedOptions).map(opt => opt.value);
+        const shopifyLink = document.getElementById('ufDesignShopify').value.trim();
+        const linksText = document.getElementById('ufDesignLinks').value.trim();
+        const sourcesArr = linksText.split('\n').map(l => l.trim()).filter(l => l !== '');
+        
+        const coverFile = document.getElementById('ufDesignCover').files[0];
+        const aiFiles = document.getElementById('ufDesignAIAssets').files;
+        const svgFile = document.getElementById('ufDesignSVG').files[0];
+
+        let driveFolderId = ''; let driveLink = ''; let thumbnailUrl = '';
+        
+        if (state.SCRIPT_URL) {
+            try {
+                const folderRes = await callScriptAction({ action: 'createDesignFolder', name: title });
+                driveFolderId = folderRes.folderId || '';
+                
+                if (driveFolderId) {
+                    driveLink = `https://drive.google.com/drive/folders/${driveFolderId}`;
+                    submitBtn.textContent = '🚀 Upload Cover...';
+                    
+                    if (coverFile) {
+                        const compressedImg = await compressImage(coverFile, 1000, 0.8, 'image/webp');
+                        thumbnailUrl = compressedImg.dataUrl;
+                        const coverB64 = await new Promise(r => { const fr = new FileReader(); fr.onload = ev => r(ev.target.result.split(',')[1]); fr.readAsDataURL(coverFile); });
+                        await callScriptAction({ action: 'uploadUFFile', folderId: driveFolderId, base64: coverB64, mimeType: coverFile.type, fileName: `Cover_${coverFile.name}` });
+                    }
+                    
+                    submitBtn.textContent = '🚀 Upload Asset...';
+                    if (svgFile) {
+                        const svgB64 = await new Promise(r => { const fr = new FileReader(); fr.onload = ev => r(ev.target.result.split(',')[1]); fr.readAsDataURL(svgFile); });
+                        await callScriptAction({ action: 'uploadUFFile', folderId: driveFolderId, base64: svgB64, mimeType: svgFile.type || 'image/svg+xml', fileName: svgFile.name });
+                    }
+                    
+                    for (let i = 0; i < aiFiles.length; i++) {
+                        const file = aiFiles[i];
+                        const b64 = await new Promise(r => { const fr = new FileReader(); fr.onload = ev => r(ev.target.result.split(',')[1]); fr.readAsDataURL(file); });
+                        await callScriptAction({ action: 'uploadUFFile', folderId: driveFolderId, base64: b64, mimeType: file.type, fileName: `AIAsset_${file.name}` });
+                    }
+
+                    submitBtn.textContent = '📝 Scrittura Log...';
+                    const d = new Date().toLocaleDateString('it-IT');
+                    const templateContent = `=========================================
+LOG DI CREAZIONE DESIGN
+=========================================
+
+NOME PROGETTO: ${title}
+DATA DI COMPLETAMENTO: ${d}
+AUTORE/SHOP: Tomas Guardati / Unfiltered
+
+SOFTWARE UTILIZZATI PER L'ASSEMBLAGGIO:
+- Inkscape / Canva
+
+ELEMENTI DI TERZE PARTI (Stock, Vettoriali, Font):
+- Nessuno specificato
+
+USO DI INTELLIGENZA ARTIFICIALE (Se applicabile):
+- Nessuno specificato
+
+APPUNTI DI PUBBLICAZIONE:
+- Nessun appunto
+
+DICHIARAZIONE DI PATERNITÀ:
+Il sottoscritto dichiara che la composizione finale di questo design è frutto del proprio lavoro creativo e di assemblaggio. Tutti gli elementi di terze parti o generati tramite IA sono stati modificati e/o combinati in modo originale e vengono utilizzati nel rispetto delle rispettive licenze commerciali.
+=========================================`;
+
+                    await callScriptAction({ action: 'createOrUpdateLogFile', folderId: driveFolderId, fileName: 'log_creazione.txt', content: templateContent });
+                }
+            } catch(e) {
+                devLog("Errore durante upload Drive: " + e.message, "error");
+            }
+        }
+        
+        if (!thumbnailUrl && coverFile) {
+            const compressedImg = await compressImage(coverFile, 1000, 0.8, 'image/webp');
+            thumbnailUrl = compressedImg.dataUrl;
+        }
+
+        const newDesign = {
+            id: Date.now().toString(),
+            createdAt: Date.now(), 
+            title, 
+            thumbnail: thumbnailUrl, 
+            driveLink, 
+            driveFolderId, 
+            collections,
+            sources: sourcesArr,
+            shopifyLink,
+            logData: { software: '- Inkscape / Canva', terzeParti: '- Nessuno specificato', aiIntervention: '- Nessuno specificato', appunti: '- Nessun appunto' }
+        };
+
+        state.videoIdeas.unshift(newDesign);
+        renderVideos(getFilteredIdeas()); 
+        closeModal('addUFDesignModal', 'ufDesignForm');
+        submitBtn.disabled = false; submitBtn.textContent = 'Salva Design';
+        
+        autoSaveToCloud();
+    });
+    
+    document.getElementById('ufFornitoreForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('btnSubmitUFFornitore');
+        btn.disabled = true; btn.textContent = '🔄 Salvataggio...';
+        
+        const id = document.getElementById('ufFornitoreId').value;
+        const title = document.getElementById('ufFornitoreName').value.trim();
+        const codice = document.getElementById('ufFornitoreCodice').value.trim();
+        const prezzi = document.getElementById('ufFornitorePrezzi').value.trim();
+        const composizione = document.getElementById('ufFornitoreComp').value.trim();
+        const link = document.getElementById('ufFornitoreLink').value.trim();
+        const file = document.getElementById('ufFornitoreImage').files[0];
+
+        let finalImageUrl = "";
+        if (id) {
+            const existing = state.toolsData.find(t => t.id === id);
+            if (existing) finalImageUrl = existing.image;
+        }
+        
+        if (file) {
+            try {
+                const compressed = await compressImage(file, 500, 0.85, 'image/webp');
+                finalImageUrl = compressed.dataUrl; 
+            } catch(e) {}
+        }
+        
+        if (id) {
+            let tool = state.toolsData.find(t => t.id === id);
+            if (tool) {
+                tool.title = title; tool.codice = codice; tool.prezzi = prezzi;
+                tool.composizione = composizione; tool.link = link;
+                if (finalImageUrl) tool.image = finalImageUrl;
+            }
+        } else {
+            state.toolsData.push({ id: Date.now().toString(), title, codice, prezzi, composizione, link, image: finalImageUrl });
+        }
+        
+        renderTools();
+        closeModal('addUFFornitoreModal', 'ufFornitoreForm');
+        btn.disabled = false; btn.textContent = 'Salva Prodotto';
+        autoSaveToCloud();
+    });
+
+    document.getElementById('ufCompetitorForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('btnSubmitUFComp');
+        let link = document.getElementById('ufCompLink').value.trim();
+        btn.disabled = true; btn.textContent = '🔄 Estrazione in corso...';
+        
+        let username = link;
+        if (username.includes('instagram.com/')) {
+            username = username.split('instagram.com/')[1].split('/')[0].split('?')[0];
+        }
+        if (username.startsWith('@')) username = username.substring(1);
+        
+        let title = username; let avatar = ''; let followers = ''; let description = '';
+        let finalLink = `https://instagram.com/${username}`;
+
+        try {
+            const html = await fetchYTProxy(finalLink);
+            const titleMatch = html.match(/<meta property="og:title" content="([^"]+)"/);
+            const descMatch = html.match(/<meta property="og:description" content="([^"]+)"/);
+            const imgMatch = html.match(/<meta property="og:image" content="([^"]+)"/);
+            
+            if (titleMatch) title = titleMatch[1].split(' - ')[0]; 
+            if (imgMatch) avatar = imgMatch[1];
+            if (descMatch) {
+                const desc = descMatch[1]; 
+                const fMatch = desc.match(/([\d\.,kKmM]+)\s*Followers/);
+                if(fMatch) followers = fMatch[1];
+                const nMatch = desc.match(/from\s+([^()]+)\s+\(@/);
+                if(nMatch) description = nMatch[1].trim();
+                else description = desc.split(' - ')[0] || '';
+            }
+        } catch(e) { devLog("Impossibile estrarre IG dati. Uso fallback base.", "warning"); }
+        
+        if(!state.competitorsAnalysis) state.competitorsAnalysis = [];
+        state.competitorsAnalysis.push({ id: Date.now().toString(), ytId: username, title: title, author: description, avatar: avatar, views: followers ? `${followers} Followers` : 'N/A', duration: '', thumbnail: avatar || 'https://via.placeholder.com/400', link: finalLink, analysis: {} });
+        
+        if(window.renderCompetitors) window.renderCompetitors();
+        closeModal('addUFCompetitorModal', 'ufCompetitorForm');
+        autoSaveToCloud();
+        btn.disabled = false; btn.textContent = 'Analizza IG';
+        document.getElementById('ufCompLink').value = '';
     });
 
     document.getElementById('btnSwitch3DLab').addEventListener('click', () => {

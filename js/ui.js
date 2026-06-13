@@ -82,13 +82,13 @@ export function switchView(view) {
     devLog(`Cambio vista in corso: -> ${view.toUpperCase()}`, 'info');
     console.time(`[PERF RENDER] View: ${view}`);
     state.currentView = view;
-    ['navIdee', 'navFastIdeas', 'navInspirations', 'navStrumenti', 'navFormazione', 'navEditorsHub', 'navScript', 'navStats', 'navDatabase', 'navBrainstorming', 'navCompetitors', 'navSchedule'].forEach(id => {
+    ['navIdee', 'navFastIdeas', 'navCollezioni', 'navInspirations', 'navStrumenti', 'navFormazione', 'navEditorsHub', 'navScript', 'navStats', 'navDatabase', 'navBrainstorming', 'navCompetitors', 'navSchedule'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.remove('active');
     });
     const navEarn = document.getElementById('navEarnings');
     if (navEarn) navEarn.classList.remove('bg-green-900/40');
-    ['viewIdeeWrapper', 'viewFastIdeasWrapper', 'viewInspirationsWrapper', 'viewStrumentiWrapper', 'viewFormazioneWrapper', 'viewEditorsHubWrapper', 'viewScriptWrapper', 'viewStatsWrapper', 'viewDatabaseWrapper', 'viewEarningsWrapper', 'viewBrainstormingWrapper', 'viewCompetitorsWrapper', 'viewScheduleWrapper'].forEach(id => {
+    ['viewIdeeWrapper', 'viewFastIdeasWrapper', 'viewCollezioniWrapper', 'viewInspirationsWrapper', 'viewStrumentiWrapper', 'viewFormazioneWrapper', 'viewEditorsHubWrapper', 'viewScriptWrapper', 'viewStatsWrapper', 'viewDatabaseWrapper', 'viewEarningsWrapper', 'viewBrainstormingWrapper', 'viewCompetitorsWrapper', 'viewScheduleWrapper'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.add('hidden');
     });
@@ -107,31 +107,67 @@ export function switchView(view) {
         const n = document.getElementById(navId); if(n) n.classList.add('active'); 
         const v = document.getElementById(viewId); if(v) v.classList.remove('hidden'); 
     };
+    
+    const isUF = state.activeLab === 'uf';
 
     if (view === 'idee') {
         safeActive('navIdee', 'viewIdeeWrapper');
-        safeSetText(pageTitle, 'Le tue Idee Video'); safeSetText(pageSubtitle, 'Sviluppa e traccia i tuoi prossimi contenuti.');
-        safeShowBtn('Crea Idea', () => { document.getElementById('addModal')?.classList.remove('hidden'); document.getElementById('addModal')?.classList.add('flex'); });
+        if (isUF) {
+            safeSetText(pageTitle, 'I tuoi Designs'); safeSetText(pageSubtitle, 'Gestisci il tuo archivio e la pipeline dei design.');
+            safeShowBtn('Aggiungi Design', () => { 
+                const cSel = document.getElementById('ufDesignCollections');
+                if(cSel) {
+                    cSel.innerHTML = '';
+                    state.channels.forEach(c => cSel.innerHTML += `<option value="${c.id}">${c.name}</option>`);
+                }
+                document.getElementById('addUFDesignModal')?.classList.remove('hidden'); document.getElementById('addUFDesignModal')?.classList.add('flex'); 
+            });
+        } else {
+            safeSetText(pageTitle, 'Le tue Idee Video'); safeSetText(pageSubtitle, 'Sviluppa e traccia i tuoi prossimi contenuti.');
+            safeShowBtn('Crea Idea', () => { document.getElementById('addModal')?.classList.remove('hidden'); document.getElementById('addModal')?.classList.add('flex'); });
+        }
         renderVideos(getFilteredIdeas());
     } else if (view === 'fastideas') {
         safeActive('navFastIdeas', 'viewFastIdeasWrapper');
-        safeSetText(pageTitle, 'Idee Veloci'); safeSetText(pageSubtitle, 'Appunta i titoli delle tue prossime idee senza bisogno di copertine.');
+        if (isUF) {
+            safeSetText(pageTitle, 'Idee Veloci'); safeSetText(pageSubtitle, 'Appunta velocemente bozze e spunti per i tuoi prossimi design.');
+        } else {
+            safeSetText(pageTitle, 'Idee Veloci'); safeSetText(pageSubtitle, 'Appunta i titoli delle tue prossime idee senza bisogno di copertine.');
+        }
         safeHideBtn();
         if(window.renderFastIdeas) window.renderFastIdeas();
+    } else if (view === 'collezioni') {
+        safeActive('navCollezioni', 'viewCollezioniWrapper');
+        safeSetText(pageTitle, 'Le tue Collezioni'); safeSetText(pageSubtitle, 'Raggruppa e organizza i tuoi design.');
+        safeShowBtn('Aggiungi Collezione', () => { 
+            document.getElementById('collectionForm')?.reset();
+            document.getElementById('collectionAvatarPreview').innerHTML = '📁';
+            document.getElementById('addCollectionModal')?.classList.remove('hidden'); document.getElementById('addCollectionModal')?.classList.add('flex'); 
+        });
+        if(window.renderCollezioni) window.renderCollezioni();
     } else if (view === 'inspirations') {
         safeActive('navInspirations', 'viewInspirationsWrapper');
         safeSetText(pageTitle, 'Inspirations'); safeSetText(pageSubtitle, 'Studia e analizza i canali dei competitor per prendere spunto.');
         window.switchInspTab(state.currentInspTab);
     } else if (view === 'strumenti') {
         safeActive('navStrumenti', 'viewStrumentiWrapper');
-        safeSetText(pageTitle, 'Strumenti & Risorse'); safeSetText(pageSubtitle, 'Tutti i tool utili al tuo flusso di lavoro.');
-        safeShowBtn('Aggiungi Strumento', () => { 
-            const t = document.getElementById('toolModalTitle'); if(t) t.textContent = 'Aggiungi Strumento/Risorsa'; 
-            const id = document.getElementById('inputToolId'); if(id) id.value = '';
-            document.getElementById('toolForm')?.reset(); document.getElementById('toolPreview')?.classList.add('hidden'); document.getElementById('toolDropHint')?.classList.remove('hidden');
-            const b = document.getElementById('btnSubmitTool'); if(b) b.textContent = 'Salva Strumento';
-            document.getElementById('addToolModal')?.classList.remove('hidden'); document.getElementById('addToolModal')?.classList.add('flex'); 
-        });
+        if (isUF) {
+            safeSetText(pageTitle, 'Fornitori'); safeSetText(pageSubtitle, 'Database dei fornitori e dei materiali.');
+            safeShowBtn('Aggiungi Prodotto', () => { 
+                document.getElementById('ufFornitoreForm')?.reset();
+                document.getElementById('ufFornitoreId').value = '';
+                document.getElementById('addUFFornitoreModal')?.classList.remove('hidden'); document.getElementById('addUFFornitoreModal')?.classList.add('flex'); 
+            });
+        } else {
+            safeSetText(pageTitle, 'Strumenti & Risorse'); safeSetText(pageSubtitle, 'Tutti i tool utili al tuo flusso di lavoro.');
+            safeShowBtn('Aggiungi Strumento', () => { 
+                const t = document.getElementById('toolModalTitle'); if(t) t.textContent = 'Aggiungi Strumento/Risorsa'; 
+                const id = document.getElementById('inputToolId'); if(id) id.value = '';
+                document.getElementById('toolForm')?.reset(); document.getElementById('toolPreview')?.classList.add('hidden'); document.getElementById('toolDropHint')?.classList.remove('hidden');
+                const b = document.getElementById('btnSubmitTool'); if(b) b.textContent = 'Salva Strumento';
+                document.getElementById('addToolModal')?.classList.remove('hidden'); document.getElementById('addToolModal')?.classList.add('flex'); 
+            });
+        }
         renderTools();
     } else if (view === 'formazione') {
         safeActive('navFormazione', 'viewFormazioneWrapper');
@@ -188,8 +224,13 @@ export function switchView(view) {
         if (bsInput) bsInput.value = state.brainstormingText || '';
     } else if (view === 'competitors') {
         safeActive('navCompetitors', 'viewCompetitorsWrapper');
-        safeSetText(pageTitle, 'Competitors Analysis'); safeSetText(pageSubtitle, 'Analisi dettagliata della struttura e montaggio dei video per prendere spunto.');
-        safeShowBtn('Aggiungi Video', () => { document.getElementById('addCompetitorModal')?.classList.remove('hidden'); document.getElementById('addCompetitorModal')?.classList.add('flex'); });
+        if (isUF) {
+            safeSetText(pageTitle, 'Competitors Analysis'); safeSetText(pageSubtitle, 'Analisi e studio dei brand e profili Instagram dei competitor per prendere spunto.');
+            safeShowBtn('Aggiungi Competitor', () => { document.getElementById('addUFCompetitorModal')?.classList.remove('hidden'); document.getElementById('addUFCompetitorModal')?.classList.add('flex'); });
+        } else {
+            safeSetText(pageTitle, 'Competitors Analysis'); safeSetText(pageSubtitle, 'Analisi dettagliata della struttura e montaggio dei video per prendere spunto.');
+            safeShowBtn('Aggiungi Video', () => { document.getElementById('addCompetitorModal')?.classList.remove('hidden'); document.getElementById('addCompetitorModal')?.classList.add('flex'); });
+        }
         if(window.renderCompetitors) window.renderCompetitors();
     } else if (view === 'schedule') {
         safeActive('navSchedule', 'viewScheduleWrapper');

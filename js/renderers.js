@@ -162,7 +162,10 @@ export function getIdeaStatus(idea) {
 export function getFilteredIdeas() {
     console.time('[PERF JS] getFilteredIdeas');
     let filtered = [...state.videoIdeas];
-    if (state.activeChannelId !== null) filtered = filtered.filter(v => v.channelId === state.activeChannelId);
+    if (state.activeChannelId !== null) {
+        if (state.activeLab === 'uf') filtered = filtered.filter(v => v.collections && v.collections.includes(state.activeChannelId));
+        else filtered = filtered.filter(v => v.channelId === state.activeChannelId);
+    }
     
     const sInput = document.getElementById('searchInput');
     const term = sInput ? sInput.value.toLowerCase() : '';
@@ -215,6 +218,60 @@ export function renderVideos(videosToRender) {
     if(noRes) noRes.classList.add('hidden'); grid.classList.remove('hidden');
 
     videosToRender.forEach(video => {
+        const isUF = state.activeLab === 'uf';
+        if (isUF) {
+            const colsStr = (video.collections || []).map(id => { const c = state.channels.find(ch => ch.id === id); return c ? c.name : ''; }).filter(Boolean).join(', ') || 'Nessuna collezione';
+            
+            const shopifyActive = video.shopifyLink ? 'opacity-100' : 'opacity-30 grayscale';
+            const etsyActive = video.etsyLink ? 'opacity-100' : 'opacity-30 grayscale';
+            
+            const iconsHtml = `
+                <div class="absolute top-2 right-2 flex flex-col gap-1 z-10">
+                    <a ${video.shopifyLink ? `href="${video.shopifyLink}" target="_blank"` : ''} onclick="event.stopPropagation()" class="w-7 h-7 bg-[#95bf47] rounded-lg flex items-center justify-center shadow-lg hover:scale-110 transition-transform ${shopifyActive}" title="Shopify">🛍️</a>
+                    <a ${video.etsyLink ? `href="${video.etsyLink}" target="_blank"` : ''} onclick="event.stopPropagation()" class="w-7 h-7 bg-[#f56400] rounded-lg flex items-center justify-center shadow-lg hover:scale-110 transition-transform ${etsyActive}" title="Etsy"><span class="font-serif text-white font-bold text-sm">E</span></a>
+                </div>
+            `;
+
+            const dateStr = new Date(video.createdAt || Date.now()).toLocaleDateString('it-IT');
+            const card = document.createElement('div'); card.className = 'flex flex-col gap-3 cursor-pointer group relative';
+            card.onclick = () => { if(window.openUFDesignDashboard) window.openUFDesignDashboard(video); };
+            card.innerHTML = `
+                <div class="relative w-full aspect-square rounded-xl overflow-hidden bg-[#272727] border border-transparent group-hover:border-red-500/50 transition-colors shadow">
+                    <img src="${video.thumbnail}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    ${iconsHtml}
+                    <div class="absolute bottom-2 left-2 bg-black/80 px-2 py-0.5 rounded text-[10px] font-bold text-gray-300 border border-[#444] shadow">📅 ${dateStr}</div>
+                </div>
+                <div class="flex flex-col pr-2">
+                    <h3 class="text-[16px] font-bold text-[#f1f1f1] line-clamp-2 leading-tight group-hover:text-red-400 transition-colors" title="${video.title}">${video.title}</h3>
+                    <div class="text-[12px] text-[#aaaaaa] mt-1 line-clamp-1">${colsStr}</div>
+                </div>
+            `;
+            const act = document.createElement('div'); act.className = 'absolute top-2 left-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-20';
+            act.innerHTML = `<button class="editBtn bg-blue-600/90 hover:bg-blue-500 text-white text-xs w-8 h-8 rounded-full shadow-lg hover:scale-110 transition-transform">✏️</button><button class="delBtn bg-red-600/90 hover:bg-red-500 text-white text-xs w-8 h-8 rounded-full shadow-lg hover:scale-110 transition-transform">🗑️</button>`;
+            
+            act.querySelector('.editBtn').onclick = (e) => { 
+                e.stopPropagation(); 
+                document.getElementById('ufDesignId').value = video.id;
+                document.getElementById('ufDesignName').value = video.title;
+                document.getElementById('ufDesignShopify').value = video.shopifyLink || '';
+                document.getElementById('ufDesignEtsy').value = video.etsyLink || '';
+                document.getElementById('ufDesignLinks').value = video.sources ? video.sources.join('\n') : '';
+                document.getElementById('ufDesignCover').required = false;
+                
+                const cSel = document.getElementById('ufDesignCollections');
+                if(cSel) {
+                    cSel.innerHTML = '';
+                    state.channels.forEach(c => cSel.innerHTML += `<option value="${c.id}" ${(video.collections||[]).includes(c.id)?'selected':''}>${c.name}</option>`);
+                }
+                
+                document.getElementById('btnSubmitUFDesign').textContent = 'Salva Modifiche';
+                document.getElementById('addUFDesignModal')?.classList.remove('hidden'); document.getElementById('addUFDesignModal')?.classList.add('flex'); 
+            };
+            act.querySelector('.delBtn').onclick = (e) => { e.stopPropagation(); requirePin(`Eliminare "${video.title}"?`, async () => { state.videoIdeas = state.videoIdeas.filter(v => v.id !== video.id); renderVideos(getFilteredIdeas()); await autoSaveToCloud(); }); };
+            card.appendChild(act); grid.appendChild(card);
+            return;
+        }
+
         const ch = state.channels.find(c => c.id === video.channelId);
         const channelName = ch ? ch.name : 'Nessun Canale';
         const statusType = getIdeaStatus(video);
@@ -396,6 +453,49 @@ export function renderAdminChannelList() {
 }
 
 // ==========================================
+// RENDER COLLEZIONI (TMS UF LAB)
+// ==========================================
+window.renderCollezioni = function() {
+    const grid = document.getElementById('collezioniGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    if (state.channels.length === 0) {
+        grid.innerHTML = '<div class="col-span-full py-20 text-center text-gray-500">Nessuna collezione presente.</div>';
+        return;
+    }
+    state.channels.forEach(col => {
+        const count = state.videoIdeas.filter(v => v.collections && v.collections.includes(col.id)).length;
+        const card = document.createElement('div');
+        card.className = 'bg-[#1a1a1a] rounded-xl border border-[#333] hover:border-red-500 p-5 flex items-center justify-between cursor-pointer group transition-colors shadow-lg';
+        card.onclick = () => window.setActiveFilter(col.id); 
+        
+        let avatarHTML = col.profilePicUrl 
+            ? `<img src="${col.profilePicUrl}" class="w-14 h-14 rounded-full object-cover shrink-0 border border-[#404040] shadow-md">` 
+            : `<div class="w-14 h-14 rounded-full shrink-0 flex items-center justify-center text-xl font-bold border border-[#404040] shadow-md" style="background:${col.color || '#e53e3e'}">${col.name.charAt(0).toUpperCase()}</div>`;
+
+        card.innerHTML = `
+            <div class="flex items-center gap-4">
+                ${avatarHTML}
+                <div class="flex flex-col">
+                    <h3 class="text-lg font-black text-white group-hover:text-red-400 transition-colors line-clamp-1">${col.name}</h3>
+                    <span class="text-sm text-gray-400">${count} Designs</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button class="w-8 h-8 rounded-full bg-[#2a2a2a] hover:bg-[#444] text-white flex items-center justify-center transition-colors edit-col-btn" title="Modifica">✏️</button>
+                <button class="w-8 h-8 rounded-full bg-red-900/30 hover:bg-red-600 text-red-500 hover:text-white flex items-center justify-center transition-colors del-col-btn" title="Elimina">🗑️</button>
+            </div>
+        `;
+        
+        card.querySelector('.edit-col-btn').onclick = (e) => { e.stopPropagation(); document.getElementById('editCollectionId').value = col.id; document.getElementById('editCollectionName').value = col.name; if(col.profilePicUrl) document.getElementById('editCollectionAvatarPreview').innerHTML = `<img src="${col.profilePicUrl}" class="w-full h-full object-cover rounded-full">`; else document.getElementById('editCollectionAvatarPreview').innerHTML = '📁'; document.getElementById('editCollectionModal').classList.remove('hidden'); document.getElementById('editCollectionModal').classList.add('flex'); };
+
+        card.querySelector('.del-col-btn').onclick = (e) => { e.stopPropagation(); requirePin(`Vuoi eliminare la collezione "${col.name}"? I design al suo interno NON verranno eliminati.`, async () => { state.channels = state.channels.filter(c => c.id !== col.id); state.videoIdeas.forEach(v => { if(v.collections) v.collections = v.collections.filter(cid => cid !== col.id); }); window.renderCollezioni(); await autoSaveToCloud(); }); };
+        
+        grid.appendChild(card);
+    });
+};
+
+// ==========================================
 // RENDER TOOLS & TRAINING
 // ==========================================
 export function renderTools() {
@@ -404,6 +504,7 @@ export function renderTools() {
     toolsGrid.innerHTML = '';
     const term = document.getElementById('searchInput').value.toLowerCase();
     const filteredTools = term ? state.toolsData.filter(t => t.title.toLowerCase().includes(term) || t.description.toLowerCase().includes(term)) : state.toolsData;
+    const isUF = state.activeLab === 'uf';
 
     if (filteredTools.length === 0) { noToolsResults.classList.remove('hidden'); toolsGrid.classList.add('hidden'); return; }
     noToolsResults.classList.add('hidden'); toolsGrid.classList.remove('hidden');
@@ -437,20 +538,32 @@ export function renderTools() {
         
         act.querySelector('.editBtn').onclick = (e) => {
             e.stopPropagation();
-            requirePin(`Modificare lo strumento "${tool.title}"?`, () => {
-                document.getElementById('inputToolId').value = tool.id;
-                document.getElementById('inputToolTitle').value = tool.title;
-                document.getElementById('inputToolDesc').value = tool.description;
-                document.getElementById('inputToolLink').value = tool.link;
-                document.getElementById('toolPreview').src = tool.image;
-                document.getElementById('toolPreview').classList.remove('hidden');
-                document.getElementById('toolDropHint').classList.add('hidden');
-                document.getElementById('inputToolFile').required = false;
-                document.getElementById('toolModalTitle').textContent = 'Modifica Strumento';
-                document.getElementById('btnSubmitTool').textContent = 'Salva Modifiche';
-                document.getElementById('addToolModal').classList.remove('hidden');
-                document.getElementById('addToolModal').classList.add('flex');
-            });
+            if (isUF) {
+                document.getElementById('ufFornitoreId').value = tool.id;
+                document.getElementById('ufFornitoreName').value = tool.title || '';
+                document.getElementById('ufFornitoreCodice').value = tool.codice || '';
+                document.getElementById('ufFornitorePrezzi').value = tool.prezzi || '';
+                document.getElementById('ufFornitoreComp').value = tool.composizione || '';
+                document.getElementById('ufFornitoreLink').value = tool.link || '';
+                document.getElementById('btnSubmitUFFornitore').textContent = 'Salva Modifiche';
+                document.getElementById('addUFFornitoreModal').classList.remove('hidden');
+                document.getElementById('addUFFornitoreModal').classList.add('flex');
+            } else {
+                requirePin(`Modificare lo strumento "${tool.title}"?`, () => {
+                    document.getElementById('inputToolId').value = tool.id;
+                    document.getElementById('inputToolTitle').value = tool.title;
+                    document.getElementById('inputToolDesc').value = tool.description;
+                    document.getElementById('inputToolLink').value = tool.link;
+                    document.getElementById('toolPreview').src = tool.image;
+                    document.getElementById('toolPreview').classList.remove('hidden');
+                    document.getElementById('toolDropHint').classList.add('hidden');
+                    document.getElementById('inputToolFile').required = false;
+                    document.getElementById('toolModalTitle').textContent = 'Modifica Strumento';
+                    document.getElementById('btnSubmitTool').textContent = 'Salva Modifiche';
+                    document.getElementById('addToolModal').classList.remove('hidden');
+                    document.getElementById('addToolModal').classList.add('flex');
+                });
+            }
         };
         act.querySelector('.delBtn').onclick = (e) => {
             e.stopPropagation();
@@ -461,6 +574,21 @@ export function renderTools() {
         };
 
         card.innerHTML = `<img src="${tool.image}" class="w-full h-32 object-cover bg-[#111] pointer-events-none"><div class="p-4 flex-1 flex flex-col"><h3 class="font-bold text-white text-lg flex items-center">${tool.title} <span class="item-sync-indicator"></span></h3><p class="text-sm text-gray-400 mt-1 line-clamp-3 flex-1">${tool.description}</p><button onclick="window.open('${tool.link}', '_blank')" class="mt-4 w-full py-2.5 bg-[#303030] hover:bg-[#404040] text-white rounded text-sm font-semibold transition-colors flex justify-center items-center gap-2">Apri Strumento ↗</button></div>`;
+        if (isUF) {
+            card.innerHTML = `
+                <div class="relative w-full aspect-square bg-[#111]">
+                    <img src="${tool.image}" onerror="this.src='https://via.placeholder.com/400'" class="w-full h-full object-cover pointer-events-none">
+                </div>
+                <div class="p-4 flex-1 flex flex-col">
+                    <h3 class="font-bold text-white text-lg">${tool.title}</h3>
+                    ${tool.codice ? `<p class="text-xs text-red-400 font-mono mt-1">${tool.codice}</p>` : ''}
+                    ${tool.prezzi ? `<div class="mt-3 bg-[#111] p-2 rounded border border-[#333]"><span class="text-[10px] text-gray-500 uppercase block mb-1">Prezzi</span><p class="text-sm text-gray-300 whitespace-pre-wrap leading-tight">${tool.prezzi}</p></div>` : ''}
+                    ${tool.composizione ? `<div class="mt-2"><span class="text-[10px] text-gray-500 uppercase block">Materiali</span><p class="text-xs text-gray-400 whitespace-pre-wrap leading-tight">${tool.composizione}</p></div>` : ''}
+                    ${tool.link ? `<button onclick="window.open('${tool.link}', '_blank')" class="mt-auto pt-4 w-full py-2.5 text-blue-400 hover:text-blue-300 rounded text-sm font-bold transition-colors flex justify-center items-center gap-2">🔗 Visita Fornitore</button>` : ''}
+                </div>`;
+        } else {
+            card.innerHTML = `<img src="${tool.image}" onerror="this.src='https://via.placeholder.com/400'" class="w-full h-32 object-cover bg-[#111] pointer-events-none"><div class="p-4 flex-1 flex flex-col"><h3 class="font-bold text-white text-lg flex items-center">${tool.title} <span class="item-sync-indicator"></span></h3><p class="text-sm text-gray-400 mt-1 line-clamp-3 flex-1">${tool.description || ''}</p>${tool.link ? `<button onclick="window.open('${tool.link}', '_blank')" class="mt-4 w-full py-2.5 bg-[#303030] hover:bg-[#404040] text-white rounded text-sm font-semibold transition-colors flex justify-center items-center gap-2">Apri Strumento ↗</button>` : ''}</div>`;
+        }
         card.appendChild(act); toolsGrid.appendChild(card);
     });
     if(window.updateSyncIndicators) window.updateSyncIndicators();
@@ -1278,6 +1406,94 @@ window.openIdeaDashboard = function(idea) {
     document.getElementById('ideaDashboardModal').classList.add('flex');
 };
 
+window.openUFDesignDashboard = (design) => {
+    state.currentlyOpenIdeaId = design.id;
+    document.getElementById('ufDashThumb').src = design.thumbnail;
+    document.getElementById('ufDashTitle').textContent = design.title;
+    const colsStr = (design.collections || []).map(id => { const c = state.channels.find(ch => ch.id === id); return c ? c.name : ''; }).filter(Boolean).join(', ') || 'Nessuna collezione';
+    document.getElementById('ufDashCollections').textContent = colsStr;
+    
+    document.getElementById('ufDashDriveBtn').onclick = () => { if(design.driveLink) window.open(design.driveLink, '_blank'); else alert('Nessun link Drive.'); };
+    
+    document.getElementById('ufDashShopify').value = design.shopifyLink || '';
+    document.getElementById('btnSaveUFShopify').onclick = async () => {
+        design.shopifyLink = document.getElementById('ufDashShopify').value.trim();
+        renderVideos(getFilteredIdeas());
+        await autoSaveToCloud();
+        devLog("Link Shopify aggiornato", "success");
+    };
+
+    document.getElementById('ufDashEtsy').value = design.etsyLink || '';
+    document.getElementById('btnSaveUFEtsy').onclick = async () => {
+        design.etsyLink = document.getElementById('ufDashEtsy').value.trim();
+        renderVideos(getFilteredIdeas());
+        await autoSaveToCloud();
+        devLog("Link Etsy aggiornato", "success");
+    };
+
+    if(!design.logData) design.logData = { software: '- Inkscape / Canva', terzeParti: '- Nessuno specificato', aiIntervention: '- Nessuno specificato', appunti: '- Nessun appunto' };
+    document.getElementById('ufLogSoftware').value = design.logData.software;
+    document.getElementById('ufLogTerze').value = design.logData.terzeParti;
+    document.getElementById('ufLogAI').value = design.logData.aiIntervention;
+    document.getElementById('ufLogAppunti').value = design.logData.appunti;
+
+    document.getElementById('btnSaveUFLog').onclick = async () => {
+        const btn = document.getElementById('btnSaveUFLog');
+        btn.disabled = true; btn.textContent = '🔄 Salvataggio...';
+        
+        design.logData.software = document.getElementById('ufLogSoftware').value;
+        design.logData.terzeParti = document.getElementById('ufLogTerze').value;
+        design.logData.aiIntervention = document.getElementById('ufLogAI').value;
+        design.logData.appunti = document.getElementById('ufLogAppunti').value;
+        
+        if (state.SCRIPT_URL && design.driveFolderId) {
+            const d = new Date().toLocaleDateString('it-IT');
+            const templateContent = `=========================================
+LOG DI CREAZIONE DESIGN
+=========================================
+
+NOME PROGETTO: ${design.title}
+DATA DI COMPLETAMENTO: ${d}
+AUTORE/SHOP: Tomas Guardati / Unfiltered
+
+SOFTWARE UTILIZZATI PER L'ASSEMBLAGGIO:
+${design.logData.software}
+
+ELEMENTI DI TERZE PARTI (Stock, Vettoriali, Font):
+${design.logData.terzeParti}
+
+USO DI INTELLIGENZA ARTIFICIALE (Se applicabile):
+${design.logData.aiIntervention}
+
+APPUNTI DI PUBBLICAZIONE:
+${design.logData.appunti}
+
+DICHIARAZIONE DI PATERNITÀ:
+Il sottoscritto dichiara che la composizione finale di questo design è frutto del proprio lavoro creativo e di assemblaggio. Tutti gli elementi di terze parti o generati tramite IA sono stati modificati e/o combinati in modo originale e vengono utilizzati nel rispetto delle rispettive licenze commerciali.
+=========================================`;
+
+            try {
+                await callScriptAction({ action: 'createOrUpdateLogFile', folderId: design.driveFolderId, fileName: 'log_creazione.txt', content: templateContent });
+                const timeStr = new Date().toLocaleString('it-IT');
+                await callScriptAction({ action: 'appendModificationLog', folderId: design.driveFolderId, content: `[${timeStr}] Aggiornamento Log di Creazione tramite TMS UF Lab.` });
+            } catch(e) { devLog("Errore aggiornamento su Drive", "error"); }
+        }
+        await autoSaveToCloud();
+        btn.disabled = false; btn.textContent = 'Salva e Genera Log.txt';
+    };
+
+    document.getElementById('ufDashDeleteBtn').onclick = () => {
+        requirePin(`Eliminare il design "${design.title}"?`, async () => {
+            state.videoIdeas = state.videoIdeas.filter(v => v.id !== design.id);
+            closeModal('ufDashboardModal');
+            renderVideos(getFilteredIdeas()); await autoSaveToCloud();
+        });
+    };
+
+    document.getElementById('ufDashboardModal').classList.remove('hidden');
+    document.getElementById('ufDashboardModal').classList.add('flex');
+};
+
 window.openEditIdeaModal = function(idea) {
     document.getElementById('editIdeaId').value = idea.id;
     document.getElementById('editIdeaTitle').value = idea.title;
@@ -1328,6 +1544,7 @@ window.openEditIdeaModal = function(idea) {
 window.renderCompetitors = function() {
     const grid = document.getElementById('competitorsGrid');
     const noRes = document.getElementById('noCompetitors');
+    const isUF = state.activeLab === 'uf';
     if (!grid) return;
     
     grid.innerHTML = '';
@@ -1341,31 +1558,62 @@ window.renderCompetitors = function() {
 
     [...state.competitorsAnalysis].reverse().forEach(comp => {
         const card = document.createElement('div');
-        card.className = 'flex flex-col gap-2 cursor-pointer group relative hover:opacity-90 transition-opacity bg-[#212121] rounded-xl p-3 border border-[#333] hover:border-blue-500 shadow';
-        card.onclick = () => { if(window.openCompDashboard) window.openCompDashboard(comp); };
-
         const thumbSrc = comp.thumbnail;
-        let avatarHtml = comp.avatar ? `<img src="${comp.avatar}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-[10px]">📺</div>`;
-        
-        card.innerHTML = `
-            <div class="relative w-full aspect-video rounded-lg overflow-hidden bg-[#111] border border-[#333] transition-colors mb-2">
-                <img src="${thumbSrc}" onerror="this.src='https://img.youtube.com/vi/${comp.ytId}/hqdefault.jpg'" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
-                <div class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                    <span class="text-4xl drop-shadow-lg">📊</span>
+        if (isUF) {
+            card.className = 'flex flex-col gap-2 cursor-pointer group relative hover:opacity-90 transition-opacity bg-[#212121] rounded-xl p-3 border border-[#333] hover:border-red-500 shadow';
+            card.onclick = () => window.open(comp.link, '_blank');
+            let avatarHtml = comp.avatar ? `<img src="${comp.avatar}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-[10px]">📸</div>`;
+            
+            const act = document.createElement('div');
+            act.className = 'absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10';
+            act.innerHTML = `<button class="delBtn bg-red-600/90 hover:bg-red-500 text-white text-xs w-8 h-8 rounded-full shadow-lg hover:scale-110">🗑️</button>`;
+            act.querySelector('.delBtn').onclick = (e) => {
+                e.stopPropagation();
+                requirePin(`Eliminare il competitor "${comp.title}"?`, async () => {
+                    state.competitorsAnalysis = state.competitorsAnalysis.filter(c => c.id !== comp.id);
+                    window.renderCompetitors(); await autoSaveToCloud();
+                });
+            };
+            
+            card.innerHTML = `
+                <div class="relative w-full aspect-square rounded-lg overflow-hidden bg-[#111] border border-[#333] transition-colors mb-2">
+                    <img src="${thumbSrc}" onerror="this.src='https://via.placeholder.com/400'" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    <div class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"><span class="text-4xl drop-shadow-lg">↗️</span></div>
                 </div>
-                <div class="absolute bottom-2 right-2 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-bold text-white border border-[#444]">${comp.duration || '0:00'}</div>
-            </div>
-            <div class="flex gap-3 px-1 pb-1">
-                <div class="w-8 h-8 rounded-full bg-[#111] flex items-center justify-center text-xs font-bold border border-[#404040] shrink-0 overflow-hidden">${avatarHtml}</div>
-                <div class="flex flex-col flex-1">
-                    <h3 class="text-sm font-bold text-[#f1f1f1] line-clamp-2 leading-tight group-hover:text-blue-400 transition-colors inline-flex items-center gap-1" title="${comp.title}">${comp.title} <span class="item-sync-indicator shrink-0"></span></h3>
-                    <div class="text-[11px] text-[#aaaaaa] mt-1.5 font-medium flex items-center justify-between">
-                        <span class="truncate pr-2">${comp.author || 'Sconosciuto'}</span>
-                        <span class="shrink-0 text-white bg-black/30 px-1.5 py-0.5 rounded border border-[#333]">${comp.views || ''}</span>
+                <div class="flex gap-3 px-1 pb-1 items-start">
+                    <div class="w-10 h-10 rounded-full bg-[#111] flex items-center justify-center text-xs font-bold border border-[#404040] shrink-0 overflow-hidden mt-1">${avatarHtml}</div>
+                    <div class="flex flex-col flex-1">
+                        <h3 class="text-sm font-bold text-[#f1f1f1] leading-tight group-hover:text-red-400 transition-colors" title="${comp.title}">${comp.title}</h3>
+                        <div class="text-[11px] text-[#aaaaaa] mt-1 font-medium break-all text-blue-400">${comp.author || ''}</div>
+                        <div class="text-[10px] text-gray-500 mt-1 line-clamp-2">${comp.views || ''}</div>
                     </div>
                 </div>
-            </div>
-        `;
+            `;
+            card.appendChild(act);
+        } else {
+            card.className = 'flex flex-col gap-2 cursor-pointer group relative hover:opacity-90 transition-opacity bg-[#212121] rounded-xl p-3 border border-[#333] hover:border-blue-500 shadow';
+            card.onclick = () => { if(window.openCompDashboard) window.openCompDashboard(comp); };
+            let avatarHtml = comp.avatar ? `<img src="${comp.avatar}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-[10px]">📺</div>`;
+            card.innerHTML = `
+                <div class="relative w-full aspect-video rounded-lg overflow-hidden bg-[#111] border border-[#333] transition-colors mb-2">
+                    <img src="${thumbSrc}" onerror="this.src='https://img.youtube.com/vi/${comp.ytId}/hqdefault.jpg'" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    <div class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                        <span class="text-4xl drop-shadow-lg">📊</span>
+                    </div>
+                    <div class="absolute bottom-2 right-2 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-bold text-white border border-[#444]">${comp.duration || '0:00'}</div>
+                </div>
+                <div class="flex gap-3 px-1 pb-1">
+                    <div class="w-8 h-8 rounded-full bg-[#111] flex items-center justify-center text-xs font-bold border border-[#404040] shrink-0 overflow-hidden">${avatarHtml}</div>
+                    <div class="flex flex-col flex-1">
+                        <h3 class="text-sm font-bold text-[#f1f1f1] line-clamp-2 leading-tight group-hover:text-blue-400 transition-colors inline-flex items-center gap-1" title="${comp.title}">${comp.title} <span class="item-sync-indicator shrink-0"></span></h3>
+                        <div class="text-[11px] text-[#aaaaaa] mt-1.5 font-medium flex items-center justify-between">
+                            <span class="truncate pr-2">${comp.author || 'Sconosciuto'}</span>
+                            <span class="shrink-0 text-white bg-black/30 px-1.5 py-0.5 rounded border border-[#333]">${comp.views || ''}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
         grid.appendChild(card);
     });
     if(window.updateSyncIndicators) window.updateSyncIndicators();
