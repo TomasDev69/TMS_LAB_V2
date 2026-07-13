@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { timeSince, formatViewsCount, shuffleArray, getStringSizeInKB } from './utils.js';
+import { timeSince, formatViewsCount, shuffleArray, getStringSizeInKB, escapeHtml, safeUrl, safeAttrUrl } from './utils.js';
 import { callScriptAction, autoSaveToCloud, fetchYTProxy } from './api.js';
 import { devLog, requirePin, closeModal } from './ui.js';
 
@@ -53,7 +53,7 @@ export function renderFinanceDashboard() {
         const li = document.createElement('li'); li.className = 'p-4 hover:bg-[#272727] flex justify-between items-center transition-colors group relative';
         const dateStr = new Date(sub.nextRenewal).toLocaleDateString('it-IT');
         const isNear = (new Date(sub.nextRenewal) - new Date()) < (7 * 86400000); // Meno di 7 giorni
-        li.innerHTML = `<div class="flex flex-col"><a ${sub.site ? `href="${sub.site}" target="_blank"` : ''} class="font-bold text-blue-400 hover:underline">${sub.name}</a><span class="text-xs text-gray-500 mt-1">Rinnovo: <span class="${isNear?'text-yellow-500 font-bold':''}">${dateStr}</span></span></div><div class="flex items-center gap-4"><div class="text-right"><div class="font-bold text-red-400">- € ${parseFloat(sub.price).toFixed(2)}</div><div class="text-[10px] text-gray-500 uppercase">${sub.cycle}</div></div><button class="del-sub-btn opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-400 transition-opacity">🗑️</button></div>`;
+        li.innerHTML = `<div class="flex flex-col"><a ${safeUrl(sub.site) ? `href="${safeAttrUrl(sub.site)}" target="_blank" rel="noopener noreferrer"` : ''} class="font-bold text-blue-400 hover:underline">${escapeHtml(sub.name)}</a><span class="text-xs text-gray-500 mt-1">Rinnovo: <span class="${isNear?'text-yellow-500 font-bold':''}">${escapeHtml(dateStr)}</span></span></div><div class="flex items-center gap-4"><div class="text-right"><div class="font-bold text-red-400">- € ${parseFloat(sub.price).toFixed(2)}</div><div class="text-[10px] text-gray-500 uppercase">${escapeHtml(sub.cycle)}</div></div><button class="del-sub-btn opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-400 transition-opacity">🗑️</button></div>`;
         li.querySelector('.del-sub-btn').onclick = () => { requirePin(`Eliminare l'abbonamento ${sub.name}?`, async () => { state.finance.subscriptions = state.finance.subscriptions.filter(s => s.id !== sub.id); renderFinanceDashboard(); await autoSaveToCloud(); }); };
         subList.appendChild(li);
     });
@@ -65,7 +65,7 @@ export function renderFinanceDashboard() {
         if(state.finance.revenues.length === 0) revList.innerHTML = '<li class="p-6 text-center text-gray-500 text-sm">Nessuna entrata registrata.</li>';
         [...state.finance.revenues].sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(rev => {
         const li = document.createElement('li'); li.className = 'p-4 hover:bg-[#272727] flex justify-between items-center transition-colors group relative';
-        li.innerHTML = `<div class="flex flex-col pr-4"><span class="font-bold text-gray-200 text-sm line-clamp-1">${rev.source}</span><span class="text-xs text-gray-500 mt-1">${new Date(rev.date).toLocaleDateString('it-IT')}</span></div><div class="flex items-center gap-4 shrink-0"><div class="font-bold text-green-400">+ € ${parseFloat(rev.amount).toFixed(2)}</div><button class="del-rev-btn opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-400 transition-opacity">🗑️</button></div>`;
+        li.innerHTML = `<div class="flex flex-col pr-4"><span class="font-bold text-gray-200 text-sm line-clamp-1">${escapeHtml(rev.source)}</span><span class="text-xs text-gray-500 mt-1">${new Date(rev.date).toLocaleDateString('it-IT')}</span></div><div class="flex items-center gap-4 shrink-0"><div class="font-bold text-green-400">+ € ${parseFloat(rev.amount).toFixed(2)}</div><button class="del-rev-btn opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-400 transition-opacity">🗑️</button></div>`;
         li.querySelector('.del-rev-btn').onclick = () => { requirePin(`Eliminare questa entrata?`, async () => { state.finance.revenues = state.finance.revenues.filter(r => r.id !== rev.id); renderFinanceDashboard(); await autoSaveToCloud(); }); };
         revList.appendChild(li);
     });
@@ -79,7 +79,7 @@ export function renderFinanceDashboard() {
         const li = document.createElement('li'); li.className = 'p-4 hover:bg-[#272727] flex justify-between items-center transition-colors group relative';
         const idea = state.videoIdeas.find(v => v.id === cost.ideaId);
         const title = idea ? idea.title : 'Idea Eliminata';
-        li.innerHTML = `<div class="flex flex-col pr-4"><span class="font-bold text-gray-200 text-sm line-clamp-1" title="${title}">${title}</span><span class="text-xs text-gray-500 mt-1">Editor: <span class="text-white">${cost.editor}</span> &bull; ${new Date(cost.date).toLocaleDateString('it-IT')}</span></div><div class="flex items-center gap-4 shrink-0"><div class="font-bold text-red-400">- € ${parseFloat(cost.amount).toFixed(2)}</div><button class="del-ed-btn opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-400 transition-opacity">🗑️</button></div>`;
+        li.innerHTML = `<div class="flex flex-col pr-4"><span class="font-bold text-gray-200 text-sm line-clamp-1" title="${escapeHtml(title)}">${escapeHtml(title)}</span><span class="text-xs text-gray-500 mt-1">Editor: <span class="text-white">${escapeHtml(cost.editor)}</span> &bull; ${new Date(cost.date).toLocaleDateString('it-IT')}</span></div><div class="flex items-center gap-4 shrink-0"><div class="font-bold text-red-400">- € ${parseFloat(cost.amount).toFixed(2)}</div><button class="del-ed-btn opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-400 transition-opacity">🗑️</button></div>`;
         li.querySelector('.del-ed-btn').onclick = () => { requirePin(`Annullare il pagamento di ${cost.editor}?`, async () => { state.finance.editorCosts = state.finance.editorCosts.filter(c => c.id !== cost.id); renderFinanceDashboard(); await autoSaveToCloud(); }); };
         edList.appendChild(li);
     });
@@ -227,8 +227,8 @@ export function renderVideos(videosToRender) {
             
             const iconsHtml = `
                 <div class="absolute top-2 right-2 flex flex-col gap-1 z-10">
-                    <a ${video.shopifyLink ? `href="${video.shopifyLink}" target="_blank"` : ''} onclick="event.stopPropagation()" class="w-7 h-7 bg-[#95bf47] rounded-lg flex items-center justify-center shadow-lg hover:scale-110 transition-transform ${shopifyActive}" title="Shopify">🛍️</a>
-                    <a ${video.etsyLink ? `href="${video.etsyLink}" target="_blank"` : ''} onclick="event.stopPropagation()" class="w-7 h-7 bg-[#f56400] rounded-lg flex items-center justify-center shadow-lg hover:scale-110 transition-transform ${etsyActive}" title="Etsy"><span class="font-serif text-white font-bold text-sm">E</span></a>
+                    <a ${safeUrl(video.shopifyLink) ? `href="${safeAttrUrl(video.shopifyLink)}" target="_blank" rel="noopener noreferrer"` : ''} onclick="event.stopPropagation()" class="w-7 h-7 bg-[#95bf47] rounded-lg flex items-center justify-center shadow-lg hover:scale-110 transition-transform ${shopifyActive}" title="Shopify">🛍️</a>
+                    <a ${safeUrl(video.etsyLink) ? `href="${safeAttrUrl(video.etsyLink)}" target="_blank" rel="noopener noreferrer"` : ''} onclick="event.stopPropagation()" class="w-7 h-7 bg-[#f56400] rounded-lg flex items-center justify-center shadow-lg hover:scale-110 transition-transform ${etsyActive}" title="Etsy"><span class="font-serif text-white font-bold text-sm">E</span></a>
                 </div>
             `;
 
@@ -237,13 +237,13 @@ export function renderVideos(videosToRender) {
             card.onclick = () => { if(window.openUFDesignDashboard) window.openUFDesignDashboard(video); };
             card.innerHTML = `
                 <div class="relative w-full aspect-square rounded-xl overflow-hidden bg-[#272727] border border-transparent group-hover:border-red-500/50 transition-colors shadow">
-                    <img src="${video.thumbnail}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    <img src="${safeAttrUrl(video.thumbnail)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                     ${iconsHtml}
-                    <div class="absolute bottom-2 left-2 bg-black/80 px-2 py-0.5 rounded text-[10px] font-bold text-gray-300 border border-[#444] shadow">📅 ${dateStr}</div>
+                    <div class="absolute bottom-2 left-2 bg-black/80 px-2 py-0.5 rounded text-[10px] font-bold text-gray-300 border border-[#444] shadow">📅 ${escapeHtml(dateStr)}</div>
                 </div>
                 <div class="flex flex-col pr-2">
-                    <h3 class="text-[16px] font-bold text-[#f1f1f1] line-clamp-2 leading-tight group-hover:text-red-400 transition-colors" title="${video.title}">${video.title}</h3>
-                    <div class="text-[12px] text-[#aaaaaa] mt-1 line-clamp-1">${colsStr}</div>
+                    <h3 class="text-[16px] font-bold text-[#f1f1f1] line-clamp-2 leading-tight group-hover:text-red-400 transition-colors" title="${escapeHtml(video.title)}">${escapeHtml(video.title)}</h3>
+                    <div class="text-[12px] text-[#aaaaaa] mt-1 line-clamp-1">${escapeHtml(colsStr)}</div>
                 </div>
             `;
             const act = document.createElement('div'); act.className = 'absolute top-2 left-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-20';
@@ -261,7 +261,7 @@ export function renderVideos(videosToRender) {
                 const cSel = document.getElementById('ufDesignCollections');
                 if(cSel) {
                     cSel.innerHTML = '';
-                    state.channels.forEach(c => cSel.innerHTML += `<option value="${c.id}" ${(video.collections||[]).includes(c.id)?'selected':''}>${c.name}</option>`);
+                    state.channels.forEach(c => cSel.innerHTML += `<option value="${escapeHtml(c.id)}" ${(video.collections||[]).includes(c.id)?'selected':''}>${escapeHtml(c.name)}</option>`);
                 }
                 
                 document.getElementById('btnSubmitUFDesign').textContent = 'Salva Modifiche';
@@ -282,9 +282,9 @@ export function renderVideos(videosToRender) {
         else if(statusType==='progress'){bColor='text-purple-400';bLabel='In Progress';} 
         else if(statusType==='completed'){bColor='text-green-400';bLabel='Completata';}
         
-        let avatarHtml = ch && ch.profilePicUrl 
-            ? `<img src="${ch.profilePicUrl}" class="w-9 h-9 rounded-full object-cover shrink-0 border border-[#404040]">` 
-            : `<div class="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-sm font-bold border border-[#404040]" style="background:${ch?ch.color||'#555':'#555'}">${channelName.charAt(0).toUpperCase()}</div>`;
+        let avatarHtml = ch && ch.profilePicUrl
+            ? `<img src="${safeAttrUrl(ch.profilePicUrl)}" class="w-9 h-9 rounded-full object-cover shrink-0 border border-[#404040]">`
+            : `<div class="w-9 h-9 rounded-full shrink-0 flex items-center justify-center text-sm font-bold border border-[#404040]" style="background:${ch?ch.color||'#555':'#555'}">${escapeHtml(channelName.charAt(0).toUpperCase())}</div>`;
         
         const timeAgoStr = video.createdAt ? timeSince(video.createdAt) : video.timeAgo;
 
@@ -294,14 +294,14 @@ export function renderVideos(videosToRender) {
         
         card.innerHTML = `
             <div class="relative w-full aspect-video rounded-xl overflow-hidden bg-[#272727] border border-transparent group-hover:border-[#303030] transition-colors">
-                <img src="${video.thumbnail}" onerror="this.src='https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop'" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                <img src="${safeAttrUrl(video.thumbnail)}" onerror="this.src='https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop'" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                 <div class="absolute top-2 left-2 bg-black/80 px-2 py-0.5 rounded text-[11px] font-bold ${bColor} uppercase border border-[#444] shadow">${bLabel}</div>
             </div>
             <div class="flex gap-3 pr-2">
                 ${avatarHtml}
                 <div class="flex flex-col">
-                    <h3 class="text-[16px] font-semibold text-[#f1f1f1] line-clamp-2 leading-tight group-hover:text-[#3ea6ff] transition-colors" title="${video.title}">${video.title}</h3>
-                    <div class="text-[12px] text-[#aaaaaa] mt-1 flex flex-col"><span class="flex items-center">${channelName} &bull; ${timeAgoStr} <span class="item-sync-indicator"></span></span><span class="mt-0.5">Resp: ${video.assignee ? `<span class="text-white font-semibold">${video.assignee}</span>` : `<span class="italic">Nessuno</span>`}</span></div>
+                    <h3 class="text-[16px] font-semibold text-[#f1f1f1] line-clamp-2 leading-tight group-hover:text-[#3ea6ff] transition-colors" title="${escapeHtml(video.title)}">${escapeHtml(video.title)}</h3>
+                    <div class="text-[12px] text-[#aaaaaa] mt-1 flex flex-col"><span class="flex items-center">${escapeHtml(channelName)} &bull; ${escapeHtml(timeAgoStr)} <span class="item-sync-indicator"></span></span><span class="mt-0.5">Resp: ${video.assignee ? `<span class="text-white font-semibold">${escapeHtml(video.assignee)}</span>` : `<span class="italic">Nessuno</span>`}</span></div>
                 </div>
             </div>
         `;
@@ -359,12 +359,12 @@ export function renderChannelList() {
     if (inpCh) inpCh.innerHTML = '<option value="">— Nessun canale —</option>';
     
     state.channels.forEach(ch => {
-        if (inpCh) inpCh.innerHTML += `<option value="${ch.id}">${ch.name}</option>`;
+        if (inpCh) inpCh.innerHTML += `<option value="${escapeHtml(ch.id)}">${escapeHtml(ch.name)}</option>`;
         const count = state.videoIdeas.filter(v => v.channelId === ch.id).length;
         
-        let avatarHTML = ch.profilePicUrl 
-            ? `<img src="${ch.profilePicUrl}" class="w-7 h-7 rounded-full object-cover shrink-0 border border-[#404040]">` 
-            : `<div class="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold border border-[#404040]" style="background:${ch.color || '#3ea6ff'}">${ch.name.charAt(0).toUpperCase()}</div>`;
+        let avatarHTML = ch.profilePicUrl
+            ? `<img src="${safeAttrUrl(ch.profilePicUrl)}" class="w-7 h-7 rounded-full object-cover shrink-0 border border-[#404040]">`
+            : `<div class="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold border border-[#404040]" style="background:${ch.color || '#3ea6ff'}">${escapeHtml(ch.name.charAt(0).toUpperCase())}</div>`;
         
         let folderIcon = '⏳'; let folderTitle = 'Verifica cartella in corso...';
         if (!ch.driveFolderId) { folderIcon = '❓'; folderTitle = 'Nessuna cartella Drive'; } 
@@ -395,7 +395,7 @@ export function renderChannelList() {
             }
         });
 
-        el.innerHTML = `<div class="shrink-0">${avatarHTML}</div><span class="sidebar-label text-sm text-gray-200 flex-1 truncate">${ch.name}</span><span class="sidebar-label folder-status-icon text-sm" data-chid="${ch.id}" title="${folderTitle}">${folderIcon}</span><span class="sidebar-label text-[11px] text-gray-500 bg-[#222] px-1.5 py-0.5 rounded ml-1 transition-opacity">${count}</span>`;
+        el.innerHTML = `<div class="shrink-0">${avatarHTML}</div><span class="sidebar-label text-sm text-gray-200 flex-1 truncate">${escapeHtml(ch.name)}</span><span class="sidebar-label folder-status-icon text-sm" data-chid="${escapeHtml(ch.id)}" title="${escapeHtml(folderTitle)}">${folderIcon}</span><span class="sidebar-label text-[11px] text-gray-500 bg-[#222] px-1.5 py-0.5 rounded ml-1 transition-opacity">${count}</span>`;
         el.addEventListener('click', () => window.setActiveFilter(ch.id));
         channelListEl.appendChild(el);
     });
@@ -412,14 +412,14 @@ export function renderAdminChannelList() {
 
     state.channels.forEach(ch => {
         const count = state.videoIdeas.filter(v => v.channelId === ch.id).length;
-        let avatarHTML = ch.profilePicUrl 
-            ? `<img src="${ch.profilePicUrl}" class="w-10 h-10 rounded-full object-cover shrink-0 border border-[#404040]">` 
-            : `<div class="w-10 h-10 rounded-full shrink-0 flex items-center justify-center text-sm font-bold border border-[#404040]" style="background:${ch.color || '#3ea6ff'}">${ch.name.charAt(0).toUpperCase()}</div>`;
+        let avatarHTML = ch.profilePicUrl
+            ? `<img src="${safeAttrUrl(ch.profilePicUrl)}" class="w-10 h-10 rounded-full object-cover shrink-0 border border-[#404040]">`
+            : `<div class="w-10 h-10 rounded-full shrink-0 flex items-center justify-center text-sm font-bold border border-[#404040]" style="background:${ch.color || '#3ea6ff'}">${escapeHtml(ch.name.charAt(0).toUpperCase())}</div>`;
 
         const li = document.createElement('li');
         li.className = "flex items-center justify-between p-3 hover:bg-[#151515] transition-colors";
         li.innerHTML = `
-            <div class="flex items-center gap-3">${avatarHTML}<div class="flex flex-col"><span class="text-sm font-bold text-white">${ch.name}</span><span class="text-xs text-gray-500">${count} idee collegate</span></div></div>
+            <div class="flex items-center gap-3">${avatarHTML}<div class="flex flex-col"><span class="text-sm font-bold text-white">${escapeHtml(ch.name)}</span><span class="text-xs text-gray-500">${count} idee collegate</span></div></div>
             <div class="flex items-center gap-2">
                 <button class="admin-edit-ch px-3 py-1.5 bg-[#2a2a2a] hover:bg-[#3ea6ff] hover:text-black text-gray-300 rounded text-xs font-bold transition-colors">Modifica</button>
                 <button class="admin-del-ch px-3 py-1.5 bg-[#2a2a2a] hover:bg-red-500 hover:text-white text-red-400 rounded text-xs font-bold transition-colors">Elimina</button>
@@ -441,7 +441,7 @@ export function renderAdminChannelList() {
             document.getElementById('editChannelId').value = ch.id;
             document.getElementById('editChannelName').value = ch.name;
             const preview = document.getElementById('editChannelAvatarPreview');
-            if (ch.profilePicUrl) preview.innerHTML = `<img src="${ch.profilePicUrl}" class="w-full h-full object-cover rounded-full">`;
+            if (ch.profilePicUrl) preview.innerHTML = `<img src="${safeAttrUrl(ch.profilePicUrl)}" class="w-full h-full object-cover rounded-full">`;
             else preview.innerHTML = '📺';
             document.getElementById('editChannelAvatar').value = '';
             state.files.editChannelAvatar = null;
@@ -469,15 +469,15 @@ window.renderCollezioni = function() {
         card.className = 'bg-[#1a1a1a] rounded-xl border border-[#333] hover:border-red-500 p-5 flex items-center justify-between cursor-pointer group transition-colors shadow-lg';
         card.onclick = () => window.setActiveFilter(col.id); 
         
-        let avatarHTML = col.profilePicUrl 
-            ? `<img src="${col.profilePicUrl}" class="w-14 h-14 rounded-full object-cover shrink-0 border border-[#404040] shadow-md">` 
-            : `<div class="w-14 h-14 rounded-full shrink-0 flex items-center justify-center text-xl font-bold border border-[#404040] shadow-md" style="background:${col.color || '#e53e3e'}">${col.name.charAt(0).toUpperCase()}</div>`;
+        let avatarHTML = col.profilePicUrl
+            ? `<img src="${safeAttrUrl(col.profilePicUrl)}" class="w-14 h-14 rounded-full object-cover shrink-0 border border-[#404040] shadow-md">`
+            : `<div class="w-14 h-14 rounded-full shrink-0 flex items-center justify-center text-xl font-bold border border-[#404040] shadow-md" style="background:${col.color || '#e53e3e'}">${escapeHtml(col.name.charAt(0).toUpperCase())}</div>`;
 
         card.innerHTML = `
             <div class="flex items-center gap-4">
                 ${avatarHTML}
                 <div class="flex flex-col">
-                    <h3 class="text-lg font-black text-white group-hover:text-red-400 transition-colors line-clamp-1">${col.name}</h3>
+                    <h3 class="text-lg font-black text-white group-hover:text-red-400 transition-colors line-clamp-1">${escapeHtml(col.name)}</h3>
                     <span class="text-sm text-gray-400">${count} Designs</span>
                 </div>
             </div>
@@ -487,7 +487,7 @@ window.renderCollezioni = function() {
             </div>
         `;
         
-        card.querySelector('.edit-col-btn').onclick = (e) => { e.stopPropagation(); document.getElementById('editCollectionId').value = col.id; document.getElementById('editCollectionName').value = col.name; if(col.profilePicUrl) document.getElementById('editCollectionAvatarPreview').innerHTML = `<img src="${col.profilePicUrl}" class="w-full h-full object-cover rounded-full">`; else document.getElementById('editCollectionAvatarPreview').innerHTML = '📁'; document.getElementById('editCollectionModal').classList.remove('hidden'); document.getElementById('editCollectionModal').classList.add('flex'); };
+        card.querySelector('.edit-col-btn').onclick = (e) => { e.stopPropagation(); document.getElementById('editCollectionId').value = col.id; document.getElementById('editCollectionName').value = col.name; if(col.profilePicUrl) document.getElementById('editCollectionAvatarPreview').innerHTML = `<img src="${safeAttrUrl(col.profilePicUrl)}" class="w-full h-full object-cover rounded-full">`; else document.getElementById('editCollectionAvatarPreview').innerHTML = '📁'; document.getElementById('editCollectionModal').classList.remove('hidden'); document.getElementById('editCollectionModal').classList.add('flex'); };
 
         card.querySelector('.del-col-btn').onclick = (e) => { e.stopPropagation(); requirePin(`Vuoi eliminare la collezione "${col.name}"? I design al suo interno NON verranno eliminati.`, async () => { state.channels = state.channels.filter(c => c.id !== col.id); state.videoIdeas.forEach(v => { if(v.collections) v.collections = v.collections.filter(cid => cid !== col.id); }); window.renderCollezioni(); await autoSaveToCloud(); }); };
         
@@ -573,21 +573,20 @@ export function renderTools() {
             });
         };
 
-        card.innerHTML = `<img src="${tool.image}" class="w-full h-32 object-cover bg-[#111] pointer-events-none"><div class="p-4 flex-1 flex flex-col"><h3 class="font-bold text-white text-lg flex items-center">${tool.title} <span class="item-sync-indicator"></span></h3><p class="text-sm text-gray-400 mt-1 line-clamp-3 flex-1">${tool.description}</p><button onclick="window.open('${tool.link}', '_blank')" class="mt-4 w-full py-2.5 bg-[#303030] hover:bg-[#404040] text-white rounded text-sm font-semibold transition-colors flex justify-center items-center gap-2">Apri Strumento ↗</button></div>`;
         if (isUF) {
             card.innerHTML = `
                 <div class="relative w-full aspect-square bg-[#111]">
-                    <img src="${tool.image}" onerror="this.src='https://via.placeholder.com/400'" class="w-full h-full object-cover pointer-events-none">
+                    <img src="${safeAttrUrl(tool.image)}" onerror="this.src='https://via.placeholder.com/400'" class="w-full h-full object-cover pointer-events-none">
                 </div>
                 <div class="p-4 flex-1 flex flex-col">
-                    <h3 class="font-bold text-white text-lg">${tool.title}</h3>
-                    ${tool.codice ? `<p class="text-xs text-red-400 font-mono mt-1">${tool.codice}</p>` : ''}
-                    ${tool.prezzi ? `<div class="mt-3 bg-[#111] p-2 rounded border border-[#333]"><span class="text-[10px] text-gray-500 uppercase block mb-1">Prezzi</span><p class="text-sm text-gray-300 whitespace-pre-wrap leading-tight">${tool.prezzi}</p></div>` : ''}
-                    ${tool.composizione ? `<div class="mt-2"><span class="text-[10px] text-gray-500 uppercase block">Materiali</span><p class="text-xs text-gray-400 whitespace-pre-wrap leading-tight">${tool.composizione}</p></div>` : ''}
-                    ${tool.link ? `<button onclick="window.open('${tool.link}', '_blank')" class="mt-auto pt-4 w-full py-2.5 text-blue-400 hover:text-blue-300 rounded text-sm font-bold transition-colors flex justify-center items-center gap-2">🔗 Visita Fornitore</button>` : ''}
+                    <h3 class="font-bold text-white text-lg">${escapeHtml(tool.title)}</h3>
+                    ${tool.codice ? `<p class="text-xs text-red-400 font-mono mt-1">${escapeHtml(tool.codice)}</p>` : ''}
+                    ${tool.prezzi ? `<div class="mt-3 bg-[#111] p-2 rounded border border-[#333]"><span class="text-[10px] text-gray-500 uppercase block mb-1">Prezzi</span><p class="text-sm text-gray-300 whitespace-pre-wrap leading-tight">${escapeHtml(tool.prezzi)}</p></div>` : ''}
+                    ${tool.composizione ? `<div class="mt-2"><span class="text-[10px] text-gray-500 uppercase block">Materiali</span><p class="text-xs text-gray-400 whitespace-pre-wrap leading-tight">${escapeHtml(tool.composizione)}</p></div>` : ''}
+                    ${safeUrl(tool.link) ? `<a href="${safeAttrUrl(tool.link)}" target="_blank" rel="noopener noreferrer" class="mt-auto pt-4 w-full py-2.5 text-blue-400 hover:text-blue-300 rounded text-sm font-bold transition-colors flex justify-center items-center gap-2">🔗 Visita Fornitore</a>` : ''}
                 </div>`;
         } else {
-            card.innerHTML = `<img src="${tool.image}" onerror="this.src='https://via.placeholder.com/400'" class="w-full h-32 object-cover bg-[#111] pointer-events-none"><div class="p-4 flex-1 flex flex-col"><h3 class="font-bold text-white text-lg flex items-center">${tool.title} <span class="item-sync-indicator"></span></h3><p class="text-sm text-gray-400 mt-1 line-clamp-3 flex-1">${tool.description || ''}</p>${tool.link ? `<button onclick="window.open('${tool.link}', '_blank')" class="mt-4 w-full py-2.5 bg-[#303030] hover:bg-[#404040] text-white rounded text-sm font-semibold transition-colors flex justify-center items-center gap-2">Apri Strumento ↗</button>` : ''}</div>`;
+            card.innerHTML = `<img src="${safeAttrUrl(tool.image)}" onerror="this.src='https://via.placeholder.com/400'" class="w-full h-32 object-cover bg-[#111] pointer-events-none"><div class="p-4 flex-1 flex flex-col"><h3 class="font-bold text-white text-lg flex items-center">${escapeHtml(tool.title)} <span class="item-sync-indicator"></span></h3><p class="text-sm text-gray-400 mt-1 line-clamp-3 flex-1">${escapeHtml(tool.description || '')}</p>${safeUrl(tool.link) ? `<a href="${safeAttrUrl(tool.link)}" target="_blank" rel="noopener noreferrer" class="mt-4 w-full py-2.5 bg-[#303030] hover:bg-[#404040] text-white rounded text-sm font-semibold transition-colors flex justify-center items-center gap-2">Apri Strumento ↗</a>` : ''}</div>`;
         }
         card.appendChild(act); toolsGrid.appendChild(card);
     });
@@ -660,8 +659,10 @@ export function renderTraining() {
         };
 
         let thumbSrc = training.ytId ? `https://img.youtube.com/vi/${training.ytId}/maxresdefault.jpg` : training.thumbnail;
+        const trLink = safeAttrUrl(training.link);
+        const trFallback = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop';
 
-        card.innerHTML = `<div class="relative aspect-video bg-[#111]" onclick="window.open('${training.link}', '_blank')"><img src="${thumbSrc}" onerror="this.src='${training.thumbnail || ''}'; if(this.src==='') this.src='https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop'" class="w-full h-full object-cover pointer-events-none"><div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"><span class="text-5xl drop-shadow-lg">▶️</span></div>${!training.ytId ? '<div class="absolute top-2 left-2 bg-purple-600 px-2 py-0.5 rounded text-[10px] font-bold uppercase shadow">Link Esterno</div>' : ''}</div><div class="p-4 flex-1 flex flex-col justify-center"><h3 class="font-bold text-white text-sm line-clamp-2 leading-tight group-hover:text-purple-400 transition-colors inline-flex items-center flex-wrap gap-1">${training.title} <span class="item-sync-indicator shrink-0"></span></h3></div>`;
+        card.innerHTML = `<a ${trLink ? `href="${trLink}" target="_blank" rel="noopener noreferrer"` : ''} class="relative aspect-video bg-[#111] block cursor-pointer"><img src="${safeAttrUrl(thumbSrc)}" onerror="this.onerror=null;this.src='${trFallback}'" class="w-full h-full object-cover pointer-events-none"><div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"><span class="text-5xl drop-shadow-lg">▶️</span></div>${!training.ytId ? '<div class="absolute top-2 left-2 bg-purple-600 px-2 py-0.5 rounded text-[10px] font-bold uppercase shadow">Link Esterno</div>' : ''}</a><div class="p-4 flex-1 flex flex-col justify-center"><h3 class="font-bold text-white text-sm line-clamp-2 leading-tight group-hover:text-purple-400 transition-colors inline-flex items-center flex-wrap gap-1">${escapeHtml(training.title)} <span class="item-sync-indicator shrink-0"></span></h3></div>`;
         card.appendChild(act); trainingGrid.appendChild(card);
     });
     if(window.updateSyncIndicators) window.updateSyncIndicators();
@@ -730,13 +731,13 @@ export function renderEditorsHub() {
         };
 
         if (isIcon) {
-            card.innerHTML = `<div class="w-full h-32 mb-3 bg-[#111] rounded-lg overflow-hidden flex items-center justify-center border border-[#333]"><img src="${item.link}" class="max-w-full max-h-full object-contain"></div><div class="flex flex-col pr-6 mb-3"><h3 class="font-bold text-white text-sm leading-tight line-clamp-1 inline-flex items-center gap-1" title="${item.title}">${item.title} <span class="item-sync-indicator shrink-0"></span></h3><span class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Immagine / Icona</span></div><div class="mt-auto flex w-full"><button class="w-full py-2 bg-[#3ea6ff] hover:bg-[#65b8ff] text-black rounded text-sm font-bold transition-colors flex justify-center items-center gap-2 download-eh-btn">⬇️ Scarica File</button></div>`;
+            card.innerHTML = `<div class="w-full h-32 mb-3 bg-[#111] rounded-lg overflow-hidden flex items-center justify-center border border-[#333]"><img src="${safeAttrUrl(item.link)}" class="max-w-full max-h-full object-contain"></div><div class="flex flex-col pr-6 mb-3"><h3 class="font-bold text-white text-sm leading-tight line-clamp-1 inline-flex items-center gap-1" title="${escapeHtml(item.title)}">${escapeHtml(item.title)} <span class="item-sync-indicator shrink-0"></span></h3><span class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Immagine / Icona</span></div><div class="mt-auto flex w-full"><button class="w-full py-2 bg-[#3ea6ff] hover:bg-[#65b8ff] text-black rounded text-sm font-bold transition-colors flex justify-center items-center gap-2 download-eh-btn">⬇️ Scarica File</button></div>`;
         } else {
             const isPlaying = state.currentlyPlayingEHId === item.id && !state.globalAudioPlayer.paused;
             const mainIconClass = isPlaying ? 'hidden' : 'group-hover/audio:hidden';
             const playIconClass = isPlaying ? 'block' : 'hidden group-hover/audio:block';
             
-            card.innerHTML = `<div class="flex items-start gap-3 mb-4"><div class="relative w-10 h-10 rounded-lg bg-[#272727] flex items-center justify-center text-xl shrink-0 border border-[#404040] group/audio cursor-pointer eh-play-trigger" data-id="${item.id}" title="Clicca per ascoltare"><span class="eh-icon-main ${mainIconClass}">${icon}</span><span class="eh-play-icon ${playIconClass} text-[#3ea6ff] text-sm">${isPlaying ? '⏸️' : '▶️'}</span></div><div class="flex flex-col pr-6 flex-1"><h3 class="font-bold text-white text-sm leading-tight line-clamp-2 inline-flex items-center flex-wrap gap-1" title="${item.title}">${item.title} <span class="item-sync-indicator shrink-0"></span></h3><span class="text-[10px] text-gray-500 mt-1 uppercase tracking-widest">${item.category === 'sfx' ? 'Sound Effect' : 'Audio Track'}</span></div></div><div class="mt-auto pt-2 flex w-full"><button class="w-full py-2 bg-[#3ea6ff] hover:bg-[#65b8ff] text-black rounded text-sm font-bold transition-colors flex justify-center items-center gap-2 download-eh-btn">⬇️ Scarica File</button></div>`;
+            card.innerHTML = `<div class="flex items-start gap-3 mb-4"><div class="relative w-10 h-10 rounded-lg bg-[#272727] flex items-center justify-center text-xl shrink-0 border border-[#404040] group/audio cursor-pointer eh-play-trigger" data-id="${escapeHtml(item.id)}" title="Clicca per ascoltare"><span class="eh-icon-main ${mainIconClass}">${icon}</span><span class="eh-play-icon ${playIconClass} text-[#3ea6ff] text-sm">${isPlaying ? '⏸️' : '▶️'}</span></div><div class="flex flex-col pr-6 flex-1"><h3 class="font-bold text-white text-sm leading-tight line-clamp-2 inline-flex items-center flex-wrap gap-1" title="${escapeHtml(item.title)}">${escapeHtml(item.title)} <span class="item-sync-indicator shrink-0"></span></h3><span class="text-[10px] text-gray-500 mt-1 uppercase tracking-widest">${item.category === 'sfx' ? 'Sound Effect' : 'Audio Track'}</span></div></div><div class="mt-auto pt-2 flex w-full"><button class="w-full py-2 bg-[#3ea6ff] hover:bg-[#65b8ff] text-black rounded text-sm font-bold transition-colors flex justify-center items-center gap-2 download-eh-btn">⬇️ Scarica File</button></div>`;
             
             setTimeout(() => {
                 const trigger = card.querySelector('.eh-play-trigger');
@@ -833,10 +834,12 @@ export function renderStats() {
         if(recent.length === 0) timeline.innerHTML = '<p class="text-sm text-gray-500 mt-4 ml-4">Nessuna attività recente.</p>';
         else recent.forEach(idea => {
             const stat = getIdeaStatus(idea);
-            let color = 'bg-gray-500', text = `Creata: <strong>${idea.title}</strong>`, subText = timeSince(idea.createdAt || Date.now());
-            if(stat === 'completed') { color = 'bg-green-500'; text = `Completata: <strong>${idea.title}</strong>`; subText = `Da ${idea.assignee}`; }
-            else if (stat === 'progress') { color = 'bg-purple-500'; text = `In lavorazione: <strong>${idea.title}</strong>`; subText = `Da ${idea.assignee}`; }
-            else if (stat === 'new') { color = 'bg-blue-500'; text = `Nuova: <strong>${idea.title}</strong>`; }
+            const safeTitle = escapeHtml(idea.title);
+            const safeAssignee = escapeHtml(idea.assignee);
+            let color = 'bg-gray-500', text = `Creata: <strong>${safeTitle}</strong>`, subText = timeSince(idea.createdAt || Date.now());
+            if(stat === 'completed') { color = 'bg-green-500'; text = `Completata: <strong>${safeTitle}</strong>`; subText = `Da ${safeAssignee}`; }
+            else if (stat === 'progress') { color = 'bg-purple-500'; text = `In lavorazione: <strong>${safeTitle}</strong>`; subText = `Da ${safeAssignee}`; }
+            else if (stat === 'new') { color = 'bg-blue-500'; text = `Nuova: <strong>${safeTitle}</strong>`; }
             timeline.innerHTML += `<div class="mb-6 ml-6 relative"><span class="absolute flex items-center justify-center w-3 h-3 ${color} rounded-full -left-[31px] top-1 ring-4 ring-[#1a1a1a]"></span><h3 class="text-sm font-semibold text-gray-200 leading-tight">${text}</h3><time class="block mb-1 text-xs font-normal text-gray-500 mt-0.5">${subText}</time></div>`;
         });
     }
@@ -886,7 +889,7 @@ export function renderDatabaseStats() {
             tableBody.parentElement.classList.remove('hidden'); if(noItems) noItems.classList.add('hidden');
             heavyItems.forEach(item => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td class="px-5 py-3"><span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-gray-500/30">${item.type}</span></td><td class="px-5 py-3 font-semibold text-white">${item.title}</td><td class="px-5 py-3 text-yellow-400 font-bold">${item.size} KB</td><td class="px-5 py-3 text-right"><button class="delete-heavy-btn text-xs bg-red-900/40 hover:bg-red-600 text-red-400 hover:text-white px-3 py-1.5 rounded transition-colors font-bold">Elimina Immagine</button></td>`;
+                tr.innerHTML = `<td class="px-5 py-3"><span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold border border-gray-500/30">${escapeHtml(item.type)}</span></td><td class="px-5 py-3 font-semibold text-white">${escapeHtml(item.title)}</td><td class="px-5 py-3 text-yellow-400 font-bold">${escapeHtml(item.size)} KB</td><td class="px-5 py-3 text-right"><button class="delete-heavy-btn text-xs bg-red-900/40 hover:bg-red-600 text-red-400 hover:text-white px-3 py-1.5 rounded transition-colors font-bold">Elimina Immagine</button></td>`;
                 tr.querySelector('.delete-heavy-btn').addEventListener('click', () => {
                     requirePin(`Vuoi eliminare l'immagine pesante di "${item.title}"? L'elemento in sé NON verrà cancellato e conserverà tutti i dati e le task.`, async () => {
                         const obj = item.arrayRef.find(x => x.id === item.id);
@@ -931,7 +934,7 @@ export function renderDevTodo() {
                         <svg class="hidden w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
                     </div>
                 </div>
-                <span class="text-sm ${todo.done ? 'text-gray-500 line-through' : 'text-gray-200'}">${todo.text}</span>
+                <span class="text-sm ${todo.done ? 'text-gray-500 line-through' : 'text-gray-200'}">${escapeHtml(todo.text)}</span>
             </label>
             <button class="text-red-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-2 text-sm" title="Elimina Task">🗑️</button>
         `;
@@ -966,7 +969,7 @@ export async function renderTMSPicks() {
         card.onclick = () => { if(window.openPickDashboard) window.openPickDashboard(pick); };
 
         const thumbSrc = `https://img.youtube.com/vi/${pick.ytId}/maxresdefault.jpg`;
-        let avatarHtml = pick.avatar ? `<img src="${pick.avatar}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center">📺</div>`;
+        let avatarHtml = pick.avatar ? `<img src="${safeAttrUrl(pick.avatar)}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center">📺</div>`;
         
         card.innerHTML = `
             <div class="relative w-full aspect-video rounded-xl overflow-hidden bg-[#272727] border border-transparent group-hover:border-[#444] transition-colors shadow-lg">
@@ -975,10 +978,10 @@ export async function renderTMSPicks() {
                     <span class="text-4xl drop-shadow-lg">📝</span>
                 </div>
                 <div class="absolute top-2 left-2 bg-black/80 px-2 py-0.5 rounded text-[11px] font-bold text-gray-300 uppercase border border-[#444] backdrop-blur-sm">
-                    ${pick.views || 'N/A views'}
+                    ${escapeHtml(pick.views || 'N/A views')}
                 </div>
                 <div class="absolute bottom-2 right-2 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-bold text-white border border-[#444]">
-                    ${pick.duration || '0:00'}
+                    ${escapeHtml(pick.duration || '0:00')}
                 </div>
             </div>
             <div class="flex gap-3 pr-2 mt-1">
@@ -986,9 +989,9 @@ export async function renderTMSPicks() {
                     ${avatarHtml}
                 </div>
                 <div class="flex flex-col">
-                    <h3 class="text-[14px] font-semibold text-[#f1f1f1] line-clamp-2 leading-tight group-hover:text-blue-400 transition-colors inline-flex items-center gap-1" title="${pick.title}">${pick.title} <span class="item-sync-indicator shrink-0"></span></h3>
+                    <h3 class="text-[14px] font-semibold text-[#f1f1f1] line-clamp-2 leading-tight group-hover:text-blue-400 transition-colors inline-flex items-center gap-1" title="${escapeHtml(pick.title)}">${escapeHtml(pick.title)} <span class="item-sync-indicator shrink-0"></span></h3>
                     <div class="text-[12px] text-[#aaaaaa] mt-1 font-medium flex items-center gap-1">
-                        ${pick.author || 'Sconosciuto'}
+                        ${escapeHtml(pick.author || 'Sconosciuto')}
                     </div>
                 </div>
             </div>
@@ -1012,8 +1015,9 @@ export function renderInspChannels() {
         document.getElementById('noInspChannels').classList.add('hidden'); tbody.parentElement.classList.remove('hidden');
         filtered.forEach(ch => {
             const tr = document.createElement('tr'); tr.className = 'hover:bg-[#272727] transition-colors';
-            let avatarHtml = ch.avatar ? `<img src="${ch.avatar}" class="w-8 h-8 rounded-full object-cover shrink-0 border border-[#404040]">` : `<div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold border border-[#444]">${ch.name.charAt(0).toUpperCase()}</div>`;
-            tr.innerHTML = `<td class="px-5 py-4 font-bold text-white flex items-center gap-3"><a href="${ch.url}" target="_blank" class="flex items-center gap-3 hover:text-blue-400 transition-colors">${avatarHtml}${ch.name}</a></td><td class="px-5 py-4 text-gray-300 font-mono text-sm">${ch.subs || 'N/A'}</td><td class="px-5 py-4 text-gray-300 font-mono text-sm">${ch.views || 'N/A'}</td><td class="px-5 py-4 text-gray-300">${ch.frequency || 'N/A'}</td><td class="px-5 py-4 font-semibold ${ch.trend.includes('Crescita') ? 'text-green-400' : (ch.trend.includes('Calo') ? 'text-red-400' : 'text-gray-400')}">${ch.trend || '➡️ Stabile'}</td><td class="px-5 py-4 text-right"><button class="text-red-400 hover:text-red-300 font-bold transition-colors del-insp-ch-btn text-lg" title="Elimina canale">🗑️</button></td>`;
+            let avatarHtml = ch.avatar ? `<img src="${safeAttrUrl(ch.avatar)}" class="w-8 h-8 rounded-full object-cover shrink-0 border border-[#404040]">` : `<div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold border border-[#444]">${escapeHtml(ch.name.charAt(0).toUpperCase())}</div>`;
+            const inspTrend = ch.trend || '➡️ Stabile';
+            tr.innerHTML = `<td class="px-5 py-4 font-bold text-white flex items-center gap-3"><a ${safeUrl(ch.url) ? `href="${safeAttrUrl(ch.url)}" target="_blank" rel="noopener noreferrer"` : ''} class="flex items-center gap-3 hover:text-blue-400 transition-colors">${avatarHtml}${escapeHtml(ch.name)}</a></td><td class="px-5 py-4 text-gray-300 font-mono text-sm">${escapeHtml(ch.subs || 'N/A')}</td><td class="px-5 py-4 text-gray-300 font-mono text-sm">${escapeHtml(ch.views || 'N/A')}</td><td class="px-5 py-4 text-gray-300">${escapeHtml(ch.frequency || 'N/A')}</td><td class="px-5 py-4 font-semibold ${inspTrend.includes('Crescita') ? 'text-green-400' : (inspTrend.includes('Calo') ? 'text-red-400' : 'text-gray-400')}">${escapeHtml(inspTrend)}</td><td class="px-5 py-4 text-right"><button class="text-red-400 hover:text-red-300 font-bold transition-colors del-insp-ch-btn text-lg" title="Elimina canale">🗑️</button></td>`;
             tr.querySelector('.del-insp-ch-btn').onclick = (e) => { e.stopPropagation(); requirePin(`Eliminare "${ch.name}"?`, async () => { state.inspChannels = state.inspChannels.filter(c => c.id !== ch.id); state.globalFeed = state.globalFeed.filter(v => v.channelId !== ch.id); renderInspChannels(); await autoSaveToCloud(); }); };
             tbody.appendChild(tr);
         });
@@ -1112,8 +1116,8 @@ export function renderNextFeedBatch() {
     batch.forEach(video => {
         const card = document.createElement('div'); card.className = 'flex flex-col gap-2 cursor-pointer group relative';
         card.onclick = () => window.open(video.link, '_blank');
-        let avatarHtml = video.avatar ? `<img src="${video.avatar}" class="w-9 h-9 rounded-full object-cover shrink-0 border border-[#404040]">` : `<div class="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold border border-[#404040] shrink-0">${video.channelName.charAt(0).toUpperCase()}</div>`;
-        card.innerHTML = `<div class="relative w-full aspect-video rounded-xl overflow-hidden bg-[#272727] border border-transparent group-hover:border-[#444] transition-colors shadow-lg"><img src="${video.thumbnail}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"><div class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"><span class="text-4xl drop-shadow-lg">▶️</span></div><div class="absolute top-2 left-2 bg-black/80 px-2 py-0.5 rounded text-[11px] font-bold text-gray-300 uppercase border border-[#444] backdrop-blur-sm">👀 ${video.viewsFormatted}</div><div class="absolute bottom-2 right-2 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-bold text-white border border-[#444]">${Math.floor(video.duration/60)}:${(video.duration%60).toString().padStart(2, '0')}</div></div><div class="flex gap-3 pr-2 mt-1">${avatarHtml}<div class="flex flex-col"><h3 class="text-[14px] font-semibold text-[#f1f1f1] line-clamp-2 leading-tight group-hover:text-blue-400 transition-colors">${video.title}</h3><div class="text-[12px] text-[#aaaaaa] mt-1 font-medium flex items-center gap-1">${video.channelName} <span class="text-[8px] opacity-50">•</span> ${video.timeAgoStr}</div></div></div>`;
+        let avatarHtml = video.avatar ? `<img src="${safeAttrUrl(video.avatar)}" class="w-9 h-9 rounded-full object-cover shrink-0 border border-[#404040]">` : `<div class="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold border border-[#404040] shrink-0">${escapeHtml(video.channelName.charAt(0).toUpperCase())}</div>`;
+        card.innerHTML = `<div class="relative w-full aspect-video rounded-xl overflow-hidden bg-[#272727] border border-transparent group-hover:border-[#444] transition-colors shadow-lg"><img src="${safeAttrUrl(video.thumbnail)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"><div class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"><span class="text-4xl drop-shadow-lg">▶️</span></div><div class="absolute top-2 left-2 bg-black/80 px-2 py-0.5 rounded text-[11px] font-bold text-gray-300 uppercase border border-[#444] backdrop-blur-sm">👀 ${escapeHtml(video.viewsFormatted)}</div><div class="absolute bottom-2 right-2 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-bold text-white border border-[#444]">${Math.floor(video.duration/60)}:${(video.duration%60).toString().padStart(2, '0')}</div></div><div class="flex gap-3 pr-2 mt-1">${avatarHtml}<div class="flex flex-col"><h3 class="text-[14px] font-semibold text-[#f1f1f1] line-clamp-2 leading-tight group-hover:text-blue-400 transition-colors">${escapeHtml(video.title)}</h3><div class="text-[12px] text-[#aaaaaa] mt-1 font-medium flex items-center gap-1">${escapeHtml(video.channelName)} <span class="text-[8px] opacity-50">•</span> ${escapeHtml(video.timeAgoStr)}</div></div></div>`;
         grid.appendChild(card);
     });
 
@@ -1198,12 +1202,12 @@ window.updateChecklistProgress = function(idea) {
     
     let dateHtml = ``;
     if (assigneesArr.length === 1) {
-        dateHtml = `Preso in carico da <span class="font-bold text-white">${idea.assignee}</span> il <span class="text-gray-300">${idea.assignedAt || ''}</span>`;
+        dateHtml = `Preso in carico da <span class="font-bold text-white">${escapeHtml(idea.assignee)}</span> il <span class="text-gray-300">${escapeHtml(idea.assignedAt || '')}</span>`;
     } else if (assigneesArr.length > 1) {
-        dateHtml = `In lavorazione dal <span class="text-gray-300">${idea.assignedAt || ''}</span>`;
+        dateHtml = `In lavorazione dal <span class="text-gray-300">${escapeHtml(idea.assignedAt || '')}</span>`;
     }
 
-    if (idea.completedAt) dateHtml += `<br><span class="text-green-400 font-medium text-xs mt-1 inline-block">Completato il ${idea.completedAt} ✅</span>`;
+    if (idea.completedAt) dateHtml += `<br><span class="text-green-400 font-medium text-xs mt-1 inline-block">Completato il ${escapeHtml(idea.completedAt)} ✅</span>`;
 
     if (idea.assignee) {
         const availableMembers = state.TEAM_MEMBERS.filter(m => !assigneesArr.includes(m));
@@ -1260,7 +1264,7 @@ window.updateChecklistProgress = function(idea) {
                     let displayUrl = link; try { displayUrl = new URL(link).hostname.replace('www.',''); } catch(e){}
                     srcHtml += `
                     <div class="flex items-center gap-2 group/src">
-                        <a href="${link}" target="_blank" title="${link}" class="flex-1 bg-[#222] hover:bg-[#2a2a2a] border border-[#333] hover:border-blue-500 text-blue-400 text-xs px-3 py-2 rounded-lg transition-all flex items-center gap-2 truncate"><span class="truncate font-medium">${displayUrl}</span></a>
+                        <a href="${safeAttrUrl(link)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(link)}" class="flex-1 bg-[#222] hover:bg-[#2a2a2a] border border-[#333] hover:border-blue-500 text-blue-400 text-xs px-3 py-2 rounded-lg transition-all flex items-center gap-2 truncate"><span class="truncate font-medium">${escapeHtml(displayUrl)}</span></a>
                         ${idea.assignee ? `<button class="w-8 h-8 shrink-0 bg-red-900/20 text-red-500 hover:bg-red-500 hover:text-white rounded-lg flex items-center justify-center transition-colors border border-red-900/30 opacity-0 group-hover/src:opacity-100" onclick="window.removeSourceLink('${idea.id}', ${idx})" title="Rimuovi Risorsa">✖</button>` : ''}
                     </div>`;
                 });
@@ -1357,7 +1361,7 @@ window.openIdeaDashboard = function(idea) {
                         const btnClass = isChecked 
                             ? 'bg-blue-600 text-white border-blue-400 ring-2 ring-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.4)]' 
                             : 'bg-[#222] text-gray-500 border-[#333] hover:border-gray-400';
-                        html += `<button class="task-collab-btn px-3 py-1 rounded text-[11px] font-bold transition-all border ${btnClass}" data-task="${key}" data-name="${name}">${isChecked ? `✓ ${name}` : name}</button>`;
+                        html += `<button class="task-collab-btn px-3 py-1 rounded text-[11px] font-bold transition-all border ${btnClass}" data-task="${escapeHtml(key)}" data-name="${escapeHtml(name)}">${isChecked ? `✓ ${escapeHtml(name)}` : escapeHtml(name)}</button>`;
                     });
                     selectContainer.innerHTML = html;
                     selectContainer.classList.remove('hidden');
@@ -1505,7 +1509,7 @@ window.openEditIdeaModal = function(idea) {
         document.getElementById('editIdeaAssigneeContainer').classList.remove('hidden'); 
         if (assigneeSelect) {
             if (assigneesArr.length > 1) {
-                if (!assigneeSelect.querySelector(`option[value="${idea.assignee}"]`)) assigneeSelect.insertAdjacentHTML('afterbegin', `<option value="${idea.assignee}">${idea.assignee} (Team)</option>`);
+                if (!assigneeSelect.querySelector(`option[value="${idea.assignee}"]`)) assigneeSelect.insertAdjacentHTML('afterbegin', `<option value="${escapeHtml(idea.assignee)}">${escapeHtml(idea.assignee)} (Team)</option>`);
                 assigneeSelect.value = idea.assignee; assigneeSelect.disabled = true; assigneeSelect.title = "Gestisci i collaboratori dalla Dashboard principale";
             } else {
                 assigneeSelect.disabled = false; assigneeSelect.title = ""; assigneeSelect.value = idea.assignee;
@@ -1528,7 +1532,7 @@ window.openEditIdeaModal = function(idea) {
     if (editChannelInp) {
         editChannelInp.innerHTML = '<option value="">Nessun Canale</option>';
         state.channels.forEach(c => {
-            editChannelInp.innerHTML += `<option value="${c.id}" ${c.id === idea.channelId ? 'selected' : ''}>${c.name}</option>`;
+            editChannelInp.innerHTML += `<option value="${escapeHtml(c.id)}" ${c.id === idea.channelId ? 'selected' : ''}>${escapeHtml(c.name)}</option>`;
         });
     }
     
@@ -1562,8 +1566,8 @@ window.renderCompetitors = function() {
         if (isUF) {
             card.className = 'flex flex-col gap-2 cursor-pointer group relative hover:opacity-90 transition-opacity bg-[#212121] rounded-xl p-3 border border-[#333] hover:border-red-500 shadow';
             card.onclick = () => window.open(comp.link, '_blank');
-            let avatarHtml = comp.avatar ? `<img src="${comp.avatar}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-[10px]">📸</div>`;
-            
+            let avatarHtml = comp.avatar ? `<img src="${safeAttrUrl(comp.avatar)}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-[10px]">📸</div>`;
+
             const act = document.createElement('div');
             act.className = 'absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10';
             act.innerHTML = `<button class="delBtn bg-red-600/90 hover:bg-red-500 text-white text-xs w-8 h-8 rounded-full shadow-lg hover:scale-110">🗑️</button>`;
@@ -1577,15 +1581,15 @@ window.renderCompetitors = function() {
             
             card.innerHTML = `
                 <div class="relative w-full aspect-square rounded-lg overflow-hidden bg-[#111] border border-[#333] transition-colors mb-2">
-                    <img src="${thumbSrc}" onerror="this.src='https://via.placeholder.com/400'" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    <img src="${safeAttrUrl(thumbSrc)}" onerror="this.src='https://via.placeholder.com/400'" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                     <div class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"><span class="text-4xl drop-shadow-lg">↗️</span></div>
                 </div>
                 <div class="flex gap-3 px-1 pb-1 items-start">
                     <div class="w-10 h-10 rounded-full bg-[#111] flex items-center justify-center text-xs font-bold border border-[#404040] shrink-0 overflow-hidden mt-1">${avatarHtml}</div>
                     <div class="flex flex-col flex-1">
-                        <h3 class="text-sm font-bold text-[#f1f1f1] leading-tight group-hover:text-red-400 transition-colors" title="${comp.title}">${comp.title}</h3>
-                        <div class="text-[11px] text-[#aaaaaa] mt-1 font-medium break-all text-blue-400">${comp.author || ''}</div>
-                        <div class="text-[10px] text-gray-500 mt-1 line-clamp-2">${comp.views || ''}</div>
+                        <h3 class="text-sm font-bold text-[#f1f1f1] leading-tight group-hover:text-red-400 transition-colors" title="${escapeHtml(comp.title)}">${escapeHtml(comp.title)}</h3>
+                        <div class="text-[11px] text-[#aaaaaa] mt-1 font-medium break-all text-blue-400">${escapeHtml(comp.author || '')}</div>
+                        <div class="text-[10px] text-gray-500 mt-1 line-clamp-2">${escapeHtml(comp.views || '')}</div>
                     </div>
                 </div>
             `;
@@ -1593,22 +1597,22 @@ window.renderCompetitors = function() {
         } else {
             card.className = 'flex flex-col gap-2 cursor-pointer group relative hover:opacity-90 transition-opacity bg-[#212121] rounded-xl p-3 border border-[#333] hover:border-blue-500 shadow';
             card.onclick = () => { if(window.openCompDashboard) window.openCompDashboard(comp); };
-            let avatarHtml = comp.avatar ? `<img src="${comp.avatar}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-[10px]">📺</div>`;
+            let avatarHtml = comp.avatar ? `<img src="${safeAttrUrl(comp.avatar)}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-[10px]">📺</div>`;
             card.innerHTML = `
                 <div class="relative w-full aspect-video rounded-lg overflow-hidden bg-[#111] border border-[#333] transition-colors mb-2">
-                    <img src="${thumbSrc}" onerror="this.src='https://img.youtube.com/vi/${comp.ytId}/hqdefault.jpg'" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    <img src="${safeAttrUrl(thumbSrc)}" onerror="this.src='https://img.youtube.com/vi/${encodeURIComponent(comp.ytId || '')}/hqdefault.jpg'" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                     <div class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                         <span class="text-4xl drop-shadow-lg">📊</span>
                     </div>
-                    <div class="absolute bottom-2 right-2 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-bold text-white border border-[#444]">${comp.duration || '0:00'}</div>
+                    <div class="absolute bottom-2 right-2 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-bold text-white border border-[#444]">${escapeHtml(comp.duration || '0:00')}</div>
                 </div>
                 <div class="flex gap-3 px-1 pb-1">
                     <div class="w-8 h-8 rounded-full bg-[#111] flex items-center justify-center text-xs font-bold border border-[#404040] shrink-0 overflow-hidden">${avatarHtml}</div>
                     <div class="flex flex-col flex-1">
-                        <h3 class="text-sm font-bold text-[#f1f1f1] line-clamp-2 leading-tight group-hover:text-blue-400 transition-colors inline-flex items-center gap-1" title="${comp.title}">${comp.title} <span class="item-sync-indicator shrink-0"></span></h3>
+                        <h3 class="text-sm font-bold text-[#f1f1f1] line-clamp-2 leading-tight group-hover:text-blue-400 transition-colors inline-flex items-center gap-1" title="${escapeHtml(comp.title)}">${escapeHtml(comp.title)} <span class="item-sync-indicator shrink-0"></span></h3>
                         <div class="text-[11px] text-[#aaaaaa] mt-1.5 font-medium flex items-center justify-between">
-                            <span class="truncate pr-2">${comp.author || 'Sconosciuto'}</span>
-                            <span class="shrink-0 text-white bg-black/30 px-1.5 py-0.5 rounded border border-[#333]">${comp.views || ''}</span>
+                            <span class="truncate pr-2">${escapeHtml(comp.author || 'Sconosciuto')}</span>
+                            <span class="shrink-0 text-white bg-black/30 px-1.5 py-0.5 rounded border border-[#333]">${escapeHtml(comp.views || '')}</span>
                         </div>
                     </div>
                 </div>
@@ -1624,7 +1628,7 @@ window.openCompDashboard = (comp) => {
     document.getElementById('compDashThumb').src = comp.thumbnail;
     document.getElementById('compDashDuration').textContent = comp.duration || '0:00';
     document.getElementById('compDashTitle').textContent = comp.title;
-    document.getElementById('compDashAvatar').innerHTML = comp.avatar ? `<img src="${comp.avatar}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-xs">📺</div>`;
+    document.getElementById('compDashAvatar').innerHTML = comp.avatar ? `<img src="${safeAttrUrl(comp.avatar)}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-xs">📺</div>`;
     document.getElementById('compDashAuthor').textContent = comp.author;
     document.getElementById('compDashViews').textContent = comp.views;
     document.getElementById('compDashLinkBtn').onclick = () => window.open(comp.link, '_blank');
@@ -1669,7 +1673,7 @@ window.renderCompImages = (images) => {
         const div = document.createElement('div');
         div.className = 'w-32 h-20 shrink-0 rounded-lg overflow-hidden border border-[#444] relative group';
         div.innerHTML = `
-            <img src="${img}" class="w-full h-full object-cover">
+            <img src="${safeAttrUrl(img)}" class="w-full h-full object-cover">
             <button class="absolute top-1 right-1 bg-red-600 hover:bg-red-500 text-white w-5 h-5 flex items-center justify-center rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">✖</button>
         `;
         div.querySelector('button').onclick = async () => {
@@ -1707,10 +1711,10 @@ window.renderFastIdeas = function() {
 
         card.innerHTML = `
             <div class="flex justify-between items-start gap-2">
-                <h3 class="font-bold text-white text-lg leading-tight break-words">${idea.title}</h3>
+                <h3 class="font-bold text-white text-lg leading-tight break-words">${escapeHtml(idea.title)}</h3>
                 <button class="info-fast-idea text-xl transition-colors p-1 shrink-0 ${hasDesc ? 'text-blue-400 opacity-100' : 'grayscale opacity-50 hover:opacity-100 hover:grayscale-0'}" title="Aggiungi/Modifica Info">ℹ️</button>
             </div>
-            ${hasDesc ? `<div class="text-xs text-gray-400 line-clamp-3 bg-[#111] p-2 rounded border border-[#333] whitespace-pre-wrap">${idea.description.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>` : ''}
+            ${hasDesc ? `<div class="text-xs text-gray-400 line-clamp-3 bg-[#111] p-2 rounded border border-[#333] whitespace-pre-wrap">${escapeHtml(idea.description)}</div>` : ''}
             <div class="text-xs text-gray-500 mt-auto pt-2 border-t border-[#333] flex justify-between items-center">
                 <span>${new Date(idea.createdAt).toLocaleDateString('it-IT')}</span>
                 <div class="flex gap-2">

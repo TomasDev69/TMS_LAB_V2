@@ -2,11 +2,13 @@ import { state } from './state.js';
 import { devLog, updateStatus } from './ui.js';
 
 export async function callScriptAction(bodyObj) {
-    const reqSizeKB = (((JSON.stringify(bodyObj).length * 3) / 4) / 1024).toFixed(2);
+    // Il token di sicurezza viene inviato con ogni richiesta e validato lato server.
+    const authedBody = { ...bodyObj, token: state.APP_TOKEN };
+    const reqSizeKB = (((JSON.stringify(authedBody).length * 3) / 4) / 1024).toFixed(2);
     devLog(`[API] 📡 Invio POST per azione: <span class="text-blue-400 font-bold">${bodyObj.action}</span> (Grandezza: ~${reqSizeKB} KB)`, "info", bodyObj);
     const startTime = performance.now();
     try {
-        const res = await fetch(state.SCRIPT_URL, { method: 'POST', body: JSON.stringify(bodyObj), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+        const res = await fetch(state.SCRIPT_URL, { method: 'POST', body: JSON.stringify(authedBody), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
         const endTime = performance.now();
         const data = await res.json();
         devLog(`[API] ✅ Risposta da Google in ${((endTime - startTime) / 1000).toFixed(2)}s [${bodyObj.action}]`, "success", data);
@@ -115,7 +117,10 @@ export async function loadDataFromCloud() {
     if(window.updateSyncIndicators) window.updateSyncIndicators();
 
     try {
-        const res = await fetch(state.SCRIPT_URL, { cache: 'no-store' });
+        // Il token va in querystring perché doGet non ha un body.
+        const sep = state.SCRIPT_URL.includes('?') ? '&' : '?';
+        const getUrl = `${state.SCRIPT_URL}${sep}token=${encodeURIComponent(state.APP_TOKEN)}`;
+        const res = await fetch(getUrl, { cache: 'no-store' });
         const rawText = await res.text();
         
         if (rawText.startsWith('<!DOCTYPE html>') || rawText.includes('<html')) {

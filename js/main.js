@@ -7,7 +7,7 @@ import {
     renderInspChannels, loadInspFeed, switchEHTab, updateAudioUI, renderTMSPicks,
     renderNextFeedBatch, renderFinanceDashboard, getIdeaStatus, renderDevTodo, renderAdminChannelList
 } from './renderers.js';
-import { compressImage, shuffleArray, formatViewsCount } from './utils.js';
+import { compressImage, shuffleArray, formatViewsCount, escapeHtml, safeUrl, safeAttrUrl } from './utils.js';
 
 // =============================================
 // ASSOCIAZIONE FUNZIONI GLOBALI (Per l'HTML)
@@ -152,7 +152,7 @@ window.openAddEditorCostModal = () => {
     select.innerHTML = '<option value="">Seleziona idea video...</option>';
     
     const completedIdeas = state.videoIdeas.filter(v => getIdeaStatus(v) === 'completed');
-    completedIdeas.forEach(idea => { select.innerHTML += `<option value="${idea.id}" data-editor="${idea.assignee || 'Sconosciuto'}">${idea.title}</option>`; });
+    completedIdeas.forEach(idea => { select.innerHTML += `<option value="${escapeHtml(idea.id)}" data-editor="${escapeHtml(idea.assignee || 'Sconosciuto')}">${escapeHtml(idea.title)}</option>`; });
     
     select.onchange = (e) => {
         const opt = e.target.options[e.target.selectedIndex];
@@ -1169,7 +1169,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         for (let [p, subs] of Object.entries(periods)) {
                             if (!subs || subs.length === 0) subs = ['Intero'];
                             let sFull = subs.join(' + ');
-                            tags.push(`<span class="bg-green-500/20 text-green-400 text-[10px] px-1.5 py-1 rounded leading-tight font-bold border border-green-500/30 block w-full whitespace-normal break-words mb-1 shadow-sm" title="${p}: ${subs.join(', ')}">${p}: ${sFull}</span>`);
+                            tags.push(`<span class="bg-green-500/20 text-green-400 text-[10px] px-1.5 py-1 rounded leading-tight font-bold border border-green-500/30 block w-full whitespace-normal break-words mb-1 shadow-sm" title="${escapeHtml(p + ': ' + subs.join(', '))}">${escapeHtml(p + ': ' + sFull)}</span>`);
                         }
                         if(tags.length === 0) tags.push(`<span class="bg-green-500/20 text-green-400 text-[10px] px-1.5 py-1 rounded leading-tight font-bold border border-green-500/30 block w-fit mb-1 shadow-sm">✔️ Disponibile</span>`);
                         contentHtml = `<div class="mt-1 flex flex-col gap-0.5">${tags.join('')}</div>`;
@@ -1272,7 +1272,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             for (let [p, subs] of Object.entries(periods)) {
                                 if (!subs || subs.length === 0) subs = ['Intero'];
                                 let sFull = subs.join(' + ');
-                                tags.push(`<span class="bg-green-500/20 text-green-400 text-[10px] px-1.5 py-1 rounded leading-tight font-bold border border-green-500/30 block mb-1 w-full mx-auto text-center whitespace-normal break-words shadow-sm" title="${p}: ${subs.join(', ')}">${p}: ${sFull}</span>`);
+                                tags.push(`<span class="bg-green-500/20 text-green-400 text-[10px] px-1.5 py-1 rounded leading-tight font-bold border border-green-500/30 block mb-1 w-full mx-auto text-center whitespace-normal break-words shadow-sm" title="${escapeHtml(p + ': ' + subs.join(', '))}">${escapeHtml(p + ': ' + sFull)}</span>`);
                             }
                             if(tags.length === 0) tags.push(`<span class="bg-green-500/20 text-green-400 text-[10px] px-1.5 py-1 rounded leading-tight font-bold border border-green-500/30 block mb-1 w-fit mx-auto text-center shadow-sm">✔️ Disponibile</span>`);
                             cellHtml = `<div class="w-full h-full min-h-[60px] flex flex-col justify-center p-1">${tags.join('')}</div>`;
@@ -2021,7 +2021,9 @@ Il sottoscritto dichiara che la composizione finale di questo design è frutto d
     document.getElementById('settingsBtn')?.addEventListener('click', () => {
         const urlInput = document.getElementById('scriptUrlInput');
         if(urlInput) urlInput.value = state.SCRIPT_URL;
-        document.getElementById('settingsModal')?.classList.remove('hidden'); 
+        const tokenInput = document.getElementById('scriptTokenInput');
+        if(tokenInput) tokenInput.value = state.APP_TOKEN;
+        document.getElementById('settingsModal')?.classList.remove('hidden');
         document.getElementById('settingsModal')?.classList.add('flex');
     });
 
@@ -2032,11 +2034,16 @@ Il sottoscritto dichiara che la composizione finale di questo design è frutto d
     
     document.getElementById('saveSettingsBtn')?.addEventListener('click', () => {
         const urlInput = document.getElementById('scriptUrlInput');
-        state.SCRIPT_URL = urlInput ? urlInput.value.trim() : ''; 
+        state.SCRIPT_URL = urlInput ? urlInput.value.trim() : '';
         localStorage.setItem('creatorhub_script_url', state.SCRIPT_URL);
-        document.getElementById('settingsModal')?.classList.add('hidden'); 
+
+        const tokenInput = document.getElementById('scriptTokenInput');
+        state.APP_TOKEN = tokenInput ? tokenInput.value.trim() : '';
+        localStorage.setItem('creatorhub_app_token', state.APP_TOKEN);
+
+        document.getElementById('settingsModal')?.classList.add('hidden');
         document.getElementById('settingsModal')?.classList.remove('flex');
-        loadDataFromCloud(); 
+        loadDataFromCloud();
     });
 
     document.getElementById('adminBtn')?.addEventListener('click', () => {
@@ -2412,7 +2419,7 @@ Il sottoscritto dichiara che la composizione finale di questo design è frutto d
     window.openPickDashboard = function(pick) {
         document.getElementById('pickDashThumb').src = `https://img.youtube.com/vi/${pick.ytId}/hqdefault.jpg`;
         document.getElementById('pickDashTitle').textContent = pick.title;
-        document.getElementById('pickDashAuthor').innerHTML = pick.avatar ? `<img src="${pick.avatar}" class="w-5 h-5 rounded-full object-cover"> ${pick.author}` : `📺 ${pick.author}`;
+        document.getElementById('pickDashAuthor').innerHTML = pick.avatar ? `<img src="${safeAttrUrl(pick.avatar)}" class="w-5 h-5 rounded-full object-cover"> ${escapeHtml(pick.author)}` : `📺 ${escapeHtml(pick.author)}`;
         document.getElementById('pickDashViews').textContent = `👀 ${pick.views}`;
         document.getElementById('pickDashDuration').textContent = `⏱️ ${pick.duration}`;
         document.getElementById('pickDashLink').onclick = () => window.open(pick.link, '_blank');

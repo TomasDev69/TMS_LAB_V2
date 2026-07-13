@@ -1,0 +1,29 @@
+# --- Segreti / Backend (MAI nel repo pubblico) ---
+# Codice Google Apps Script: contiene ID Drive reali e va tenuto fuori dal repo.
+Code.gs
+*.gs
+google-apps-script/
+apps-script/
+
+# Eventuali dump / backup del database
+db_backup_*.json
+*.db.json
+database.json
+db_dump*.json
+
+# File con token/segreti
+*.secret
+secrets*.json
+.env
+.env.*
+
+# --- Sistema operativo / editor ---
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# --- Log / temporanei ---
+*.log
+node_modules/

@@ -1,3 +1,32 @@
+// Sanifica testo destinato a essere inserito come HTML (contro XSS).
+// Usare SEMPRE su dati che arrivano da input utente o da contenuti scrapati
+// prima di interpolarli in innerHTML.
+export function escapeHtml(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// Valida un URL per uso in href/src/window.open. Ammette solo http(s), dati
+// immagine e mailto; altrimenti torna stringa vuota (blocca javascript:, ecc.).
+export function safeUrl(value) {
+    if (!value) return '';
+    const s = String(value).trim();
+    if (/^https?:\/\//i.test(s)) return s;
+    if (/^data:image\//i.test(s)) return s;
+    if (/^mailto:/i.test(s)) return s;
+    return '';
+}
+
+// Come safeUrl ma già escaped per inserimento sicuro dentro un attributo HTML.
+export function safeAttrUrl(value) {
+    return escapeHtml(safeUrl(value));
+}
+
 export function getBase64SizeInKB(base64Str) {
     if(!base64Str) return 0;
     return ((base64Str.length * 3 / 4) / 1024).toFixed(2);

@@ -3,10 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net;
+        style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com;
+        img-src 'self' data: https:;
+        media-src 'self' data: blob: https:;
+        connect-src 'self' https://script.google.com https://script.googleusercontent.com https://*.googleusercontent.com https://api.allorigins.win https://api.codetabs.com https://noembed.com https://open.er-api.com https://www.youtube.com https://youtube.com;
+        font-src 'self' data:;
+        frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://drive.google.com;
+        object-src 'none';
+        base-uri 'self';
+        form-action 'self';
+    ">
     <title>TMS Lab - Bacheca Idee Video</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="css/styles.css"> </head>
 <body class="h-screen flex flex-col overflow-hidden">
 
@@ -1004,6 +1017,11 @@
                     <label class="block text-sm font-medium text-gray-300 mb-1">Web App URL (Google Apps Script)</label>
                     <input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-[#0f0f0f] border border-[#303030] rounded p-2 text-white focus:outline-none focus:border-blue-500 text-sm font-mono">
                     <p class="text-[11px] text-gray-400 mt-2">Incolla qui l'URL generato dal tuo Google Apps Script per abilitare la sincronizzazione diretta.</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Token di sicurezza</label>
+                    <input type="password" id="scriptTokenInput" placeholder="Token segreto del team" autocomplete="off" class="w-full bg-[#0f0f0f] border border-[#303030] rounded p-2 text-white focus:outline-none focus:border-blue-500 text-sm font-mono">
+                    <p class="text-[11px] text-gray-400 mt-2">Token condiviso col team (impostato nelle Script Properties). Resta salvato solo su questo browser, non viene mai inviato al repo.</p>
                 </div>
                 <div class="pt-2 flex justify-end">
                     <button id="saveSettingsBtn" class="px-4 py-2 bg-[#3ea6ff] text-black rounded text-sm font-bold hover:bg-[#65b8ff] transition-colors w-full">Salva e Connetti</button>

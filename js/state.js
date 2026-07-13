@@ -12,6 +12,7 @@ export const state = {
         }
     },
     SCRIPT_URL: localStorage.getItem('creatorhub_script_url') || "",
+    APP_TOKEN: localStorage.getItem('creatorhub_app_token') || "",
     videoIdeas: [],
     fastIdeas: [],
     channels: [],
